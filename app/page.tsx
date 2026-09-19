@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
-import { leerPiezas } from '@/lib/secciones'
+import { leerPiezas, type PiezaLanding } from '@/lib/secciones'
 import type { ConfiguracionTienda } from '@/lib/configuracion'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
@@ -28,8 +28,16 @@ import { PieTienda } from '@/components/tienda/pie-tienda'
  */
 export const dynamic = 'force-dynamic'
 
+/**
+ * El caché guarda el valor serializado a JSON, y un `Map` sobrevive a ese viaje
+ * como un objeto vacío: al recuperarlo se pierde `.get()`. Por eso las piezas
+ * viajan como lista de pares y el `Map` se rearma de este lado.
+ */
 const datosDePortada = unstable_cache(
-  async () => Promise.all([leerVitrina(), leerPiezas()]),
+  async () => {
+    const [vitrina, piezas] = await Promise.all([leerVitrina(), leerPiezas()])
+    return { vitrina, piezas: [...piezas] as [string, PiezaLanding][] }
+  },
   ['portada'],
   { revalidate: 300 },
 )
@@ -40,7 +48,9 @@ const LEGAL_RETRACTO = 'Derecho a retracto de 10 días en compras a distancia; r
 export default async function Inicio() {
   // Las franjas editables de la portada. Si la tabla esta vacia, cada franja
   // dibuja lo que trae el codigo: la portada nunca depende de que exista la fila.
-  const [{ productos, categorias, destacado, configuracion }, piezas] = await datosDePortada()
+  const { vitrina, piezas: paresDePiezas } = await datosDePortada()
+  const { productos, categorias, destacado, configuracion } = vitrina
+  const piezas = new Map(paresDePiezas)
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
   const nombre = configuracion?.nombre_tienda ?? 'Tryvex'
 
