@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
 import { leerPiezas } from '@/lib/secciones'
 import type { ConfiguracionTienda } from '@/lib/configuracion'
@@ -13,7 +14,25 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
 /** Portada de catálogo: categorías y productos se alimentan exclusivamente de la vitrina. */
-export const revalidate = 300
+
+/**
+ * La portada se arma al recibir la visita, no al construir el proyecto.
+ *
+ * Con `revalidate` a secas, Next la prerenderizaba durante el build, y eso
+ * obligaba a tener las credenciales de la base de datos para *compilar*, no
+ * solo para *funcionar*: el despliegue fallaba antes de existir. Construir y
+ * funcionar son dos momentos distintos y no tienen por qué compartir secretos.
+ *
+ * El caché no se pierde, se muda: `unstable_cache` guarda el resultado de la
+ * consulta los mismos 300 segundos, así que la base se consulta igual de poco.
+ */
+export const dynamic = 'force-dynamic'
+
+const datosDePortada = unstable_cache(
+  async () => Promise.all([leerVitrina(), leerPiezas()]),
+  ['portada'],
+  { revalidate: 300 },
+)
 
 const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'
 const LEGAL_RETRACTO = 'Derecho a retracto de 10 días en compras a distancia; reembolso antes de 45 días.'
@@ -21,10 +40,7 @@ const LEGAL_RETRACTO = 'Derecho a retracto de 10 días en compras a distancia; r
 export default async function Inicio() {
   // Las franjas editables de la portada. Si la tabla esta vacia, cada franja
   // dibuja lo que trae el codigo: la portada nunca depende de que exista la fila.
-  const [{ productos, categorias, destacado, configuracion }, piezas] = await Promise.all([
-    leerVitrina(),
-    leerPiezas(),
-  ])
+  const [{ productos, categorias, destacado, configuracion }, piezas] = await datosDePortada()
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
   const nombre = configuracion?.nombre_tienda ?? 'Tryvex'
 
