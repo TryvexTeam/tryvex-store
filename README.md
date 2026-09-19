@@ -13,22 +13,20 @@ táctiles de 44 px y la navegación vive al alcance del pulgar.
 
 ## Cómo está organizado el repositorio
 
-La aplicación **no está en la raíz**. Vive en `app/tryvexstore/`, y esto importa al
-configurar el despliegue.
+La aplicación vive en la raíz, que es donde Vercel la busca por omisión.
 
 ```
-app/tryvexstore/        La aplicación Next.js — todo lo que se despliega
-├── app/                Rutas (App Router)
-│   ├── tienda/         Catálogo, filtros y orden
-│   ├── producto/       Ficha de producto
-│   ├── comprar/        Checkout y declaración de transferencia
-│   ├── panel/          Administración: productos, pedidos, finanzas, portada
-│   └── api/feed/       Feed de productos para servicios externos
-├── components/         Componentes compartidos
-├── lib/                Acceso a datos y lógica de negocio
-└── public/             Imágenes de la tienda
-
-docs/                   Investigación de referencias de diseño
+app/                Rutas (App Router)
+├── tienda/         Catálogo, filtros y orden
+├── producto/       Ficha de producto
+├── comprar/        Checkout y declaración de transferencia
+├── panel/          Administración: productos, pedidos, finanzas, portada
+└── api/feed/       Feed de productos para servicios externos
+components/         Componentes compartidos
+lib/                Acceso a datos y lógica de negocio
+public/             Imágenes de la tienda
+supabase/           Migraciones
+docs/               Investigación de referencias de diseño
 ```
 
 ## Desarrollo local
@@ -36,7 +34,6 @@ docs/                   Investigación de referencias de diseño
 Hace falta Node 20 o superior.
 
 ```bash
-cd app/tryvexstore
 npm install
 cp .env.example .env.local   # y completar los valores
 npm run dev
@@ -60,21 +57,12 @@ en el JavaScript que se envía al navegador, y quedaría a la vista de cualquier
 
 ## Despliegue en Vercel
 
-Tres ajustes en el proyecto de Vercel, antes del primer despliegue:
+El proyecto se despliega sin configuración especial: **Root Directory en `./`** y
+**Framework Preset en Next.js**, que es lo que Vercel detecta solo al haber un
+`package.json` con `next` en la raíz.
 
-1. **Root Directory: `app/tryvexstore`**
-
-   Es el ajuste que más se olvida y el que rompe el build. Si queda en `./`, Vercel busca
-   la aplicación en la raíz del repositorio, no la encuentra y falla con
-   `No Next.js version detected`.
-
-2. **Framework Preset: Next.js**
-
-   Al corregir el Root Directory, Vercel normalmente lo detecta solo. Conviene confirmarlo.
-
-3. **Variables de entorno**
-
-   Las tres obligatorias de la tabla de arriba, en Production y Preview.
+Lo único que hay que cargar a mano son las **variables de entorno**: las tres
+obligatorias de la tabla de arriba, en Production y Preview.
 
 Después del primer despliegue, en Supabase → Authentication → URL Configuration, agregar la
 dirección de Vercel a **Redirect URLs**. Sin eso, el acceso al panel rebota al intentar

@@ -1,71 +1,67 @@
-# Dependencias y artefactos de build
-node_modules/
-.next/
-out/
-dist/
-build/
-__pycache__/
-*.pyc
+# Dependencias y compilación
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+/.next/
+/out/
+/build
+/dist/
+/coverage
+*.tsbuildinfo
+next-env.d.ts
 
-# Entorno: NUNCA subir credenciales.
-# .env.local trae SUPABASE_SERVICE_ROLE_KEY, que da acceso total a la base
-# saltándose las políticas de seguridad por fila. Si se filtra, se rota de
-# inmediato desde el panel de Supabase.
-.env
-.env.*
+# Variables de entorno. La plantilla sin valores sí se versiona.
+.env*
 !.env.example
 
-# Material de referencia descargado de terceros.
-# El mirror de apple.com (index.html de 28 MB, styles.css, y las fotos de
-# producto con nombres tipo hero__*.jpg) se usó para medir y estudiar. Es
-# material de otra empresa: sirve como referencia local, no se publica en un
-# repositorio de Tryvex.
+# Vercel
+.vercel
+
+# Registros y basura del sistema
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+*.pem
+
+# Material de referencia de apple.com usado para medir el diseño.
+# No es nuestro y no se republica. Vive solo en el disco local.
 /index.html
 /styles.css
 /_original/
 /_imagenes_original/
 /_video_original/
+/_proyecto-anterior/
 /site/
-/dist/
+/svg-*.svg
+/ac_video_poster_*.jpg
+/large_2x*.mp4
+/large_2x*.webm
 *_large.jpg
 *_large_2x.jpg
 *_small_2x.jpg
 *_large.png
 *_small_2x.png
 *_large_2x.png
-/svg-*.svg
-/ac_video_poster_*.jpg
-/large_2x*.mp4
-/large_2x*.webm
-
-# Capturas y salidas de trabajo
-*.png
-!app/tryvexstore/public/**/*.png
-!public/**/*.png
-.playwright-mcp/
-workspace/out/
-.verify/
-
-# Herramientas locales
 _tools_*.py
 _tools_*.mjs
 
-# Sistema operativo y editores
-.DS_Store
-Thumbs.db
-*.log
+# Las imágenes de la tienda sí se versionan, pese a la regla anterior.
+*.png
+!public/**/*.png
 
-# Notas internas de trabajo, no van al repo corporativo
+# Herramientas y notas de trabajo, no del proyecto
+__pycache__/
+*.pyc
+.playwright-mcp/
+.verify/
 .avengers/
 .claude/
-
-# Proyecto anterior: landing estatica generada desde el mirror de apple.com.
-# Su pipeline opera sobre material que no se versiona, y su package.json en la
-# raiz hacia que Vercel buscara la aplicacion en el directorio equivocado.
-/package.json
-/package-lock.json
-/build.mjs
-/construir.mjs
-/src/
-/config/
-/workspace/
