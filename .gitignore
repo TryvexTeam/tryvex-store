@@ -58,3 +58,14 @@ Thumbs.db
 # Notas internas de trabajo, no van al repo corporativo
 .avengers/
 .claude/
+
+# Proyecto anterior: landing estatica generada desde el mirror de apple.com.
+# Su pipeline opera sobre material que no se versiona, y su package.json en la
+# raiz hacia que Vercel buscara la aplicacion en el directorio equivocado.
+/package.json
+/package-lock.json
+/build.mjs
+/construir.mjs
+/src/
+/config/
+/workspace/
