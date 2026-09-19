@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { unstable_cache } from 'next/cache'
 import { leerVitrina, type ProductoTienda } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
@@ -17,8 +18,15 @@ import { PieTienda } from '@/components/tienda/pie-tienda'
  * Tienda de Apple (título enorme, pestañas por familia). El estado vive en
  * la URL: un filtro se comparte copiando el enlace, y el filtrado ocurre en
  * el servidor, así que la página llega armada y sin saltos.
+ *
+ * Se arma al recibir la visita, no al construir el proyecto: prerenderizarla
+ * obligaba a tener las credenciales de la base de datos para *compilar*. El
+ * caché se muda al dato, que se guarda los mismos 300 segundos.
  */
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
+
+const catalogo = unstable_cache(leerVitrina, ['vitrina-coleccion'], { revalidate: 300 })
+
 export const metadata: Metadata = {
   title: 'Tienda',
   description: 'Todo el catálogo de Tryvex Store, con envío a todo Chile y garantía de 6 meses.',
@@ -46,7 +54,7 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
   let min = precioValido(q.min)
   let max = precioValido(q.max)
   if (min !== undefined && max !== undefined && min > max) [min, max] = [max, min]
-  const { productos, categorias, configuracion } = await leerVitrina()
+  const { productos, categorias, configuracion } = await catalogo()
 
   const cat = uno(q.cat)
   const busqueda = (uno(q.q) ?? '').trim().slice(0, 60)
