@@ -1,0 +1,48 @@
+{
+  "_nota": "Espejo local de la tabla Supabase 'precio_tramos'. El panel del equipo edita la tabla; este archivo es el valor por defecto mientras el panel no existe. Mismos nombres de campo para que el port a Next.js sea 1:1.",
+  "producto_sku": "TRYVEX-PODS-PRO",
+  "moneda": "CLP",
+  "precio_base": 25000,
+  "tramos": [
+    {
+      "id": 1,
+      "min_unidades": 1,
+      "max_unidades": 4,
+      "precio_unitario": 25000,
+      "etiqueta": "Unidad"
+    },
+    {
+      "id": 2,
+      "min_unidades": 5,
+      "max_unidades": 9,
+      "precio_unitario": 23490,
+      "etiqueta": "Pack 5"
+    },
+    {
+      "id": 3,
+      "min_unidades": 10,
+      "max_unidades": 19,
+      "precio_unitario": 21990,
+      "etiqueta": "Pack 10"
+    },
+    {
+      "id": 4,
+      "min_unidades": 20,
+      "max_unidades": 29,
+      "precio_unitario": 20990,
+      "etiqueta": "Pack 20"
+    },
+    {
+      "id": 5,
+      "min_unidades": 30,
+      "max_unidades": null,
+      "precio_unitario": 19990,
+      "etiqueta": "Mayorista"
+    }
+  ],
+  "copy": {
+    "titulo": "Mientras más llevas, menos pagas.",
+    "bajada": "Precio por unidad según la cantidad. Sin cuotas: pago contado por transferencia o tarjeta.",
+    "pie": "Precios por unidad, IVA incluido. Sujeto a stock disponible."
+  }
+}

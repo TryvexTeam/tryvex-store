@@ -1,0 +1,60 @@
+# Dependencias y artefactos de build
+node_modules/
+.next/
+out/
+dist/
+build/
+__pycache__/
+*.pyc
+
+# Entorno: NUNCA subir credenciales.
+# .env.local trae SUPABASE_SERVICE_ROLE_KEY, que da acceso total a la base
+# saltándose las políticas de seguridad por fila. Si se filtra, se rota de
+# inmediato desde el panel de Supabase.
+.env
+.env.*
+!.env.example
+
+# Material de referencia descargado de terceros.
+# El mirror de apple.com (index.html de 28 MB, styles.css, y las fotos de
+# producto con nombres tipo hero__*.jpg) se usó para medir y estudiar. Es
+# material de otra empresa: sirve como referencia local, no se publica en un
+# repositorio de Tryvex.
+/index.html
+/styles.css
+/_original/
+/_imagenes_original/
+/_video_original/
+/site/
+/dist/
+*_large.jpg
+*_large_2x.jpg
+*_small_2x.jpg
+*_large.png
+*_small_2x.png
+*_large_2x.png
+/svg-*.svg
+/ac_video_poster_*.jpg
+/large_2x*.mp4
+/large_2x*.webm
+
+# Capturas y salidas de trabajo
+*.png
+!app/tryvexstore/public/**/*.png
+!public/**/*.png
+.playwright-mcp/
+workspace/out/
+.verify/
+
+# Herramientas locales
+_tools_*.py
+_tools_*.mjs
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+*.log
+
+# Notas internas de trabajo, no van al repo corporativo
+.avengers/
+.claude/

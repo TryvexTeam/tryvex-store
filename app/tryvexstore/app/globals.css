@@ -1,0 +1,1058 @@
+@import "tailwindcss";
+
+/* T-013: superposición sin alterar la franja ni el scroll del héroe. */
+.cabecera-tienda {
+  color: var(--color-tinta);
+  background: rgb(255 255 255 / 90%);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 1px rgb(0 0 0 / 6%);
+  transition: background-color 200ms, color 200ms, box-shadow 200ms;
+}
+.cabecera-tienda[data-transparente='true'] {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.cabecera-tienda[data-transparente='true'][data-tono='oscuro'] { color: white; }
+.cabecera-tienda > nav a,
+.cabecera-tienda > nav button { color: inherit; }
+.cabecera-tienda :focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.tienda-megamenu { animation: megamenu-entra 200ms var(--ease-salida) both; }
+/* Encadenado entre destinos: al pasar el cursor de un ítem a otro el panel ya
+   está abierto, así que lo que debe moverse es el CONTENIDO, no la caja. Las
+   columnas entran escalonadas por unas décimas; sin eso el cambio de destino
+   se lee como un corte seco y el panel parece parpadear. */
+.tienda-megamenu > div > * {
+  animation: megamenu-col 260ms var(--ease-salida) both;
+}
+.tienda-megamenu > div > *:nth-child(2) { animation-delay: 45ms; }
+.tienda-megamenu > div > *:nth-child(3) { animation-delay: 90ms; }
+@keyframes megamenu-col {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda-megamenu > div > * { animation: none; }
+}
+/* Velo bajo el panel: con el megamenú abierto, la página de atrás se atenúa y
+   desenfoca. Sin esto el panel flota sobre contenido nítido y compiten los dos
+   por la atención; con esto queda claro que el sitio está esperando una
+   elección. Cae desde el borde inferior del panel hacia abajo, así que la
+   cabecera y el panel siguen nítidos. */
+/* Velo bajo el panel, sin pseudo-elemento y sin backdrop-filter.
+   El intento anterior (::after fijo con blur) quedaba atrapado en el contexto
+   de apilamiento que crea el backdrop-filter de la cabecera y pintaba encima
+   del propio panel, partiéndolo en bandas grises. Una sombra proyectada
+   gigante resuelve lo mismo en una línea: oscurece todo lo que queda por
+   debajo del panel, no puede tapar su contenido y no crea capas nuevas. */
+.tienda-megamenu { background: var(--color-papel); }
+/* Sin JS: el velo cubre desde debajo de la barra hasta el fondo de la
+   pantalla, y el panel —opaco y con z-index mayor— lo tapa en su propio
+   alto. El resultado es que el difuminado empieza exactamente donde termina
+   el panel, sea cual sea su altura y aunque se pase de un destino a otro.
+   Medir con JS fallaba justo en esa transición. */
+.tienda-megamenu { position: relative; z-index: 2; }
+.velo-megamenu {
+  position: fixed;
+  top: var(--alto-cabecera);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  background: rgb(0 0 0 / 14%);
+  backdrop-filter: blur(14px) saturate(0.92);
+  pointer-events: none;
+  animation: megamenu-velo 220ms var(--ease-salida) both;
+}
+@keyframes megamenu-velo { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .velo-megamenu { animation: none; } }
+@keyframes megamenu-entra {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cabecera-tienda { transition: none; }
+  .tienda-megamenu, .tienda-megamenu::after { animation: none; }
+}
+
+/* Bolsa: la barra de envío gratis avanza con transform, no con width, para no recalcular el layout. */
+.bolsa-avance { transform-origin: left; transition: transform 420ms var(--ease-salida), background-color 200ms; }
+@media (prefers-reduced-motion: reduce) { .bolsa-avance { transition: none; } }
+
+/* Buscador en capa: fondo desenfocado como la Tienda de Apple; la hoja cae desde la cabecera. */
+.buscador-capa::backdrop { background: rgb(0 0 0 / 0.32); backdrop-filter: blur(18px) saturate(1.2); }
+.buscador-capa[open] .buscador-hoja { animation: buscador-entra 260ms var(--ease-salida) both; }
+.buscador-capa[open]::backdrop { animation: buscador-fondo 260ms var(--ease-salida) both; }
+@keyframes buscador-entra { from { opacity: 0; transform: translateY(-12px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes buscador-fondo { from { opacity: 0; } to { opacity: 1; } }
+/* La capa vive dentro de la cabecera: su anillo de foco genérico enmarcaría el campo, que ya es el foco evidente. */
+.buscador-capa input:focus-visible { outline: none; }
+.buscador-capa input::-webkit-search-cancel-button { appearance: none; }
+@media (prefers-reduced-motion: reduce) {
+  .buscador-capa[open] .buscador-hoja, .buscador-capa[open]::backdrop { animation: none; }
+}
+
+/* Tienda v11: banner de campaña. Colores por escena, también durante la salida. */
+.heroe-banner,
+.heroe-banner .heroe-escena { background-color: #000; }
+.heroe-banner[data-tono='claro'],
+.heroe-banner .heroe-escena[data-tono='claro'] { background-color: #e9f1f8; }
+.heroe-banner .heroe-velo {
+  background: linear-gradient(to top, rgb(0 0 0 / 35%), transparent 22%);
+}
+.heroe-banner .heroe-escena[data-tono='claro'] .heroe-velo {
+  background: linear-gradient(to top, rgb(233 241 248 / 70%), transparent 22%);
+}
+.heroe-escena[data-tono='claro'] .heroe-tarjeta { background: #fff; }
+.heroe-tarjeta { background: linear-gradient(#fff,#fff) padding-box, conic-gradient(from 180deg, #5ac8fa, #af52de, #ff2d55, #ff9500, #5ac8fa) border-box; position: relative; border: 3px solid transparent; isolation: isolate; }
+/* El resplandor vive solo en el borde: con z-index -1 dentro de un contexto aislado pinta sobre el
+   fondo blanco, así que la máscara deja el centro transparente (tarjeta blanca, luz en los bordes). */
+.heroe-tarjeta::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: conic-gradient(from var(--angulo, 180deg), #5ac8fa, #af52de, #ff2d55, #ff9500, #5ac8fa); filter: blur(28px); opacity: .55; -webkit-mask: radial-gradient(closest-side, transparent 72%, #000); mask: radial-gradient(closest-side, transparent 72%, #000); }
+.heroe-titulo-degradado { background: linear-gradient(110deg,#5ac8fa,#af52de 38%,#ff2d55 68%,#ff9500); background-clip: text; -webkit-background-clip: text; color: transparent; }
+@property --angulo { syntax: '<angle>'; initial-value: 180deg; inherits: false; }
+@keyframes tarjeta-gira { to { --angulo: 540deg; } }
+.heroe-tarjeta { animation: tarjeta-gira 12s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .heroe-tarjeta { animation: none; } }
+.heroe-banner .heroe-copy[data-tono='claro'],
+.heroe-banner .heroe-copy[data-tono='claro'] .heroe-linea-contenido,
+.heroe-banner .heroe-copy[data-tono='claro'] h1 span,
+.heroe-banner .heroe-copy[data-tono='claro'] .heroe-escena-precio,
+.heroe-banner .heroe-copy[data-tono='claro'] .heroe-escena-precio span {
+  color: var(--color-tinta);
+}
+.heroe-banner .heroe-copy[data-tono='claro'] .banner-primario {
+  background: var(--color-tinta);
+  color: white;
+}
+.heroe-banner .heroe-copy[data-tono='claro'] .banner-secundario {
+  color: var(--color-tinta);
+  --tw-ring-color: rgb(29 29 31 / 30%);
+}
+.heroe-banner .heroe-copy[data-tono='claro'] .heroe-escena-precio {
+  background: rgb(255 255 255 / 70%);
+  --tw-ring-color: rgb(29 29 31 / 20%);
+}
+/* Controles y cápsula (v13, patrón Apple): superficies translúcidas que
+   invierten su tono según la escena activa. */
+.heroe-control,
+.heroe-capsula {
+  background: rgb(255 255 255 / 16%);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%);
+}
+.heroe-punto-pista { background: rgb(255 255 255 / 45%); transition: width 400ms var(--ease-suave); }
+.heroe-punto:hover .heroe-punto-pista { background: rgb(255 255 255 / 70%); }
+.heroe-escenario-progreso { background: #fff; }
+.heroe-banner[data-tono='claro'] .heroe-control,
+.heroe-banner .heroe-copy[data-tono='claro'] .heroe-capsula {
+  background: rgb(255 255 255 / 72%);
+  color: var(--color-tinta);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 8%), 0 8px 24px rgb(0 0 0 / 6%);
+}
+.heroe-banner[data-tono='claro'] .heroe-punto-pista { background: rgb(29 29 31 / 22%); }
+.heroe-banner[data-tono='claro'] .heroe-punto:hover .heroe-punto-pista { background: rgb(29 29 31 / 40%); }
+.heroe-banner[data-tono='claro'] .heroe-escenario-progreso { background: var(--color-tinta); }
+/* La pista activa conserva su fondo translúcido y el progreso la llena. */
+.heroe-punto-activo .heroe-escenario-progreso-pausado { transform: scaleX(1); }
+
+/* ─────────────────────────────────────────────────────────────
+   Tryvex — sistema de diseño
+   Mismos tokens que la landing, para que el panel no se sienta
+   otra aplicación sino la misma casa por dentro.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --color-papel: #ffffff;
+  --color-papel-alt: #f5f5f7;
+  --color-papel-hondo: #fafafa;
+  --color-tinta: #1d1d1f;
+  --color-tinta-suave: #424245;
+  /* Auditado el 2026-09-17: #86868b daba 3.33:1 sobre --color-papel-alt, bajo
+     el 4.5:1 que pide AA para texto normal, en 20 lugares del sitio. #6e6e73
+     sube a 4.66:1 sobre el papel gris y 5.07 sobre blanco, sin perder el
+     carácter del gris secundario. Un token, veinte incumplimientos corregidos. */
+  --color-gris: #6e6e73;
+  --color-borde: #d2d2d7;
+  /* Acento: el rojo de la chispa Tryvex, no el azul de Apple. Las superficies
+     son Apple (blanco/gris limpio); el acento es lo que hace que esto se lea
+     como Tryvex y no como una copia. */
+  --color-spark: #e53935;
+  --color-spark-hover: #cf322e;
+  --color-spark-suave: rgba(229, 57, 53, 0.08);
+  --color-verde: #1d9e4b;
+  --color-ambar: #b25000;
+  --color-rojo: #d70015;
+
+  /* Geist: la tipografia de marca de Tryvex, ya cargada por next/font. */
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Escala óptica de tracking. El interletrado no es un valor, es una función
+     del tamaño: a 96px las letras ya se tocan solas y hay que separarlas menos
+     de lo que uno cree, y a 24-28px el ojo pide aire POSITIVO. Antes cada
+     componente inventaba el suyo (había quince valores distintos a mano, de
+     -0.05em a +0.12em) y el sitio se leía inconsistente de sección a sección.
+     Medido contra apple.com/cl/store el 2026-09-17: ellos usan -0.015em en
+     display y cruzan a positivo entre 24 y 28px. Nosotros hacemos lo mismo,
+     con un tramo más de resolución. */
+  --tracking-mega: -0.02em;      /* 88px y más  */
+  --tracking-display: -0.015em;  /* 64 a 80px   */
+  --tracking-titulo: -0.012em;   /* 40 a 56px   */
+  --tracking-seccion: 0.007em;   /* 28 a 36px   */
+  --tracking-tarjeta: 0.009em;   /* 20 a 26px   */
+  --tracking-cuerpo: -0.022em;   /* 17px        */
+  --tracking-apoyo: -0.016em;    /* 14 a 15px   */
+  --tracking-etiqueta: 0.06em;   /* 11 a 12px en mayúsculas */
+
+  --radius-tarjeta: 18px;
+  --radius-control: 10px;
+
+  /* Curvas propias. Las de CSS (`ease`, `ease-in-out`) no tienen carácter, y
+     `ease-in` retrasa el arranque justo cuando el ojo está más atento: la
+     interfaz se siente lenta aunque dure lo mismo. Nada supera los 300ms;
+     por debajo de ese umbral el movimiento se percibe instantáneo. */
+  --ease-suave: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-salida: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-resorte: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --t-instante: 120ms;
+  --t-control: 180ms;
+  --t-hoja: 260ms;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Foco visible y consistente: se navega el panel con teclado. */
+:focus-visible {
+  outline: 2px solid var(--color-spark);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Cifras alineadas en columnas de precios y montos. */
+.cifra {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Tienda v8: escenario ──────────────────────────────────────
+   Transición con dirección (v12): la escena nueva entra como cortina desde el
+   lado hacia el que se avanza, su foto se asienta desde un leve zoom y la
+   anterior retrocede en profundidad debajo. El texto saliente se va entero y
+   rápido, para que nunca quede una tarjeta o titular viejo sobre la escena
+   nueva. El estado base es la escena completa: sin JS se ve igual. */
+.heroe-escena {
+  clip-path: inset(0);
+}
+.heroe-escena-activa {
+  z-index: 2;
+}
+.heroe-escena-saliendo {
+  z-index: 1;
+}
+.heroe-linea {
+  /* Máscara vertical: el título puede ser ancho sin cortarse por el marco. */
+  clip-path: inset(0 -100vw);
+}
+.heroe-linea-contenido {
+  display: block;
+  opacity: 1;
+  transform: none;
+}
+.heroe-escenario-progreso {
+  transform: scaleX(0);
+}
+.heroe-escenario-progreso-pausado {
+  transform: scaleX(1);
+}
+
+@keyframes escenario-cortina-adelante {
+  from { clip-path: inset(0 0 0 100%); }
+  to { clip-path: inset(0); }
+}
+@keyframes escenario-cortina-atras {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+@keyframes escenario-foto-asienta {
+  from { transform: scale(1.1); }
+  to { transform: scale(1); }
+}
+/* Retroceso sutil: con más oscurecimiento, en escenas claras la franja aún no
+   cubierta por la cortina se veía como un bloque gris plano. */
+@keyframes escenario-retrocede-adelante {
+  from { transform: none; filter: brightness(1); }
+  to { transform: translate3d(-4%, 0, 0); filter: brightness(0.88); }
+}
+@keyframes escenario-retrocede-atras {
+  from { transform: none; filter: brightness(1); }
+  to { transform: translate3d(4%, 0, 0); filter: brightness(0.88); }
+}
+@keyframes escenario-copy-aparece {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes escenario-tarjeta-entra {
+  from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes escenario-linea-entra {
+  from {
+    opacity: 0.4;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes escenario-progreso {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* La primera escena llega ya completa desde SSR; solo una escena nueva se revela. */
+  .heroe-escena-entrando {
+    animation: escenario-cortina-adelante 760ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+  .heroe-escenario[data-direccion='atras'] .heroe-escena-entrando {
+    animation-name: escenario-cortina-atras;
+  }
+  .heroe-escena-entrando picture img {
+    animation: escenario-foto-asienta 1100ms var(--ease-suave) both;
+  }
+  .heroe-escena-saliendo {
+    animation: escenario-retrocede-adelante 760ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+  .heroe-escenario[data-direccion='atras'] .heroe-escena-saliendo {
+    animation-name: escenario-retrocede-atras;
+  }
+  .heroe-escena-copy-entrando .heroe-linea-contenido {
+    animation: escenario-linea-entra 520ms var(--ease-salida) both;
+  }
+  /* El texto nuevo espera a que la cortina cubra la mayor parte: a mitad de camino
+     quedaba sobre el fondo de la escena anterior (blanco sobre claro, ilegible). */
+  .heroe-escena-copy-entrando .heroe-copy-interior {
+    animation: escenario-copy-aparece 320ms var(--ease-salida) 460ms both;
+  }
+  .heroe-escena-copy-entrando .heroe-tarjeta {
+    animation: escenario-tarjeta-entra 620ms var(--ease-suave) 120ms both, tarjeta-gira 12s linear infinite;
+  }
+  .heroe-escenario-progreso-activo {
+    animation: escenario-progreso 6500ms linear both;
+  }
+  .heroe-escenario-progreso-activo.heroe-escenario-progreso-pausado {
+    animation-play-state: paused;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .heroe-escena-entrando,
+  .heroe-escena-saliendo,
+  .heroe-escena-entrando picture img,
+  .heroe-escena-copy-entrando .heroe-linea-contenido,
+  .heroe-escena-copy-entrando .heroe-tarjeta {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .heroe-escena-entrando {
+    clip-path: inset(0) !important;
+  }
+  .heroe-escenario-progreso-activo {
+    animation: none !important;
+    transform: scaleX(1) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Capa de aplicación móvil
+
+   El panel se usa de pie, con una mano, mientras se atiende a
+   alguien. Eso cambia el diseño: los controles viven abajo, al
+   alcance del pulgar, y las superficies necesitan separarse del
+   fondo con luz propia en vez de con bordes duros.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --shadow-sutil: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-alzado: 0 2px 6px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-hoja: 0 -1px 0 rgba(0, 0, 0, 0.06), 0 -12px 40px rgba(0, 0, 0, 0.14);
+}
+
+/* El notch y la barra de gestos del teléfono comen altura real: si la barra
+   de navegación no la respeta, el último botón queda debajo del borde. */
+.pad-seguro-abajo {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.alto-barra {
+  --alto-barra: calc(58px + env(safe-area-inset-bottom));
+}
+
+/* Scroll horizontal de chips sin barra a la vista: en móvil la barra ocupa
+   espacio y no aporta, el gesto ya es evidente. */
+.sin-barra {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sin-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* Feedback táctil: en un teléfono no hay hover, y sin respuesta al toque la
+   interfaz se siente muerta. */
+@media (hover: none) {
+  .presionable:active {
+    transform: scale(0.975);
+    opacity: 0.9;
+  }
+}
+.presionable {
+  transition: transform 140ms var(--ease-suave), opacity 140ms var(--ease-suave),
+    background-color 140ms var(--ease-suave);
+}
+
+/* Entrada de la hoja inferior. */
+@keyframes sube-hoja {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes aparece {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.anim-hoja {
+  animation: sube-hoja 320ms var(--ease-suave);
+}
+.anim-velo {
+  animation: aparece 220ms ease-out;
+}
+
+/* Cuadrícula de imágenes: cuadrada siempre, para que la grilla no baile
+   cuando las fotos vienen con proporciones distintas. */
+.cuadro {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Movimiento
+   Solo se animan `transform` y `opacity`: son las dos únicas
+   propiedades que el navegador resuelve en la GPU, sin recalcular
+   layout. Animar alto, margen o color obliga a repintar en cada
+   fotograma y en un teléfono se nota de inmediato.
+   ───────────────────────────────────────────────────────────── */
+
+/* El hover no existe en un teléfono: sin esta condición, el estado
+   «hover» se queda pegado después de tocar. */
+@media (hover: hover) and (pointer: fine) {
+  .presionable:hover {
+    opacity: 0.92;
+  }
+}
+
+/* Aparición escalonada de la grilla: da sensación de carga viva sin
+   retrasar nada, porque el contenido ya está ahí. */
+@keyframes entra-tarjeta {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.entra {
+  animation: entra-tarjeta var(--t-hoja) var(--ease-salida) backwards;
+}
+
+/* Brillo de carga. Se mueve en transform, no en background-position. */
+@keyframes brilla {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+.esqueleto {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-papel-alt);
+}
+.esqueleto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.72),
+    transparent
+  );
+  animation: brilla 1.4s var(--ease-suave) infinite;
+}
+
+/* Toasts: transición y no keyframes, para que al apilarse uno nuevo no
+   reinicie la animación del anterior desde cero. */
+.toast {
+  transition:
+    transform var(--t-control) var(--ease-salida),
+    opacity var(--t-control) var(--ease-salida);
+}
+.toast[data-estado='entrando'] {
+  transform: translate3d(0, 16px, 0) scale(0.96);
+  opacity: 0;
+}
+.toast[data-estado='saliendo'] {
+  transform: translate3d(0, 8px, 0) scale(0.98);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Se conserva el desvanecido: comunica el cambio de estado sin mover
+     nada, que es lo que molesta a quien pide menos movimiento. */
+  .entra,
+  .esqueleto::after {
+    animation: none !important;
+  }
+  .toast[data-estado='entrando'],
+  .toast[data-estado='saliendo'] {
+    transform: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tienda pública — regla de oro (Radiografía de Dune Dragon)
+
+   Tres quiebres, los de Apple: 735 (sube la tipografía), 834 (la
+   hamburguesa pasa a barra) y 1069 (escala de escritorio). Una sola
+   curva de movimiento, nada sobre 300 ms, solo transform y opacity.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --breakpoint-t: 735px;
+  --breakpoint-n: 834px;
+  --breakpoint-d: 1069px;
+  --color-azul: #2f6fb3;
+  --ease-tienda: cubic-bezier(0, 0, 0.5, 1);
+}
+
+/* Canal: margen lateral que alinea el título de cada franja con su primera
+   card. Crece con la pantalla para que la fila no se pegue al borde. */
+.tienda {
+  --canal: max(22px, calc((100% - 1160px) / 2));
+}
+/* Ojo: --canal es un porcentaje del padre. Dentro de una caja con ancho
+   máximo NO se usa como relleno (se aplicaría dos veces en pantallas
+   anchas): ahí va px-[22px] con max-w-[1204px] = 1160 + 2 × 22, que deja
+   el borde izquierdo exactamente en --canal. */
+
+.tienda-pista {
+  padding-inline: var(--canal);
+  scroll-padding-inline: var(--canal);
+}
+
+/* Dos tamaños fijos de card; con más ancho se ven más, nunca más grandes. */
+.tienda-card {
+  width: min(309px, calc(100vw - 60px));
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 300ms var(--ease-tienda),
+    box-shadow 300ms var(--ease-tienda);
+}
+@media (min-width: 1069px) {
+  .tienda-card {
+    width: 400px;
+  }
+}
+.tienda-card.tienda-beneficio {
+  width: 313px;
+}
+
+/* Marco de card para grillas: la misma sombra y respuesta de `.tienda-card`,
+   pero el ancho lo decide la columna (`.tienda-card` fija 309/400 px y en
+   una grilla de dos columnas desborda el teléfono). */
+.tienda-marco {
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 300ms var(--ease-tienda),
+    box-shadow 300ms var(--ease-tienda);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tienda-marco:hover {
+    transform: scale(1.01);
+    box-shadow: 2px 4px 16px rgba(0, 0, 0, 0.16);
+  }
+}
+
+/* Casi no se ve, pero se siente: confirma que toda la card es tocable.
+   La card sube; la foto sube un poco más. Ese desfase entre el plano del
+   objeto y el plano del papel es lo que lee el ojo como profundidad, y es
+   justo lo que no hace ninguno de los dos referentes medidos el 2026-09-17:
+   Dune Dragon declara `transition: all` y no mueve una sola propiedad, y
+   Apple resuelve sus filas sin respuesta al cursor. La sombra va en dos
+   capas —una de contacto, corta y cerrada, y una de elevación, larga y
+   difusa— porque una sombra sola se lee como calco, no como altura. */
+@media (hover: hover) and (pointer: fine) {
+  .tienda-card:hover,
+  .tienda-marco:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.07),
+      0 16px 32px -8px rgba(0, 0, 0, 0.16);
+  }
+  /* El objeto respira dentro de su marco: 3% es suficiente para percibirlo
+     y poco para que se note el recorte. Solo `transform`: el compositor lo
+     resuelve sin recalcular layout. */
+  .tienda-card:hover .tienda-card-objeto,
+  .tienda-marco:hover .tienda-card-objeto {
+    transform: scale(1.03);
+  }
+}
+.tienda-card-objeto {
+  transition: transform 300ms var(--ease-tienda);
+  will-change: transform;
+}
+
+/* La familia no es una card: la foto va suelta sobre el papel. Por eso aquí NO
+   hay sombra de elevación — una sombra sin superficie que la reciba se lee como
+   suciedad flotando. El gesto es solo del objeto: se acerca un poco, como si el
+   producto se asomara al pasar el cursor. */
+@media (hover: hover) and (pointer: fine) {
+  .tienda-familia:hover .tienda-card-objeto {
+    transform: translateY(-3px) scale(1.05);
+  }
+}
+
+.tienda-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding-inline: 22px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 300ms var(--ease-tienda),
+    color 300ms var(--ease-tienda);
+}
+@media (max-width: 734px) {
+  .tienda-boton {
+    font-size: 15px;
+    padding-inline: 18px;
+  }
+}
+
+.tienda-enlace {
+  transition: color 300ms var(--ease-tienda);
+}
+.tienda-enlace:hover {
+  color: var(--color-tinta);
+}
+
+.tienda-pildora {
+  transition: box-shadow 300ms var(--ease-tienda);
+}
+
+.tienda-categoria span:first-child {
+  transition: transform 300ms var(--ease-tienda);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tienda-categoria:hover span:first-child {
+    transform: scale(1.04);
+  }
+}
+
+.tienda-flecha {
+  transition: opacity 300ms var(--ease-tienda);
+}
+
+/* Hamburguesa: dos rayas que se cruzan en una X. */
+.tienda-raya {
+  position: absolute;
+  left: 0;
+  height: 1.5px;
+  width: 100%;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform 300ms var(--ease-tienda);
+}
+
+.tienda-menu {
+  animation: tienda-aparece 240ms var(--ease-tienda) both;
+}
+.tienda-nivel {
+  animation: tienda-desliza 240ms var(--ease-tienda) both;
+}
+@keyframes tienda-aparece {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes tienda-desliza {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+/* ── Tienda v2: tres cards y banda de tienda ────────────────────
+   En teléfono todas miden 309 × 450. Desde 1069 px la grande (destacada
+   o editorial) mide 400 × 500 y la de producto 313 × 500, como Apple. */
+.tienda-card-grande,
+.tienda-card-producto {
+  width: min(309px, calc(100vw - 60px));
+}
+@media (min-width: 1069px) {
+  .tienda-card-grande {
+    width: 400px;
+  }
+  .tienda-card-producto {
+    width: 313px;
+  }
+}
+
+/* Categorías de la banda: foto grande y nombre, 136 de ancho. */
+.tienda-cat-foto {
+  transition: transform 300ms var(--ease-tienda);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tienda-cat:hover .tienda-cat-foto {
+    transform: scale(1.04);
+  }
+}
+
+/* ── Tienda v3: campaña ─────────────────────────────────────────
+   Un solo resplandor rojo de marca detrás de la figura: profundidad sin
+   decorado. La entrada del héroe es la única animación de la portada,
+   corre una vez al cargar, dura menos de 300 ms por pieza y solo usa
+   transform y opacity. Nada se anima al hacer scroll. */
+.heroe-luz {
+  width: 900px;
+  height: 900px;
+  right: -180px;
+  top: 50%;
+  transform: translateY(-40%);
+  background: radial-gradient(closest-side, rgba(229, 57, 53, 0.42), rgba(229, 57, 53, 0.12) 55%, transparent 72%);
+  filter: blur(8px);
+}
+@media (max-width: 1068px) {
+  .heroe-luz {
+    width: 620px;
+    height: 620px;
+    right: 50%;
+    top: auto;
+    bottom: -220px;
+    transform: translateX(50%);
+  }
+}
+.heroe-luz-cierre {
+  right: 50%;
+  top: 100%;
+  transform: translate(50%, -45%);
+}
+
+@keyframes heroe-foto {
+  from {
+    opacity: 0.4;
+    transform: scale(1.02);
+  }
+}
+
+/* Tiles de escena: la foto crece apenas al pasar el cursor. */
+.tienda-tile-foto {
+  transition: transform 300ms var(--ease-tienda);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tienda-tile:hover .tienda-tile-foto {
+    transform: scale(1.015);
+  }
+}
+
+
+/* ── Tienda v4: ficha y checkout ────────────────────────────────
+   La barra fija de la ficha entra desde abajo cuando el botón principal
+   sale de la vista. Solo transform y opacity, con la curva de la tienda. */
+.ficha-barra {
+  transform: translateY(110%);
+  opacity: 0;
+  transition:
+    transform 260ms var(--ease-tienda),
+    opacity 260ms var(--ease-tienda);
+}
+.ficha-barra-visible {
+  transform: none;
+  opacity: 1;
+}
+.ficha-barra-escritorio {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 260ms var(--ease-tienda), opacity 260ms var(--ease-tienda);
+}
+.ficha-barra-escritorio-visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+.ficha-detalle summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ── Tienda v5: colección ───────────────────────────────────────
+   La foto de la tile crece apenas al pasar el cursor; nada más. */
+/* Alias del plano del objeto: el tile de colección ya resolvía este gesto
+   antes que las cards. Un solo mecanismo para los dos, con el mismo valor. */
+.tienda-tile-colec-foto {
+  transition: transform 300ms var(--ease-tienda);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tienda-tile-colec:hover .tienda-tile-colec-foto {
+    transform: scale(1.03);
+  }
+}
+
+/* ── Tienda v6: héroe a sangre ──────────────────────────────────
+   Velo negro del lado del texto: arriba en teléfono, a la izquierda en
+   escritorio, y siempre hacia abajo para fundirse con la franja siguiente.
+   La foto entra una vez al cargar, solo con opacity y transform. */
+/* Las fotos ya traen el negro donde va el texto (dirección de arte por
+   quiebre); el velo solo asegura contraste si el recorte acerca un objeto. */
+.heroe-velo {
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 34%),
+    linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 14%);
+}
+@media (min-width: 1069px) {
+  .heroe-velo {
+    background:
+      linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 42%),
+      linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 14%);
+  }
+}
+.heroe-imagen {
+  animation: heroe-foto 300ms var(--ease-tienda) 120ms both;
+}
+
+/* ── Tienda v7: motion de lectura ──────────────────────────────
+   Las animaciones se activan solo en motores que implementan timelines de
+   scroll. Fuera de @supports, las piezas ya están en su estado final:
+   contenido completo, visible y sin depender de JavaScript. */
+.revela,
+.revela-escala {
+  opacity: 1;
+  transform: none;
+}
+.cierre-revela {
+  clip-path: inset(0 0 round 28px);
+}
+
+@keyframes tienda-revela {
+  from {
+    opacity: 0.4;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tienda-revela-escala {
+  from {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes tienda-heroe-foto-scroll {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+@keyframes tienda-heroe-copy-scroll {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0.35;
+    transform: translateY(-20px);
+  }
+}
+@keyframes tienda-cierre-expande {
+  from { clip-path: inset(0 6% round 28px); }
+  to { clip-path: inset(0 0 round 28px); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .revela {
+      animation: tienda-revela 1ms var(--ease-salida) both;
+      animation-timeline: view();
+      animation-range: entry var(--i, 0%) cover calc(30% + var(--i, 0%));
+    }
+    .revela-escala {
+      animation: tienda-revela-escala 1ms var(--ease-suave) both;
+      animation-timeline: view();
+      animation-range: entry var(--i, 0%) cover calc(30% + var(--i, 0%));
+    }
+    .heroe-imagen {
+      animation: tienda-heroe-foto-scroll 1ms var(--ease-suave) both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 360px;
+    }
+    .heroe-copy {
+      animation: tienda-heroe-copy-scroll 1ms var(--ease-salida) both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 360px;
+    }
+    .cierre-revela {
+      animation: tienda-cierre-expande 1ms var(--ease-tienda) both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 35%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .revela,
+  .revela-escala,
+  .heroe-imagen,
+  .heroe-copy,
+  .cierre-revela {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cierre-revela {
+    clip-path: inset(0 0 round 28px) !important;
+  }
+}
+
+/* ── Tienda v15: escenas guiadas por el scroll ─────────────────────
+   Encuadre: cada escenario fijo empieza bajo la cabecera y mide exactamente
+   la pantalla útil. Fluidez: solo transform y opacity (sin filter animado),
+   curvas por tramo y rangos que se solapan para relevos sin cortes.
+   Base estática: sin soporte o con movimiento reducido todo se ve completo. */
+:root { --alto-cabecera: 48px; }
+@media (min-width: 834px) { :root { --alto-cabecera: 44px; } }
+
+.escena-encuadre { position: relative; min-height: calc(100svh - var(--alto-cabecera)); padding-block: 56px; }
+.escena-progreso { background: rgb(255 255 255 / 70%); transform: scaleX(1); }
+
+.foco-frases { font-size: clamp(34px, 5.4vw, 80px); line-height: 1.05; min-height: 2.2em; }
+.foco-frase-2, .foco-frase-3 { display: none; }
+.foco-degradado { background: linear-gradient(100deg, #ff9500, #ff2d55 45%, #af52de 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.foco-halo { background: radial-gradient(55% 45% at 50% 64%, rgb(175 82 222 / 42%), transparent 70%); }
+.foco-producto { width: min(70vw, 42svh, 560px); }
+.foco-producto img { filter: drop-shadow(0 40px 50px rgb(0 0 0 / 55%)); }
+
+.galeria-pieza { width: min(72vw, 36svh, 420px); }
+.galeria-ventana { overflow-x: auto; scroll-snap-type: x mandatory; }
+.galeria-fila { width: max-content; }
+.galeria-pieza { scroll-snap-align: center; }
+
+.eco-estela { display: none; }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .escena-encuadre { position: sticky; top: var(--alto-cabecera); height: calc(100svh - var(--alto-cabecera)); min-height: 0; padding-block: 0; }
+
+    /* Producto en foco */
+    /* 240svh = 80svh por frase: alcanza para leerla y verla asentarse, sin
+       obligar a scrollear tres pantallas y media por un solo producto. A
+       360svh este tramo se comía 3.276 px, el 26% de la home, medido contra
+       los 5.946 px que le basta a la tienda de Apple ENTERA para 321 tarjetas.
+       Los rangos de animación son porcentuales: se reparten solos. */
+    .foco-tramo { height: 130svh; view-timeline-name: --foco; }
+    .foco-frase-2, .foco-frase-3 { display: block; }
+    .foco-frase { opacity: 0; will-change: transform, opacity; animation-timeline: --foco; animation-fill-mode: both; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+    .foco-frase-1 { animation-name: foco-frase-primera; animation-range: contain 0% contain 33%; }
+    .foco-frase-2 { animation-name: foco-frase-centro; animation-range: contain 33% contain 67%; }
+    .foco-frase-3 { animation-name: foco-frase-final; animation-range: contain 67% contain 100%; }
+    .foco-producto { will-change: transform; animation: foco-producto both cubic-bezier(0.25, 0.1, 0.25, 1); animation-timeline: --foco; animation-range: contain 0% contain 100%; }
+    .foco-halo { will-change: transform, opacity; animation: foco-halo both linear; animation-timeline: --foco; animation-range: contain 0% contain 100%; }
+    .foco-antetitulo { animation: foco-antetitulo both linear; animation-timeline: --foco; animation-range: contain 0% contain 12%; }
+    .foco-cta { animation: foco-cta both cubic-bezier(0.2, 0.8, 0.2, 1); animation-timeline: --foco; animation-range: contain 78% contain 96%; }
+
+
+    /* Confianza: dos franjas cruzan en sentidos opuestos mientras la sección atraviesa la pantalla. */
+    /* Shorthand obligatorio: con solo animation-name la duración inicial de Chrome es 0s y la franja no se movía. */
+    .confianza-franja { will-change: transform; }
+    .confianza-franja-a { animation: confianza-izquierda linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+    .confianza-franja-b { animation: confianza-derecha linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+
+    /* Galería */
+    /* 180svh = 36svh por foto. A 300svh este tramo media 2.733 px con CERO
+       productos dentro: el segundo bloque mas grande de la home no vendia nada. */
+    .galeria-tramo { height: 130svh; view-timeline-name: --galeria; }
+    .galeria-ventana { overflow: visible; scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
+    .galeria-fila { will-change: transform; animation: galeria-desliza both cubic-bezier(0.45, 0, 0.55, 1); animation-timeline: --galeria; animation-range: contain 8% contain 92%; }
+    .galeria-progreso { animation: escena-progreso both linear; animation-timeline: --galeria; animation-range: contain 8% contain 92%; }
+
+    /* Eco */
+    .eco-estela { display: block; opacity: 0; color: var(--color-tinta); animation: eco-estela linear both; animation-timeline: view(); animation-range: entry 40% cover 60%; }
+    .eco-estela-1 { --eco-y: 0.2em; --eco-o: 0.5; }
+    .eco-estela-2 { --eco-y: 0.4em; --eco-o: 0.35; }
+    .eco-estela-3 { --eco-y: 0.6em; --eco-o: 0.24; }
+    .eco-estela-4 { --eco-y: 0.8em; --eco-o: 0.14; }
+    .eco-estela-5 { --eco-y: 1em; --eco-o: 0.07; }
+
+    /* Héroe que se recoge en tarjeta al bajar (entrada de las páginas de Apple). */
+    .heroe-escenario { will-change: clip-path; animation: heroe-a-tarjeta both cubic-bezier(0.4, 0, 0.2, 1); animation-timeline: scroll(root block); animation-range: 0 70svh; }
+  }
+}
+
+/* Relevo en secuencia (como Apple): la frase que sale sube y desaparece antes de que
+   entre la siguiente desde abajo. Cruzarlas en paralelo las dejaba encimadas. */
+@keyframes foco-frase-primera { 0%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate3d(0, -32px, 0); } }
+@keyframes foco-frase-centro { 0% { opacity: 0; transform: translate3d(0, 32px, 0); } 12%, 88% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate3d(0, -32px, 0); } }
+@keyframes foco-frase-final { 0% { opacity: 0; transform: translate3d(0, 32px, 0); } 12%, 100% { opacity: 1; transform: none; } }
+@keyframes foco-producto { 0% { transform: translate3d(0, 22%, 0) scale(0.66) rotate(-12deg); } 55% { transform: translate3d(0, 0, 0) scale(0.95) rotate(0deg); } 100% { transform: translate3d(0, -3%, 0) scale(1.06) rotate(5deg); } }
+@keyframes foco-halo { 0% { opacity: 0.15; transform: scale(0.7); } 60% { opacity: 1; } 100% { opacity: 0.85; transform: scale(1.25); } }
+@keyframes foco-antetitulo { from { opacity: 0; transform: translate3d(0, 12px, 0); } to { opacity: 1; transform: none; } }
+@keyframes foco-cta { from { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes escena-progreso { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.confianza-degradado { background: linear-gradient(100deg, #ff9500, #ff2d55 45%, #af52de 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.confianza-franja-a { transform: translateX(-12%); }
+.confianza-franja-b { transform: translateX(-30%); }
+@keyframes confianza-izquierda { from { transform: translate3d(4%, 0, 0); } to { transform: translate3d(-38%, 0, 0); } }
+@keyframes confianza-derecha { from { transform: translate3d(-46%, 0, 0); } to { transform: translate3d(-4%, 0, 0); } }
+@keyframes galeria-desliza { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-100% + 100vw), 0, 0); } }
+@keyframes eco-estela { from { opacity: 0; transform: none; } to { opacity: var(--eco-o); transform: translateY(var(--eco-y)); } }
+@keyframes heroe-a-tarjeta { from { clip-path: inset(0 0 0 0 round 0); } to { clip-path: inset(0 2.5% 3% 2.5% round 32px); } }

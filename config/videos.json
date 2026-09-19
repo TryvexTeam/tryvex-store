@@ -1,0 +1,18 @@
+{
+  "_comentario": "Mapa de basepath del original -> archivo local. El mirror guardo los 11 videos con el mismo nombre (large_2x.mp4) y desambiguo con un sufijo -N segun el orden de descarga, que no dice nada del contenido. Al resolver por nombre de archivo, los ocho mp4 apuntaban todos al mismo: el hero. Ocho secciones mostraban el video equivocado. El mapa se establecio comparando el Content-Length que sirve apple.com para cada basepath contra el tamano de cada archivo en _video_original/. Verificado con HEAD sobre los once, no deducido.",
+  "anim/hero": { "archivo": "large_2x.mp4", "bytes": 9432075 },
+  "anim/initial": { "archivo": "large_2x-1.mp4", "bytes": 1054668 },
+  "anim/fit-feel": { "archivo": "large_2x-2.mp4", "bytes": 1356275 },
+  "anim/heart-rate": { "archivo": "large_2x-3.mp4", "bytes": 3072962 },
+  "anim/touch-controls": { "archivo": "large_2x-4.mp4", "bytes": 1750590 },
+  "anim/case": { "archivo": "large_2x-5.mp4", "bytes": 1596240 },
+  "anim/battery": { "archivo": "large_2x-6.mp4", "bytes": 3716502 },
+  "anim/connectivity": { "archivo": "large_2x-7.mp4", "bytes": 3381123 },
+  "anim/noise-control": { "archivo": "large_2x.webm", "bytes": 3156602 },
+  "anim/fitness-hero": { "archivo": "large_2x-1.webm", "bytes": 2407223 },
+  "anim/hearing-health-halo": { "archivo": "large_2x-2.webm", "bytes": 19352645 },
+  "_sin_material": {
+    "anim/highlights-hearing": "la tarjeta entera se elimina en el build: no hay imagen ni video en el material",
+    "anim/highlights-battery": "el video nunca se descargo en el mirror; el tile queda con su imagen estatica"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "tryvex-store",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node construir.mjs",
+    "serve": "cd dist && python -m http.server 4173"
+  },
+  "dependencies": { "cheerio": "^1.2.0" }
+}
