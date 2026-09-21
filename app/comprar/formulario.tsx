@@ -131,6 +131,12 @@ export default function Checkout({
       const r = await crearPedidoPublico(datos)
       if (r.ok) {
         if (desdeBolsa) bolsa.vaciar()
+        // Con tarjeta el pago ocurre en Mercado Pago: se sale directo, sin
+        // mostrar una confirmación intermedia que nadie leería.
+        if (r.checkoutUrl) {
+          window.location.href = r.checkoutUrl
+          return
+        }
         setListo(r)
         window.scrollTo({ top: 0 })
       } else setError(r.error)

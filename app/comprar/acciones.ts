@@ -5,9 +5,18 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { leerConfiguracion, datosDePago } from '@/lib/configuracion'
 import { cotizarLineas, normalizarLineas, type LineaCotizada } from '@/lib/cotizacion'
 import { esRegion } from '@/lib/chile'
+import { crearOrden } from '@/lib/mercadopago'
 
 export type Resultado =
-  | { ok: true; numero: number; total: number; envio: number; whatsapp: string }
+  | {
+      ok: true
+      numero: number
+      total: number
+      envio: number
+      whatsapp: string
+      /** Si el pedido se paga con tarjeta: a dónde mandar al comprador. */
+      checkoutUrl?: string
+    }
   | { ok: false; error: string }
 
 export type Cotizacion = { ok: true; lineas: LineaCotizada[] } | { ok: false; error: string }
@@ -153,12 +162,44 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   const mensaje = `Hola, soy ${nombre}. Hice el pedido #${pedido.numero} en Tryvex Store: ${detalle}. Total $${total.toLocaleString('es-CL')}.`
   const { whatsapp } = datosDePago(configuracion)
 
+  // Con tarjeta: se abre la orden de cobro y el comprador sigue en Mercado Pago.
+  // Si algo falla aquí, el pedido igual quedó tomado: se le ofrece transferencia
+  // en vez de perder la venta y hacerle repetir todo el formulario.
+  let checkoutUrl: string | undefined
+  if (metodo === 'mercadopago') {
+    try {
+      const orden = await crearOrden({
+        total,
+        items: [
+          ...lineas.map((l) => ({
+            titulo: `${l.nombre}${l.variante ? ` (${l.variante})` : ''}`,
+            cantidad: l.cantidad,
+            precioUnitario: l.precio,
+          })),
+          // El envío viaja como una línea más: la API exige que el total sea
+          // exactamente la suma de los ítems, y así cuadra por construcción.
+          ...(envio > 0 ? [{ titulo: 'Envío', cantidad: 1, precioUnitario: envio }] : []),
+        ],
+        emailComprador: email || 'comprador@tryvex.tech',
+        referenciaExterna: String(pedido.numero),
+        // Estable por pedido: si el comprador recarga, no se abre una segunda orden.
+        claveIdempotencia: `pedido-${pedido.id}`,
+        urlBase: (process.env.NEXT_PUBLIC_URL_TIENDA ?? 'https://www.tryvex.tech').replace(/\/$/, ''),
+      })
+      checkoutUrl = orden.checkoutUrl
+      await db.from('pedidos').update({ pago_proveedor: 'mercadopago', pago_referencia: orden.id }).eq('id', pedido.id)
+    } catch (e) {
+      console.error('[comprar] no se pudo abrir el pago con tarjeta', e)
+    }
+  }
+
   return {
     ok: true,
     numero: pedido.numero,
     total,
     envio,
     whatsapp: `https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`,
+    checkoutUrl,
   }
 }
 
