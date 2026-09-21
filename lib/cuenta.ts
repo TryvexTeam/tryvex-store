@@ -72,14 +72,47 @@ export interface PedidoCuenta {
 
 const LIMITE_PEDIDOS = 50
 
-/** Pedidos de la cuenta: por cuenta o por correo confirmado (lo decide RLS). */
+/**
+ * Pedidos de esta cuenta, y solo de esta cuenta.
+ *
+ * El filtro va explícito en la consulta aunque RLS ya proteja la tabla, porque
+ * las dos cosas responden preguntas distintas: RLS decide qué *puede* ver esta
+ * sesión, y aquí se decide qué *corresponde* mostrar en «Mis compras».
+ *
+ * La diferencia se ve con una cuenta del equipo: la política «equipo gestiona
+ * pedidos» le da acceso a todos los pedidos de la tienda, así que sin este
+ * filtro un integrante abría su cuenta y veía el historial de los demás
+ * clientes, con sus nombres y direcciones.
+ *
+ * Se incluyen los pedidos hechos con el mismo correo antes de crear la cuenta,
+ * pero solo si el correo está confirmado: si no, bastaría registrarse con el
+ * correo de otra persona para ver sus compras.
+ */
 export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
+  const cuenta = await cuentaActual()
+  if (!cuenta) return []
+
   const db = await crearClienteServidor()
-  const { data } = await db
-    .from('pedidos')
-    .select('id,numero,created_at,estado,total_clp,envio_url_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))')
-    .order('created_at', { ascending: false })
-    .limit(LIMITE_PEDIDOS)
+  const COLUMNAS =
+    'id,numero,created_at,estado,total_clp,envio_url_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
+
+  // Dos consultas en vez de un `.or()` con el correo interpolado: ese texto
+  // viaja dentro de la sintaxis del filtro, y una coma o un paréntesis en el
+  // valor cambiarían la condición. Los parámetros de `.eq()` no tienen ese
+  // problema.
+  const [propios, porCorreo] = await Promise.all([
+    db.from('pedidos').select(COLUMNAS).eq('cliente_auth_id', cuenta.id).order('created_at', { ascending: false }).limit(LIMITE_PEDIDOS),
+    cuenta.emailConfirmado
+      ? db.from('pedidos').select(COLUMNAS).eq('cliente_email', cuenta.email).order('created_at', { ascending: false }).limit(LIMITE_PEDIDOS)
+      : Promise.resolve({ data: [] as never[] }),
+  ])
+
+  // Un pedido puede venir por ambas vías; se deduplica por id y se reordena.
+  const unicos = new Map<string, (typeof propios.data extends (infer T)[] | null ? T : never)>()
+  for (const p of [...(propios.data ?? []), ...(porCorreo.data ?? [])]) unicos.set(p.id as string, p)
+  const data = [...unicos.values()]
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .slice(0, LIMITE_PEDIDOS)
 
   return (data ?? []).map((p) => ({
     id: p.id,
