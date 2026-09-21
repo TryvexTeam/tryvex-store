@@ -44,7 +44,7 @@ export interface LineaCotizada extends LineaPedida {
  * Es la misma regla que aplica el checkout: manda el precio del panel y un
  * tramo solo puede descontar. Vive aquí, y la usan la vitrina, la ficha y el
  * cotizador, porque cuando cada pantalla calculaba lo suyo terminamos
- * anunciando $19.990 y cobrando $25.000.
+ * anunciando un precio y cobrando otro.
  *
  * Quien muestre un precio en la tienda llama a esto. Sin excepciones.
  */
@@ -143,10 +143,10 @@ export async function cotizarLineas(lineas: LineaPedida[]): Promise<LineaCotizad
         .find((t) => l.cantidad >= t.min_unidades && (t.max_unidades === null || l.cantidad <= t.max_unidades)) ?? null
     // El precio del panel manda, y un tramo solo puede DESCONTAR.
     //
-    // La escala por volumen existe para premiar al que compra más (5-9, 10-19,
-    // 30+ …), no para cobrar más caro que el precio publicado. Si un tramo
-    // quedara cargado por sobre `precio_base` —como pasó con el de 1-4 a
-    // $25.000 mientras la ficha mostraba $19.990—, se ignora.
+    // La escala por volumen existe para premiar al que compra más, no para
+    // cobrar más caro que el precio publicado. Si un tramo quedara cargado por
+    // sobre `precio_base` —como llegó a pasar con el tramo de 1 unidad
+    // mientras la ficha mostraba otro valor—, se ignora.
     //
     // No es una preferencia estética: en Chile el precio exhibido obliga al
     // vendedor. Cobrar por encima de lo publicado es un reclamo seguro, así que

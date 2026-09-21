@@ -95,9 +95,9 @@ export async function leerVitrina(): Promise<Vitrina> {
    *
    * Se calcula con `precioUnitarioPublicado`, la misma función que usa el
    * checkout, para que la grilla no pueda anunciar un número distinto del que
-   * se cobra. Antes cada pantalla hacía su propia cuenta y terminamos
-   * mostrando $19.990 mientras se cobraban $25.000 — además de romper la
-   * confianza, en Chile el precio exhibido obliga (Ley 19.496).
+   * se cobra. Antes cada pantalla hacía su propia cuenta y llegamos a mostrar
+   * un precio mientras se cobraba otro — además de romper la confianza, en
+   * Chile el precio exhibido obliga (Ley 19.496).
    */
   type TramoVitrina = { min_unidades: number; max_unidades: number | null; precio_unitario: number | string }
   const tramosPor = new Map<string, TramoVitrina[]>()
