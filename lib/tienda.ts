@@ -1,6 +1,7 @@
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { urlPublica } from '@/lib/imagenes'
 import { leerConfiguracion, type ConfiguracionTienda } from '@/lib/configuracion'
+import { precioUnitarioPublicado } from '@/lib/cotizacion'
 
 /**
  * Vitrina: lo que la tienda pública puede ver del catálogo.
@@ -92,23 +93,24 @@ export async function leerVitrina(): Promise<Vitrina> {
   /**
    * Precio de UNA unidad, que es el que ve quien mira la vitrina.
    *
-   * No sirve `precio_base`: en el catálogo real está cargado con el valor
-   * mayorista (30+ unidades), así que la grilla anunciaba $19.990 mientras el
-   * checkout cobraba $25.000, el precio del tramo 1-4. Anunciar un precio y
-   * cobrar otro rompe la confianza y, en Chile, infringe la Ley 19.496.
-   * La vitrina cotiza igual que el checkout: manda el tramo que cubre 1 unidad.
+   * Se calcula con `precioUnitarioPublicado`, la misma función que usa el
+   * checkout, para que la grilla no pueda anunciar un número distinto del que
+   * se cobra. Antes cada pantalla hacía su propia cuenta y terminamos
+   * mostrando $19.990 mientras se cobraban $25.000 — además de romper la
+   * confianza, en Chile el precio exhibido obliga (Ley 19.496).
    */
-  const precioUnitarioPor = new Map<string, number>()
+  type TramoVitrina = { min_unidades: number; max_unidades: number | null; precio_unitario: number | string }
+  const tramosPor = new Map<string, TramoVitrina[]>()
   for (const t of tramos ?? []) {
-    const min = Number(t.min_unidades)
-    const max = t.max_unidades === null ? Infinity : Number(t.max_unidades)
-    if (min <= 1 && 1 <= max) precioUnitarioPor.set(t.producto_id as string, Number(t.precio_unitario))
+    const lista = tramosPor.get(t.producto_id as string) ?? []
+    lista.push(t as TramoVitrina)
+    tramosPor.set(t.producto_id as string, lista)
   }
 
   const vitrina: ProductoTienda[] = (productos ?? []).map((p) => {
     const unidades = stockPor.get(p.id) ?? 0
     const antes = p.precio_antes === null ? null : Number(p.precio_antes)
-    const precio = precioUnitarioPor.get(p.id) ?? Number(p.precio_base)
+    const precio = precioUnitarioPublicado(Number(p.precio_base), tramosPor.get(p.id) ?? [])
     return {
       id: p.id,
       sku: p.sku,
