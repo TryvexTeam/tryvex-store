@@ -1056,3 +1056,36 @@ body {
 @keyframes galeria-desliza { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-100% + 100vw), 0, 0); } }
 @keyframes eco-estela { from { opacity: 0; transform: none; } to { opacity: var(--eco-o); transform: translateY(var(--eco-y)); } }
 @keyframes heroe-a-tarjeta { from { clip-path: inset(0 0 0 0 round 0); } to { clip-path: inset(0 2.5% 3% 2.5% round 32px); } }
+
+/* ── Línea de envío ──────────────────────────────────────────────────────────
+   Vertical en el teléfono, horizontal desde tablet. La animación cuenta el
+   avance: el trazo crece hasta donde llegó el pedido y los hitos aparecen
+   escalonados, de modo que el ojo siga el recorrido en vez de encontrarse
+   todo dibujado de golpe. */
+
+@keyframes envio-hito {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes envio-texto {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes envio-trazo-v { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes envio-trazo-h { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.envio-hito  { animation: envio-hito 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+.envio-texto { animation: envio-texto 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+
+/* El trazo recorrido crece desde el hito anterior. */
+.envio-trazo-lleno {
+  transform-origin: top;
+  animation: envio-trazo-v 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@media (min-width: 735px) {
+  .envio-trazo-lleno { transform-origin: left; animation-name: envio-trazo-h; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .envio-hito, .envio-texto, .envio-trazo-lleno { animation: none; }
+}
