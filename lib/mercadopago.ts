@@ -74,11 +74,13 @@ export async function crearOrden(params: {
       external_reference: referenciaExterna.slice(0, 64),
       expiration_time: 'P1D',
       payer: { email: emailComprador },
+      // Solo estos tres campos: la API rechaza cualquier otro con
+      // `unsupported_properties` (por ejemplo `unit_measure`, que aparece en
+      // algunos ejemplos de la documentación pero no está permitido).
       items: items.map((i) => ({
         title: i.titulo.slice(0, 256),
         quantity: i.cantidad,
         unit_price: montoCLP(i.precioUnitario),
-        unit_measure: 'unit',
       })),
       config: {
         online: {
@@ -92,16 +94,26 @@ export async function crearOrden(params: {
   })
 
   const cuerpo = (await respuesta.json().catch(() => null)) as
-    | { id?: string; checkout_url?: string; message?: string; error?: string }
+    | {
+        id?: string
+        checkout_url?: string
+        message?: string
+        error?: string
+        /** Los 400 de validación llegan aquí, no en `message`. */
+        errors?: { code?: string; message?: string; details?: string[] }[]
+      }
     | null
 
   if (!respuesta.ok || !cuerpo?.id || !cuerpo?.checkout_url) {
     // El detalle va al log del servidor, no al comprador: puede incluir datos
-    // de la cuenta del vendedor.
+    // de la cuenta del vendedor. Se vuelca el cuerpo completo porque los
+    // rechazos de validación nombran el campo exacto en `errors[].details`, y
+    // sin eso un 400 es indiagnosticable.
     console.error('[mercadopago] no se pudo crear la order', {
       status: respuesta.status,
       error: cuerpo?.error,
       message: cuerpo?.message,
+      errores: cuerpo?.errors?.map((e) => ({ code: e.code, details: e.details })),
     })
     throw new Error('No se pudo iniciar el pago')
   }

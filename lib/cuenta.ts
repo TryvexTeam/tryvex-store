@@ -58,6 +58,9 @@ export interface ItemPedidoCuenta {
   imagen: string | null
   cantidad: number
   subtotal: number
+  /** Para volver a comprar lo mismo. `null` si el producto ya no existe. */
+  sku: string | null
+  varianteId: string | null
 }
 
 export interface PedidoCuenta {
@@ -67,19 +70,113 @@ export interface PedidoCuenta {
   estado: string
   total: number
   seguimiento: string | null
+  /** Código que dio el courier. Se muestra en nuestra web, no obliga a salir a la suya. */
+  codigoSeguimiento: string | null
+  /** Enlace propio del pedido: sirve para abrir su seguimiento a pantalla completa. */
+  token: string
+  /** Cómo se pagó, para que el cliente reconozca el cargo en su cartola. */
+  metodoPago: string | null
+  /** A dónde va, ya armado en una línea. `null` si fue retiro en persona. */
+  entrega: string | null
+  courier: string | null
+  pagadoEn: string | null
+  enviadoEn: string | null
+  entregadoEn: string | null
   items: ItemPedidoCuenta[]
 }
 
 const LIMITE_PEDIDOS = 50
 
-/** Pedidos de la cuenta: por cuenta o por correo confirmado (lo decide RLS). */
+/** Lo que devuelve la consulta de pedidos, antes de darle forma para la vista. */
+interface FilaPedidoBruta {
+  id: string
+  numero: number | string
+  token_seguimiento: string
+  metodo_pago: string | null
+  direccion: { entrega?: string; direccion?: string | null } | null
+  region: string | null
+  comuna: string | null
+  created_at: string
+  estado: string
+  total_clp: number | string
+  envio_url_seguimiento: string | null
+  envio_seguimiento: string | null
+  envio_courier: string | null
+  pagado_at: string | null
+  enviado_at: string | null
+  entregado_at: string | null
+  pedido_items:
+    | {
+        cantidad: number | string
+        subtotal_clp: number | string
+        variante_id: string | null
+        productos:
+          | { nombre: string; slug: string | null; imagen_url: string | null; sku: string | null }
+          | { nombre: string; slug: string | null; imagen_url: string | null; sku: string | null }[]
+          | null
+      }[]
+    | null
+}
+
+/**
+ * A dónde va el pedido, en una línea.
+ *
+ * `direccion` es un jsonb que guarda si fue envío o retiro, así que la forma
+ * de la entrega se lee de ahí y no del hecho de que haya o no comuna.
+ */
+function describirEntrega(p: FilaPedidoBruta): string | null {
+  if (p.direccion?.entrega === 'retiro') return 'Retiro en persona'
+  const partes = [p.direccion?.direccion, p.comuna, p.region].filter((x): x is string => Boolean(x?.trim()))
+  return partes.length > 0 ? partes.join(', ') : null
+}
+
+/**
+ * Pedidos de esta cuenta, y solo de esta cuenta.
+ *
+ * El filtro va explícito en la consulta aunque RLS ya proteja la tabla, porque
+ * las dos cosas responden preguntas distintas: RLS decide qué *puede* ver esta
+ * sesión, y aquí se decide qué *corresponde* mostrar en «Mis compras».
+ *
+ * La diferencia se ve con una cuenta del equipo: la política «equipo gestiona
+ * pedidos» le da acceso a todos los pedidos de la tienda, así que sin este
+ * filtro un integrante abría su cuenta y veía el historial de los demás
+ * clientes, con sus nombres y direcciones.
+ *
+ * Se incluyen los pedidos hechos con el mismo correo antes de crear la cuenta,
+ * pero solo si el correo está confirmado: si no, bastaría registrarse con el
+ * correo de otra persona para ver sus compras.
+ */
 export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
+  const cuenta = await cuentaActual()
+  if (!cuenta) return []
+
   const db = await crearClienteServidor()
-  const { data } = await db
-    .from('pedidos')
-    .select('id,numero,created_at,estado,total_clp,envio_url_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))')
-    .order('created_at', { ascending: false })
-    .limit(LIMITE_PEDIDOS)
+  const COLUMNAS =
+    'id,numero,created_at,estado,total_clp,token_seguimiento,metodo_pago,direccion,region,comuna,' +
+    'envio_url_seguimiento,envio_seguimiento,envio_courier,pagado_at,enviado_at,entregado_at,' +
+    'pedido_items(cantidad,subtotal_clp,variante_id,productos(nombre,slug,imagen_url,sku))'
+
+  // Dos consultas en vez de un `.or()` con el correo interpolado: ese texto
+  // viaja dentro de la sintaxis del filtro, y una coma o un paréntesis en el
+  // valor cambiarían la condición. Los parámetros de `.eq()` no tienen ese
+  // problema.
+  const [propios, porCorreo] = await Promise.all([
+    db.from('pedidos').select(COLUMNAS).eq('cliente_auth_id', cuenta.id).order('created_at', { ascending: false }).limit(LIMITE_PEDIDOS),
+    cuenta.emailConfirmado
+      ? db.from('pedidos').select(COLUMNAS).eq('cliente_email', cuenta.email).order('created_at', { ascending: false }).limit(LIMITE_PEDIDOS)
+      : null,
+  ])
+
+  // Un pedido puede venir por ambas vías; se deduplica por id y se reordena.
+  const filas = [
+    ...((propios.data ?? []) as unknown as FilaPedidoBruta[]),
+    ...((porCorreo?.data ?? []) as unknown as FilaPedidoBruta[]),
+  ]
+  const unicos = new Map<string, FilaPedidoBruta>()
+  for (const p of filas) unicos.set(p.id, p)
+  const data = [...unicos.values()]
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .slice(0, LIMITE_PEDIDOS)
 
   return (data ?? []).map((p) => ({
     id: p.id,
@@ -89,6 +186,14 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
     total: Number(p.total_clp),
     // Solo enlaces https: un valor escrito a mano no debe abrir otro esquema.
     seguimiento: typeof p.envio_url_seguimiento === 'string' && p.envio_url_seguimiento.startsWith('https://') ? p.envio_url_seguimiento : null,
+    codigoSeguimiento: p.envio_seguimiento ?? null,
+    token: p.token_seguimiento,
+    metodoPago: p.metodo_pago ?? null,
+    entrega: describirEntrega(p),
+    courier: p.envio_courier ?? null,
+    pagadoEn: p.pagado_at ?? null,
+    enviadoEn: p.enviado_at ?? null,
+    entregadoEn: p.entregado_at ?? null,
     items: (p.pedido_items ?? []).map((i) => {
       const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
       return {
@@ -97,6 +202,8 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
         imagen: producto?.imagen_url ? urlPublica(producto.imagen_url) : null,
         cantidad: Number(i.cantidad),
         subtotal: Number(i.subtotal_clp),
+        sku: producto?.sku ?? null,
+        varianteId: i.variante_id ?? null,
       }
     }),
   }))

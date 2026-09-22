@@ -3,15 +3,21 @@ import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 /**
  * Da un pedido por pagado cuando la pasarela confirmó el cobro.
  *
- * Hace lo mismo que el botón «Marcar pagado» del panel —anota el ingreso en
- * finanzas, convierte la reserva de stock en venta y mueve el estado— pero sin
- * una persona detrás: aquí quien confirma es Mercado Pago, así que los
- * movimientos quedan con `creado_por` en null y el motivo dice de dónde vino.
+ * El trabajo ocurre dentro de `confirmar_pago_pedido`, una función de la base
+ * que corre en una sola transacción con la fila del pedido bloqueada. No es un
+ * detalle de estilo: antes esto vivía aquí, leyendo el pedido, anotando el
+ * ingreso en finanzas, moviendo el stock y recién al final cambiando el estado
+ * con un filtro `estado = 'pendiente'`.
  *
- * Es idempotente a propósito. Mercado Pago reintenta las notificaciones hasta
- * recibir un 200, y además manda varias por pago (`created`, `processed`…).
- * Si el pedido ya no está pendiente, no se toca nada: cobrar dos veces el
- * mismo stock o duplicar el ingreso en finanzas sería peor que perder un aviso.
+ * Ese filtro impedía dejar el pedido pagado dos veces, pero no impedía que dos
+ * avisos simultáneos llegaran hasta ahí habiendo insertado ya su ingreso y su
+ * descuento de stock. El resultado habría sido un pedido pagado, dos ingresos
+ * en finanzas y doble descuento de inventario. Mercado Pago manda varias
+ * notificaciones por pago y reintenta hasta recibir un 200, así que no era una
+ * hipótesis.
+ *
+ * Con el bloqueo, el segundo aviso espera, entra, ve que el pedido ya no está
+ * pendiente y se va sin tocar nada.
  */
 export type ResultadoConfirmacion =
   | { ok: true; aplicado: boolean; numero: number }
@@ -30,97 +36,26 @@ export async function confirmarPagoDePedido(params: {
     return { ok: false, error: `Referencia externa ilegible: ${referenciaExterna}` }
   }
 
-  const db = crearClienteAdministrador()
+  const { data, error } = await crearClienteAdministrador().rpc('confirmar_pago_pedido', {
+    p_numero: numero,
+    p_proveedor: proveedor,
+    p_referencia: referenciaPago,
+    p_total: totalPagado,
+  })
 
-  const { data: pedido } = await db
-    .from('pedidos')
-    .select('id,numero,estado,cliente_nombre,total_clp,metodo_pago')
-    .eq('numero', numero)
-    .maybeSingle()
-
-  if (!pedido) return { ok: false, error: `No existe el pedido #${numero}` }
-
-  // Ya procesado por un aviso anterior: se responde bien sin repetir nada.
-  if (pedido.estado !== 'pendiente') return { ok: true, aplicado: false, numero }
-
-  // El monto cobrado tiene que ser el del pedido. Si no calza, no se despacha
-  // nada: se deja constancia y que lo mire una persona.
-  if (totalPagado !== null && Math.round(totalPagado) !== Math.round(Number(pedido.total_clp))) {
-    await db
-      .from('pedidos')
-      .update({
-        pago_proveedor: proveedor,
-        pago_referencia: referenciaPago,
-        notas: `REVISAR: se cobraron $${Math.round(totalPagado).toLocaleString('es-CL')} y el pedido dice $${Number(
-          pedido.total_clp
-        ).toLocaleString('es-CL')}`,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', pedido.id)
-    return { ok: false, error: `Monto distinto en el pedido #${numero}` }
+  if (error) {
+    // El índice único sobre (proveedor, referencia) rebota un pago que ya
+    // quedó anotado en otro pedido. Es una defensa, no una falla que haya que
+    // reintentar: el cobro ya está registrado donde corresponde.
+    if (error.code === '23505') {
+      return { ok: true, aplicado: false, numero }
+    }
+    console.error('[confirmar-pago] la transacción falló', { numero, error: error.message })
+    return { ok: false, error: error.message }
   }
 
-  const { data: items } = await db
-    .from('pedido_items')
-    .select('producto_id,variante_id,cantidad,precio_unitario')
-    .eq('pedido_id', pedido.id)
+  const r = data as { ok: boolean; aplicado?: boolean; numero?: number; error?: string } | null
+  if (!r?.ok) return { ok: false, error: r?.error ?? 'No se pudo confirmar el pago' }
 
-  // El ingreso en finanzas, para que la venta aparezca donde el equipo la busca.
-  const { data: movimiento } = await db
-    .from('movimientos_financieros')
-    .insert({
-      tipo: 'ingreso',
-      categoria: 'Venta',
-      descripcion: `Pedido #${pedido.numero} · ${pedido.cliente_nombre}`,
-      monto_clp: Number(pedido.total_clp),
-      fecha: new Date().toISOString().slice(0, 10),
-      metodo_pago: pedido.metodo_pago ?? proveedor,
-      contraparte: pedido.cliente_nombre,
-    })
-    .select('id')
-    .maybeSingle()
-
-  // La reserva se libera y se registra la venta: dos filas, para que el
-  // historial de stock cuente lo que pasó de verdad.
-  for (const it of items ?? []) {
-    await db.from('stock_movimientos').insert([
-      {
-        producto_id: it.producto_id,
-        variante_id: it.variante_id,
-        tipo: 'liberacion',
-        cantidad: it.cantidad,
-        motivo: `Pedido #${pedido.numero} pagado con ${proveedor}`,
-        pedido_id: pedido.id,
-      },
-      {
-        producto_id: it.producto_id,
-        variante_id: it.variante_id,
-        tipo: 'venta',
-        cantidad: -it.cantidad,
-        precio_unitario: it.precio_unitario,
-        total_clp: it.cantidad * Number(it.precio_unitario),
-        motivo: `Pedido #${pedido.numero} · ${pedido.cliente_nombre}`,
-        pedido_id: pedido.id,
-        movimiento_id: movimiento?.id ?? null,
-      },
-    ])
-  }
-
-  const { error } = await db
-    .from('pedidos')
-    .update({
-      estado: 'pagado',
-      pagado_at: new Date().toISOString(),
-      pago_proveedor: proveedor,
-      pago_referencia: referenciaPago,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', pedido.id)
-    // Cinturón contra dos avisos simultáneos: si otro ya lo movió, esta
-    // actualización no encuentra fila y no pisa nada.
-    .eq('estado', 'pendiente')
-
-  if (error) return { ok: false, error: error.message }
-
-  return { ok: true, aplicado: true, numero }
+  return { ok: true, aplicado: Boolean(r.aplicado), numero: r.numero ?? numero }
 }

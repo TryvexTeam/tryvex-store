@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { cotizarLineas } from '@/lib/cotizacion'
 
 /**
  * Acciones de la cuenta. Cada una se trata como un endpoint público: valida la
@@ -62,4 +63,85 @@ export async function salir(): Promise<never> {
   await db.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/')
+}
+
+export interface LineaRepetida {
+  sku: string
+  varianteId: string | null
+  cantidad: number
+  slug: string
+  nombre: string
+  variante: string | null
+  imagen: string | null
+  precio: number
+}
+
+export type ResultadoRepetir =
+  | { ok: true; lineas: LineaRepetida[]; avisos: string[] }
+  | { ok: false; error: string }
+
+/**
+ * Prepara la bolsa para volver a comprar lo mismo.
+ *
+ * No se copian los precios del pedido viejo: se vuelve a cotizar contra el
+ * catálogo de hoy. Un pedido de hace tres meses puede traer un producto
+ * despublicado, agotado o a otro precio, y llevar eso a la bolsa terminaría en
+ * un checkout que rechaza líneas sin explicar por qué.
+ *
+ * Lo que no se puede reponer no se calla: vuelve como aviso, para poder
+ * decirle a la persona qué quedó fuera antes de que llegue a pagar.
+ */
+export async function repetirPedido(pedidoId: string): Promise<ResultadoRepetir> {
+  if (typeof pedidoId !== 'string' || !FORMATO_UUID.test(pedidoId)) {
+    return { ok: false, error: 'Pedido no válido.' }
+  }
+
+  const db = await crearClienteServidor()
+  const { data: { user } } = await db.auth.getUser()
+  if (!user) return { ok: false, error: 'Tu sesión expiró. Vuelve a ingresar.' }
+
+  // RLS limita esto a los pedidos que la persona puede ver: no hace falta
+  // filtrar por dueño aquí, pero tampoco se confía en el id que llegó.
+  const { data: items } = await db
+    .from('pedido_items')
+    .select('cantidad,variante_id,productos(sku)')
+    .eq('pedido_id', pedidoId)
+
+  if (!items || items.length === 0) return { ok: false, error: 'No encontramos ese pedido.' }
+
+  const pedidas = items.flatMap((i) => {
+    const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
+    const sku = producto?.sku
+    if (!sku) return []
+    return [{ sku, varianteId: i.variante_id ?? null, cantidad: Number(i.cantidad) }]
+  })
+
+  if (pedidas.length === 0) return { ok: false, error: 'Los productos de ese pedido ya no están disponibles.' }
+
+  const cotizadas = await cotizarLineas(pedidas)
+  const lineas: LineaRepetida[] = []
+  const avisos: string[] = []
+
+  for (const l of cotizadas) {
+    if (l.error || !l.slug) {
+      avisos.push(`${l.nombre}: ${l.error ?? 'ya no está disponible'}`)
+      continue
+    }
+    lineas.push({
+      sku: l.sku,
+      varianteId: l.varianteId,
+      cantidad: l.cantidad,
+      slug: l.slug,
+      nombre: l.nombre,
+      variante: l.variante,
+      imagen: l.imagen,
+      precio: l.precio,
+    })
+  }
+
+  if (lineas.length === 0) {
+    return { ok: false, error: avisos[0] ?? 'Ninguno de esos productos está disponible ahora.' }
+  }
+
+  return { ok: true, lineas, avisos }
 }

@@ -46,9 +46,15 @@ export interface FichaProducto {
   tramos: TramoFicha[]
 }
 
-/** Precio unitario para una cantidad: el mismo criterio que usa el servidor al cobrar. */
+/**
+ * Precio unitario para una cantidad: el mismo criterio que usa el servidor.
+ *
+ * `base` es el precio del panel y manda. Un tramo solo se aplica si rebaja:
+ * nunca se muestra —ni se cobra— por sobre el precio publicado.
+ */
 export function precioPara(base: number, tramos: TramoFicha[], cantidad: number): { precio: number; tramo: TramoFicha | null } {
   const t =
     [...tramos].sort((a, b) => b.min - a.min).find((x) => cantidad >= x.min && (x.max === null || cantidad <= x.max)) ?? null
-  return { precio: t ? t.precio : base, tramo: t }
+  if (!t || t.precio >= base) return { precio: base, tramo: null }
+  return { precio: t.precio, tramo: t }
 }

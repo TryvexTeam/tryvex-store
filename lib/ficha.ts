@@ -2,6 +2,7 @@ import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { urlPublica, rutasDeGaleria } from '@/lib/imagenes'
 import type { ProductoTienda } from '@/lib/tienda'
 import { MAX_POR_PEDIDO, type FichaProducto } from '@/lib/ficha-precio'
+import { precioUnitarioPublicado } from '@/lib/cotizacion'
 
 export { MAX_POR_PEDIDO, precioPara } from '@/lib/ficha-precio'
 export type { FichaProducto, VarianteFicha, TramoFicha } from '@/lib/ficha-precio'
@@ -38,7 +39,8 @@ export async function leerFicha(slug: string): Promise<FichaProducto | null> {
     db.from('precio_tramos').select('min_unidades,max_unidades,precio_unitario,etiqueta').eq('producto_id', p.id).eq('activo', true).order('min_unidades'),
   ])
 
-  const precio = Number(p.precio_base)
+  // Mismo cálculo que la vitrina y el checkout: el panel manda, el tramo solo descuenta.
+  const precio = precioUnitarioPublicado(Number(p.precio_base), tramos ?? [])
   const antes = p.precio_antes === null ? null : Number(p.precio_antes)
   const stockPor = new Map((stockVar ?? []).map((s) => [s.variante_id as string, Number(s.stock ?? 0)]))
   const total = Number(stock?.stock ?? 0)
@@ -73,12 +75,16 @@ export async function leerFicha(slug: string): Promise<FichaProducto | null> {
       imagen: v.imagen_url ? urlPublica(v.imagen_url) : null,
       disponible: tope(stockPor.get(v.id) ?? 0),
     })),
-    tramos: (tramos ?? []).map((t) => ({
-      min: t.min_unidades,
-      max: t.max_unidades,
-      precio: Number(t.precio_unitario),
-      etiqueta: t.etiqueta,
-    })),
+    // Solo los tramos que rebajan de verdad. Anunciar un «pack» que sale más
+    // caro que comprar de a una unidad confunde y desprestigia la oferta.
+    tramos: (tramos ?? [])
+      .filter((t) => Number(t.precio_unitario) < precio)
+      .map((t) => ({
+        min: t.min_unidades,
+        max: t.max_unidades,
+        precio: Number(t.precio_unitario),
+        etiqueta: t.etiqueta,
+      })),
   }
 }
 

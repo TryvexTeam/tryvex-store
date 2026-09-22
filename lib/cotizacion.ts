@@ -38,6 +38,28 @@ export interface LineaCotizada extends LineaPedida {
   error: string | null
 }
 
+/**
+ * Precio de UNA unidad tal como debe exhibirse.
+ *
+ * Es la misma regla que aplica el checkout: manda el precio del panel y un
+ * tramo solo puede descontar. Vive aquí, y la usan la vitrina, la ficha y el
+ * cotizador, porque cuando cada pantalla calculaba lo suyo terminamos
+ * anunciando un precio y cobrando otro.
+ *
+ * Quien muestre un precio en la tienda llama a esto. Sin excepciones.
+ */
+export function precioUnitarioPublicado(
+  precioBase: number,
+  tramos: { min_unidades: number; max_unidades: number | null; precio_unitario: number | string }[]
+): number {
+  const paraUna = tramos.find(
+    (t) => Number(t.min_unidades) <= 1 && (t.max_unidades === null || Number(t.max_unidades) >= 1)
+  )
+  if (!paraUna) return precioBase
+  const precioTramo = Number(paraUna.precio_unitario)
+  return precioTramo < precioBase ? precioTramo : precioBase
+}
+
 /** Valida lo que llega del navegador y junta líneas repetidas. `null` si algo no calza. */
 export function normalizarLineas(entrada: unknown): LineaPedida[] | null {
   if (!Array.isArray(entrada) || entrada.length === 0 || entrada.length > MAX_LINEAS) return null
@@ -119,13 +141,19 @@ export async function cotizarLineas(lineas: LineaPedida[]): Promise<LineaCotizad
       [...delProducto]
         .sort((a, b) => b.min_unidades - a.min_unidades)
         .find((t) => l.cantidad >= t.min_unidades && (t.max_unidades === null || l.cantidad <= t.max_unidades)) ?? null
-    // El tramo manda: es la escala de precios por volumen que define el negocio
-    // (1-4 a $25.000, 5-9 a $23.490 … 30+ a $19.990). `precio_base` solo se usa
-    // cuando no hay ningún tramo que cubra esa cantidad.
+    // El precio del panel manda, y un tramo solo puede DESCONTAR.
     //
-    // OJO al publicar el catálogo: lo que se muestra en la grilla tiene que ser
-    // este mismo precio, no `precio_base`. Ver `precioVitrina` en lib/tienda.ts.
-    const precio = Number(tramo?.precio_unitario ?? precioBase)
+    // La escala por volumen existe para premiar al que compra más, no para
+    // cobrar más caro que el precio publicado. Si un tramo quedara cargado por
+    // sobre `precio_base` —como llegó a pasar con el tramo de 1 unidad
+    // mientras la ficha mostraba otro valor—, se ignora.
+    //
+    // No es una preferencia estética: en Chile el precio exhibido obliga al
+    // vendedor. Cobrar por encima de lo publicado es un reclamo seguro, así que
+    // el tope vive aquí, en el único lugar por donde pasa todo cobro.
+    const precioTramo = tramo ? Number(tramo.precio_unitario) : null
+    const tramoDescuenta = precioTramo !== null && precioTramo < precioBase
+    const precio = tramoDescuenta ? precioTramo : precioBase
     const disponible = Math.max(0, Math.min(MAX_UNIDADES_LINEA, stock))
     // Solo se ofrece un tramo que la línea puede alcanzar de verdad: dentro del tope y del stock.
     const proximo =
@@ -143,8 +171,9 @@ export async function cotizarLineas(lineas: LineaPedida[]): Promise<LineaCotizad
       imagen: v?.imagen_url ? urlPublica(v.imagen_url) : conProducto.imagen,
       precioBase,
       precio,
-      // Un tramo de 1 unidad es el precio normal: no se anuncia como descuento.
-      tramo: tramo && tramo.min_unidades > 1 ? tramo.etiqueta : null,
+      // Se anuncia solo el tramo que de verdad rebajó el precio. Uno de 1
+      // unidad es el precio normal, y uno ignorado por no descontar no aplicó.
+      tramo: tramoDescuenta && tramo && tramo.min_unidades > 1 ? tramo.etiqueta : null,
       subtotal: precio * l.cantidad,
       disponible,
       siguienteTramo,
