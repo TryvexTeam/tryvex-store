@@ -63,10 +63,15 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   const nombre = texto('nombre', 90)
   const fono = texto('fono', 20)
   const email = texto('email', 120)
-  const entrega = texto('entrega', 10) === 'retiro' ? 'retiro' : 'envio'
+  // Tres formas de entrega, y el envío es gratis en todas. La diferencia es
+  // operativa: a domicilio se despacha, en sucursal el comprador retira.
+  const pedida = texto('entrega', 12)
+  const entrega: 'envio' | 'sucursal' | 'retiro' =
+    pedida === 'retiro' ? 'retiro' : pedida === 'sucursal' ? 'sucursal' : 'envio'
   const region = texto('region', 60)
   const comuna = texto('comuna', 60)
   const direccion = texto('direccion', 160)
+  const sucursal = texto('sucursal', 120)
   const metodo = texto('metodo_pago', 20)
 
   if (nombre.length < 3) return { ok: false, error: 'Escribe tu nombre y apellido.' }
@@ -77,6 +82,13 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
     if (!esRegion(region)) return { ok: false, error: 'Elige tu región.' }
     if (comuna.length < 2) return { ok: false, error: 'Escribe tu comuna.' }
     if (direccion.length < 5) return { ok: false, error: 'Escribe la dirección de entrega.' }
+  }
+  if (entrega === 'sucursal') {
+    // Sin región y comuna no se puede saber a qué sucursal despachar, y sin
+    // sucursal el paquete no tiene destino.
+    if (!esRegion(region)) return { ok: false, error: 'Elige tu región.' }
+    if (comuna.length < 2) return { ok: false, error: 'Escribe tu comuna.' }
+    if (sucursal.length < 3) return { ok: false, error: 'Dinos en qué sucursal quieres retirar.' }
   }
 
   let entrada: unknown
@@ -99,7 +111,10 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   const subtotal = lineas.reduce((a, l) => a + l.subtotal, 0)
   const tarifa = configuracion?.envio_tarifa_clp ?? 0
   const gratisDesde = configuracion?.envio_gratis_desde_clp ?? null
-  const envio = entrega === 'retiro' || (gratisDesde !== null && subtotal >= gratisDesde) ? 0 : tarifa
+  // El envío no se cobra: va incluido en el precio del producto. La tarifa
+  // configurada solo aplicaría si alguna vez se decide cobrarlo aparte.
+  const envio =
+    entrega === 'retiro' || entrega === 'sucursal' || (gratisDesde !== null && subtotal >= gratisDesde) ? 0 : tarifa
   const total = subtotal + envio
 
   // La cuenta sale de la sesión validada contra Auth, nunca del formulario:
@@ -120,9 +135,13 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
       subtotal_clp: subtotal,
       envio_clp: envio,
       total_clp: total,
-      region: entrega === 'envio' ? region : null,
-      comuna: entrega === 'envio' ? comuna : null,
-      direccion: { entrega, direccion: entrega === 'envio' ? direccion : null },
+      region: entrega === 'retiro' ? null : region,
+      comuna: entrega === 'retiro' ? null : comuna,
+      direccion: {
+        entrega,
+        direccion: entrega === 'envio' ? direccion : null,
+        sucursal: entrega === 'sucursal' ? sucursal : null,
+      },
       notas: lineas.some((l) => l.tramo) ? `Tramos: ${lineas.filter((l) => l.tramo).map((l) => `${l.nombre} ${l.tramo}`).join('; ')}` : null,
     })
     .select('id, numero')

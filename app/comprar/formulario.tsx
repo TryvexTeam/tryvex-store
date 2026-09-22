@@ -38,6 +38,30 @@ function Campo({ id, etiqueta, ...rest }: { id: string; etiqueta: string } & Rea
   )
 }
 
+/**
+ * Ícono de cada forma de entrega.
+ *
+ * Trazo simple y un solo tamaño: acompaña a la etiqueta para reconocer la
+ * opción de un vistazo, sin competir con ella.
+ */
+function IconoEntrega({ tipo, activo }: { tipo: 'casa' | 'sucursal' | 'mano'; activo: boolean }) {
+  const trazos: Record<typeof tipo, string> = {
+    casa: 'M3 9.5 11 3l8 6.5M5.5 11v8h11v-8',
+    sucursal: 'M4 9h14v10H4V9Zm-1-5h16l1 5H2l1-5Zm5 15v-6h5v6',
+    mano: 'M7 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V11m0-1a1.5 1.5 0 0 1 3 0v4a5 5 0 0 1-5 5H9l-4-4.5a1.6 1.6 0 0 1 2.2-2.3L9 13',
+  }
+  return (
+    <svg
+      viewBox="0 0 22 22"
+      aria-hidden
+      className={`size-[22px] transition-colors duration-200 ${activo ? 'text-tinta' : 'text-gris'}`}
+      fill="none"
+    >
+      <path d={trazos[tipo]} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function Paso({ n, titulo, children }: { n: number; titulo: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={`paso-${n}`} className="border-t border-borde/70 pt-7 first:border-0 first:pt-0">
@@ -95,7 +119,7 @@ export default function Checkout({
     return () => clearTimeout(t)
   }, [pedidas, desdeBolsa, bolsa.lista])
 
-  const [entrega, setEntrega] = useState<'envio' | 'retiro'>('envio')
+  const [entrega, setEntrega] = useState<'envio' | 'sucursal' | 'retiro'>('envio')
   const [region, setRegion] = useState('')
   const [metodo, setMetodo] = useState('transferencia')
   const [error, setError] = useState<string | null>(null)
@@ -106,9 +130,11 @@ export default function Checkout({
   const subtotal = lineas.reduce((a, l) => a + l.subtotal, 0)
   const ahorro = lineas.reduce((a, l) => a + (l.precioBase - l.precio) * l.cantidad, 0)
   const gratis = envio.gratisDesde !== null && subtotal >= envio.gratisDesde
-  const costoEnvio = entrega === 'retiro' || gratis ? 0 : envio.tarifa
+  // El envío va incluido en el precio: no se le cobra al comprador en ninguna
+  // de las tres formas de entrega.
+  const costoEnvio = 0
   const total = subtotal + costoEnvio
-  const faltaParaGratis = envio.gratisDesde !== null && !gratis && entrega === 'envio' ? envio.gratisDesde - subtotal : 0
+  const faltaParaGratis = 0
   const hayProblemas = lineas.some((l) => l.error)
   const vacio = cotizadas !== null && lineas.length === 0
 
@@ -159,7 +185,7 @@ export default function Checkout({
       <dl className="mt-4 space-y-2 text-[14px]">
         <div className="flex justify-between"><dt className="text-tinta-suave">Productos</dt><dd className="cifra">{clp(subtotal + ahorro)}</dd></div>
         {ahorro > 0 && <div className="flex justify-between text-verde"><dt>Descuento por volumen</dt><dd className="cifra">−{clp(ahorro)}</dd></div>}
-        <div className="flex justify-between"><dt className="text-tinta-suave">{entrega === 'retiro' ? 'Retiro' : 'Envío'}</dt><dd className="cifra">{costoEnvio === 0 ? 'Gratis' : clp(costoEnvio)}</dd></div>
+        <div className="flex justify-between"><dt className="text-tinta-suave">{entrega === 'envio' ? 'Envío' : 'Retiro'}</dt><dd className="cifra">{costoEnvio === 0 ? 'Gratis' : clp(costoEnvio)}</dd></div>
         <div className="flex justify-between border-t border-borde/70 pt-3 text-[18px] font-semibold"><dt>Total</dt><dd className={`cifra transition-opacity ${cotizando ? 'opacity-50' : ''}`}>{clp(total)}</dd></div>
       </dl>
       {faltaParaGratis > 0 && <p className="mt-3 rounded-[10px] bg-verde/10 px-3 py-2 text-[13px] text-verde">Te faltan {clp(faltaParaGratis)} para el envío gratis.</p>}
@@ -224,39 +250,105 @@ export default function Checkout({
         </Paso>
 
         <Paso n={3} titulo="Entrega">
-          {envio.retiro && (
-            <div role="radiogroup" aria-label="Forma de entrega" className="mb-4 grid grid-cols-2 gap-2.5">
-              {([
-                ['envio', 'Envío a domicilio', envio.plazo ?? 'A todo Chile'],
-                ['retiro', 'Retiro en persona', 'Sin costo'],
-              ] as const).map(([v, t, n]) => (
-                <button key={v} type="button" role="radio" aria-checked={entrega === v} onClick={() => setEntrega(v)}
-                        className={`rounded-[14px] p-4 text-left ring-1 ${entrega === v ? 'ring-2 ring-tinta' : 'ring-borde'}`}>
-                  <span className="block text-[15px] font-semibold">{t}</span>
-                  <span className="mt-0.5 block text-[13px] text-gris">{n}</span>
+          {/* Las tres formas de entrega, y el envío es gratis en todas: se dice
+              en cada tarjeta para que nadie tema un cargo escondido al final. */}
+          <div role="radiogroup" aria-label="Forma de entrega" className="mb-5 grid gap-2.5 t:grid-cols-3">
+            {([
+              ['envio', 'Despacho a domicilio', envio.plazo ?? 'Llega a tu puerta', 'casa'],
+              ['sucursal', 'Retiro en sucursal', 'Lo buscas cuando puedas', 'sucursal'],
+              ...(envio.retiro ? [['retiro', 'Retiro con nosotros', 'Coordinamos contigo', 'mano'] as const] : []),
+            ] as const).map(([v, t, n, icono]) => {
+              const activo = entrega === v
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={activo}
+                  onClick={() => setEntrega(v)}
+                  className={[
+                    'group relative overflow-hidden rounded-[16px] p-4 text-left transition-all duration-200',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark',
+                    activo
+                      ? 'bg-papel-alt ring-2 ring-tinta'
+                      : 'ring-1 ring-borde hover:-translate-y-px hover:ring-tinta/40',
+                  ].join(' ')}
+                >
+                  <span className="flex items-start justify-between gap-2">
+                    <IconoEntrega tipo={icono} activo={activo} />
+                    <span
+                      aria-hidden
+                      className={[
+                        'mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full ring-1 transition-all duration-200',
+                        activo ? 'bg-tinta ring-tinta' : 'ring-borde',
+                      ].join(' ')}
+                    >
+                      <svg viewBox="0 0 10 10" className={`size-[7px] text-white transition-opacity duration-200 ${activo ? 'opacity-100' : 'opacity-0'}`} fill="none">
+                        <path d="M1.5 5.2 3.8 7.5 8.5 2.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  </span>
+                  <span className="mt-2.5 block text-[15px] font-semibold">{t}</span>
+                  <span className="mt-0.5 block text-[13px] text-tinta-suave">{n}</span>
+                  <span className="mt-2 inline-block rounded-full bg-spark/10 px-2 py-0.5 text-[12px] font-semibold text-spark">
+                    Gratis
+                  </span>
                 </button>
-              ))}
-            </div>
-          )}
-          {entrega === 'envio' ? (
-            <div className="grid gap-3 t:grid-cols-2">
-              <Selector
-                id="region"
-                name="region"
-                etiqueta="Región"
-                placeholder="Elige tu región"
-                opciones={REGIONES.map((r) => ({ valor: r, etiqueta: r }))}
-                valor={region}
-                alCambiar={setRegion}
-                required
-                disabled={enviando}
-              />
-              <Campo id="comuna" name="comuna" etiqueta="Comuna" autoComplete="address-level2" required disabled={enviando} />
-              <div className="t:col-span-2"><Campo id="direccion" name="direccion" etiqueta="Calle, número y depto." autoComplete="street-address" required disabled={enviando} /></div>
-            </div>
-          ) : (
-            <p className="rounded-[14px] bg-papel-alt p-4 text-[14px] text-tinta-suave">{envio.retiroDireccion ?? 'Coordinamos el retiro por WhatsApp.'}</p>
-          )}
+              )
+            })}
+          </div>
+
+          {/* El bloque cambia con la forma de entrega. La transición evita que
+              los campos salten de golpe al cambiar de opción. */}
+          <div key={entrega} className="entrega-panel">
+            {entrega === 'envio' && (
+              <div className="grid gap-3 t:grid-cols-2">
+                <Selector
+                  id="region"
+                  name="region"
+                  etiqueta="Región"
+                  placeholder="Elige tu región"
+                  opciones={REGIONES.map((r) => ({ valor: r, etiqueta: r }))}
+                  valor={region}
+                  alCambiar={setRegion}
+                  required
+                  disabled={enviando}
+                />
+                <Campo id="comuna" name="comuna" etiqueta="Comuna" autoComplete="address-level2" required disabled={enviando} />
+                <div className="t:col-span-2"><Campo id="direccion" name="direccion" etiqueta="Calle, número y depto." autoComplete="street-address" required disabled={enviando} /></div>
+              </div>
+            )}
+
+            {entrega === 'sucursal' && (
+              <div className="grid gap-3 t:grid-cols-2">
+                <Selector
+                  id="region"
+                  name="region"
+                  etiqueta="Región"
+                  placeholder="Elige tu región"
+                  opciones={REGIONES.map((r) => ({ valor: r, etiqueta: r }))}
+                  valor={region}
+                  alCambiar={setRegion}
+                  required
+                  disabled={enviando}
+                />
+                <Campo id="comuna" name="comuna" etiqueta="Comuna" autoComplete="address-level2" required disabled={enviando} />
+                <div className="t:col-span-2">
+                  <Campo id="sucursal" name="sucursal" etiqueta="¿En qué sucursal quieres retirar?" required disabled={enviando} />
+                </div>
+                <p className="t:col-span-2 text-[13px] leading-relaxed text-tinta-suave">
+                  Escribe la sucursal que te quede cómoda. Te avisamos apenas tu pedido esté
+                  disponible para retirar, y lo guardan varios días.
+                </p>
+              </div>
+            )}
+
+            {entrega === 'retiro' && (
+              <p className="rounded-[14px] bg-papel-alt p-4 text-[14px] text-tinta-suave">
+                {envio.retiroDireccion ?? 'Coordinamos el retiro por WhatsApp.'}
+              </p>
+            )}
+          </div>
         </Paso>
 
         <Paso n={4} titulo="Pago">

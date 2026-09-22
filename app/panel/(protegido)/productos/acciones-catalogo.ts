@@ -13,6 +13,7 @@ import {
   rutasDeGaleria,
   slugificar,
 } from '@/lib/imagenes'
+import { montoDesdeTexto } from '@/lib/monto'
 import { UUID, textoOpcional } from '@/lib/catalogo'
 
 export type { Resultado } from '@/lib/autorizacion'
@@ -100,7 +101,7 @@ export async function crearProducto(
   const nombre = String(datos.get('nombre') ?? '').trim()
   const sku = String(datos.get('sku') ?? '').trim().toUpperCase()
   const descripcion = String(datos.get('descripcion') ?? '').trim()
-  const precio = Number(datos.get('precio_base'))
+  const precio = montoDesdeTexto(datos.get('precio_base')) ?? NaN
   const costoCrudo = String(datos.get('costo_unitario') ?? '').trim()
   const costo = costoCrudo === '' ? 0 : Number(costoCrudo)
   const categoriaId = String(datos.get('categoria_id') ?? '')

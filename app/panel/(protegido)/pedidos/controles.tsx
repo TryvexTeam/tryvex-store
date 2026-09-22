@@ -217,7 +217,7 @@ export function NuevoPedido({
 
         <div>
           <input
-            name="precio_unitario" type="number" min="0" required
+            name="precio_unitario" type="text" inputMode="numeric" required
             value={precio}
             onChange={(e) => { setPrecio(e.target.value); setTocoPrecio(true) }}
             placeholder="Precio unitario" disabled={enviando}
@@ -231,7 +231,7 @@ export function NuevoPedido({
         </div>
 
         <input
-          name="envio_clp" type="number" min="0" value={envio}
+          name="envio_clp" type="text" inputMode="numeric" value={envio}
           onChange={(e) => setEnvio(e.target.value)}
           placeholder="Envío (opcional)" disabled={enviando}
           className={`${campo} cifra`} aria-label="Costo de envío"

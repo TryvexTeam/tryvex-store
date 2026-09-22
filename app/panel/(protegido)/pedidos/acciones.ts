@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { varianteValida, stockDisponible } from '@/lib/variantes'
+import { crearClienteAdministrador } from '@/lib/supabase/administrador'
+import { correoPedidoEnCamino } from '@/lib/correo'
+import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
+import { urlDeSeguimiento } from '@/lib/seguimiento'
 
 export type Resultado = { ok: true; aviso?: string; id?: string } | { ok: false; error: string }
 
@@ -26,7 +30,11 @@ const TRANSICIONES: Record<string, string[]> = {
   cancelado: [],
 }
 
-export const ESTADOS = Object.keys(TRANSICIONES)
+// Aquí vivía `export const ESTADOS = Object.keys(TRANSICIONES)`. Un archivo
+// `'use server'` solo puede exportar funciones async, así que ese arreglo
+// rompía el módulo entero —y con él todo el panel de pedidos—, con un error
+// que ni siquiera apunta a esa línea. No lo usaba nadie: se eliminó.
+// Las transiciones permitidas se consultan con `siguientesEstados()`.
 
 async function contexto() {
   const supabase = await crearClienteServidor()
@@ -74,8 +82,8 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
   const notas = String(datos.get('notas') ?? '').trim()
   const producto_id = String(datos.get('producto_id') ?? '')
   const cantidad = Number(datos.get('cantidad'))
-  const precio_unitario = Number(datos.get('precio_unitario'))
-  const envio = Number(datos.get('envio_clp') || 0)
+  const precio_unitario = montoDesdeTexto(datos.get('precio_unitario')) ?? NaN
+  const envio = montoDesdeTextoODefecto(datos.get('envio_clp'))
 
   if (!cliente_nombre) return { ok: false, error: 'Falta el nombre del cliente.' }
   if (!producto_id) return { ok: false, error: 'Falta el producto.' }
@@ -261,8 +269,60 @@ export async function cambiarEstado(pedido_id: string, nuevo: string): Promise<R
 
   if (error) return { ok: false, error: error.message }
 
+  // Al despachar se le avisa al comprador, con su enlace de seguimiento. Si el
+  // correo falla no se deshace nada: el pedido ya salió, y eso es lo que
+  // importa. El equipo se entera por el aviso.
+  if (nuevo === 'enviado') {
+    const enviado = await avisarDespacho(pedido_id)
+    if (!enviado) aviso = aviso ?? 'Pedido marcado como enviado. El correo al cliente no salió: avísale tú.'
+  }
+
   revalidar()
   return { ok: true, aviso }
+}
+
+/** Le escribe al comprador que su pedido salió. `false` si no se pudo. */
+async function avisarDespacho(pedido_id: string): Promise<boolean> {
+  try {
+    const db = crearClienteAdministrador()
+    const { data } = await db
+      .from('pedidos')
+      .select('numero,cliente_nombre,cliente_email,total_clp,token_seguimiento,envio_courier,envio_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre))')
+      .eq('id', pedido_id)
+      .maybeSingle()
+
+    const p = data as unknown as {
+      numero: number
+      cliente_nombre: string | null
+      cliente_email: string | null
+      total_clp: number | string
+      token_seguimiento: string
+      envio_courier: string | null
+      envio_seguimiento: string | null
+      pedido_items: { cantidad: number; subtotal_clp: number | string; productos: { nombre: string } | { nombre: string }[] | null }[] | null
+    } | null
+
+    // El correo es opcional al comprar: sin él no hay a quién escribirle, y eso
+    // no es una falla que reportar.
+    if (!p?.cliente_email) return true
+
+    return await correoPedidoEnCamino({
+      para: p.cliente_email,
+      nombre: p.cliente_nombre,
+      numero: p.numero,
+      total: Number(p.total_clp),
+      courier: p.envio_courier,
+      codigo: p.envio_seguimiento,
+      items: (p.pedido_items ?? []).map((i) => {
+        const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
+        return { nombre: producto?.nombre ?? 'Producto', cantidad: Number(i.cantidad), subtotal: Number(i.subtotal_clp) }
+      }),
+      urlSeguimiento: urlDeSeguimiento(p.token_seguimiento),
+    })
+  } catch (e) {
+    console.error('[pedidos] el pedido salió, el aviso al comprador no', { pedido_id, e })
+    return false
+  }
 }
 
 export async function siguientesEstados(estado: string): Promise<string[]> {

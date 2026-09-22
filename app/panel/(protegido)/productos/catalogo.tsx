@@ -385,7 +385,7 @@ function HojaCrear({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="c-precio" className="mb-1 block text-[12px] font-medium text-gris">Precio de venta</label>
-            <input id="c-precio" name="precio_base" type="number" inputMode="numeric" min={1} step={1}
+            <input id="c-precio" name="precio_base" type="text" inputMode="numeric"
                    required placeholder="En pesos, sin puntos" disabled={pendiente} className={`${campo} cifra`} />
           </div>
           <div>

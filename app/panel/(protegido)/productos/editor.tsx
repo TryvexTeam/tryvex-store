@@ -222,7 +222,7 @@ export default function EditorProducto({
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <label htmlFor={`precio-${producto.id}`} className={rotulo}>Precio de venta</label>
-            <input id={`precio-${producto.id}`} name="precio_base" type="number" min="1" required
+            <input id={`precio-${producto.id}`} name="precio_base" type="text" inputMode="numeric" required
                    defaultValue={n(producto.precio_base)} onChange={(e) => setPrecio(Number(e.target.value) || 0)}
                    disabled={guardando} className={`${campo} cifra`} />
           </div>
@@ -318,7 +318,7 @@ export default function EditorProducto({
                 <input name="etiqueta" defaultValue={t.etiqueta} required aria-label="Etiqueta" disabled={guardando} className={campo} />
                 <input name="min_unidades" type="number" min="1" defaultValue={t.min_unidades} required aria-label="Desde" disabled={guardando} className={`${campo} cifra`} />
                 <input name="max_unidades" type="number" min="1" defaultValue={t.max_unidades ?? ''} placeholder="∞" aria-label="Hasta" disabled={guardando} className={`${campo} cifra`} />
-                <input name="precio_unitario" type="number" min="1" defaultValue={n(t.precio_unitario)} required aria-label="Precio unitario" disabled={guardando} className={`${campo} cifra`} />
+                <input name="precio_unitario" type="text" inputMode="numeric" defaultValue={n(t.precio_unitario)} required aria-label="Precio unitario" disabled={guardando} className={`${campo} cifra`} />
                 <div className="col-span-2 flex gap-2 sm:col-span-1">
                   <button type="submit" disabled={guardando}
                           className="presionable rounded-full bg-tinta px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40">
@@ -342,7 +342,7 @@ export default function EditorProducto({
                 <input name="etiqueta" placeholder="Etiqueta" required aria-label="Etiqueta" disabled={guardando} className={campo} />
                 <input name="min_unidades" type="number" min="1" placeholder="Desde" required aria-label="Desde" disabled={guardando} className={`${campo} cifra`} />
                 <input name="max_unidades" type="number" min="1" placeholder="∞" aria-label="Hasta" disabled={guardando} className={`${campo} cifra`} />
-                <input name="precio_unitario" type="number" min="1" placeholder="Precio" required aria-label="Precio unitario" disabled={guardando} className={`${campo} cifra`} />
+                <input name="precio_unitario" type="text" inputMode="numeric" placeholder="Precio" required aria-label="Precio unitario" disabled={guardando} className={`${campo} cifra`} />
                 <div className="col-span-2 flex gap-2 sm:col-span-1">
                   <button type="submit" disabled={guardando}
                           className="presionable rounded-full bg-spark px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40">
