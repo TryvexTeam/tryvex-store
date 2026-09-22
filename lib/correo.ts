@@ -16,6 +16,15 @@ import { Resend } from 'resend'
 
 const DESDE = process.env.RESEND_FROM ?? 'Tryvex Store <hola@tryvex.tech>'
 
+/**
+ * A dónde llegan las respuestas.
+ *
+ * El remitente tiene que ser del dominio verificado en Resend, y ahí no hay
+ * nadie leyendo. El pie del correo invita a responder, así que la respuesta
+ * tiene que caer en un buzón real: el correo de contacto de la tienda.
+ */
+const RESPONDER_A = process.env.RESEND_REPLY_TO ?? null
+
 function cliente(): Resend | null {
   const clave = process.env.RESEND_API_KEY
   if (!clave) return null
@@ -36,7 +45,14 @@ async function enviar({ para, asunto, html, texto }: Envio): Promise<boolean> {
     return false
   }
   try {
-    const { error } = await resend.emails.send({ from: DESDE, to: para, subject: asunto, html, text: texto })
+    const { error } = await resend.emails.send({
+      from: DESDE,
+      to: para,
+      subject: asunto,
+      html,
+      text: texto,
+      ...(RESPONDER_A ? { replyTo: RESPONDER_A } : {}),
+    })
     if (error) {
       console.error('[correo] Resend rechazó el envío', { asunto, error: error.message })
       return false
