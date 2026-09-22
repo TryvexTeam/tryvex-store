@@ -69,6 +69,8 @@ export interface PedidoCuenta {
   seguimiento: string | null
   /** Código que dio el courier. Se muestra en nuestra web, no obliga a salir a la suya. */
   codigoSeguimiento: string | null
+  /** Enlace propio del pedido: sirve para abrir su seguimiento a pantalla completa. */
+  token: string
   courier: string | null
   pagadoEn: string | null
   enviadoEn: string | null
@@ -82,6 +84,7 @@ const LIMITE_PEDIDOS = 50
 interface FilaPedidoBruta {
   id: string
   numero: number | string
+  token_seguimiento: string
   created_at: string
   estado: string
   total_clp: number | string
@@ -122,8 +125,9 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
 
   const db = await crearClienteServidor()
   const COLUMNAS =
-    'id,numero,created_at,estado,total_clp,envio_url_seguimiento,envio_seguimiento,envio_courier,' +
-    'pagado_at,enviado_at,entregado_at,pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
+    'id,numero,created_at,estado,total_clp,token_seguimiento,envio_url_seguimiento,envio_seguimiento,' +
+    'envio_courier,pagado_at,enviado_at,entregado_at,' +
+    'pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
 
   // Dos consultas en vez de un `.or()` con el correo interpolado: ese texto
   // viaja dentro de la sintaxis del filtro, y una coma o un paréntesis en el
@@ -156,6 +160,7 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
     // Solo enlaces https: un valor escrito a mano no debe abrir otro esquema.
     seguimiento: typeof p.envio_url_seguimiento === 'string' && p.envio_url_seguimiento.startsWith('https://') ? p.envio_url_seguimiento : null,
     codigoSeguimiento: p.envio_seguimiento ?? null,
+    token: p.token_seguimiento,
     courier: p.envio_courier ?? null,
     pagadoEn: p.pagado_at ?? null,
     enviadoEn: p.enviado_at ?? null,

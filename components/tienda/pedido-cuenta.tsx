@@ -11,14 +11,11 @@ import { BotonCourier } from '@/components/tienda/boton-courier'
  *
  * El historial se lee de arriba abajo: quien entra quiere ubicar un pedido, no
  * leer seis recorridos completos. Cada fila muestra lo que identifica la compra
- * —número, fecha, estado, total— y el detalle se abre a pedido.
+ * y el detalle se abre a pedido.
  *
  * Se usa `<details>` nativo: funciona sin JavaScript, el teclado lo abre y
  * cierra solo, y el lector de pantalla anuncia si está expandido. Un acordeón
  * hecho a mano habría que dotarlo de todo eso.
- *
- * El pedido en curso —el que tiene algo pasando— viene abierto: es el que la
- * persona vino a mirar.
  */
 
 const ESTADOS: Record<string, { texto: string; clase: string }> = {
@@ -33,7 +30,7 @@ const ESTADOS: Record<string, { texto: string; clase: string }> = {
 const fechaCorta = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
 
 /** En curso: el pedido todavía tiene pasos por delante. */
-function enCurso(estado: string): boolean {
+export function enCurso(estado: string): boolean {
   return ['pendiente', 'pagado', 'preparando', 'enviado'].includes(estado)
 }
 
@@ -101,6 +98,26 @@ export function PedidoEnCuenta({ pedido, abierto }: { pedido: PedidoCuenta; abie
         <div className="mt-4 border-t border-borde/60 pt-4">
           <LineaEnvio pedido={pedido} />
           {enlaceCourier && <BotonCourier enlace={enlaceCourier} />}
+
+          {/* El acordeón alcanza para mirar de pasada. Para seguir un envío de
+              cerca —o mandarle el enlace a alguien— está la página completa. */}
+          <div className="mt-5 flex flex-wrap gap-2 border-t border-borde/60 pt-4">
+            <Link
+              href={`/seguimiento/${pedido.token}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-tinta px-4 py-2.5 text-[14px] font-semibold text-white transition-colors hover:bg-tinta/90"
+            >
+              Ver seguimiento completo
+              <svg viewBox="0 0 12 12" aria-hidden className="size-3">
+                <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <Link
+              href="/ayuda"
+              className="inline-flex items-center rounded-full px-4 py-2.5 text-[14px] ring-1 ring-borde ring-inset transition-colors hover:bg-papel"
+            >
+              Necesito ayuda con este pedido
+            </Link>
+          </div>
         </div>
       </div>
     </details>
@@ -109,6 +126,5 @@ export function PedidoEnCuenta({ pedido, abierto }: { pedido: PedidoCuenta; abie
 
 /** Marca cuál pedido conviene mostrar ya abierto: el más reciente en curso. */
 export function indiceDestacado(pedidos: PedidoCuenta[]): number {
-  const i = pedidos.findIndex((p) => enCurso(p.estado))
-  return i
+  return pedidos.findIndex((p) => enCurso(p.estado))
 }

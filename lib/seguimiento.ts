@@ -71,6 +71,7 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
           ? p.envio_url_seguimiento
           : null,
       codigoSeguimiento: p.envio_seguimiento ?? null,
+      token,
       courier: p.envio_courier ?? null,
       pagadoEn: p.pagado_at ?? null,
       enviadoEn: p.enviado_at ?? null,
