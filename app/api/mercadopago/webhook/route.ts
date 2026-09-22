@@ -34,19 +34,32 @@ export async function POST(peticion: Request) {
     | { type?: string; action?: string; data?: { id?: string } }
     | null
 
-  // El manifiesto se arma con el `data.id` de los query params, que es lo que
-  // Mercado Pago firmó. El del cuerpo solo sirve de respaldo.
-  const dataId = dataIdUrl ?? cuerpo?.data?.id ?? null
+  // El manifiesto se firma con el `data.id` de los query params. El del cuerpo
+  // se pasa aparte, como alternativa, nunca en su reemplazo: sustituirlo arma
+  // un manifiesto que Mercado Pago no firmó y la firma no calza nunca.
+  const dataIdCuerpo = cuerpo?.data?.id ?? null
+  const dataId = dataIdUrl ?? dataIdCuerpo
 
   if (
     !firmaValida({
       xSignature: peticion.headers.get('x-signature'),
       xRequestId: peticion.headers.get('x-request-id'),
-      dataId,
+      dataId: dataIdUrl,
+      dataIdCuerpo,
       secreto,
     })
   ) {
-    console.warn('[mercadopago] aviso con firma inválida, descartado')
+    // Con qué datos se intentó, para poder diagnosticar sin exponer el secreto
+    // ni la firma. Sin esto, un 401 no dice nada y hay que adivinar.
+    console.warn('[mercadopago] aviso con firma inválida, descartado', {
+      hayDataIdEnUrl: Boolean(dataIdUrl),
+      hayDataIdEnCuerpo: Boolean(dataIdCuerpo),
+      coinciden: dataIdUrl === dataIdCuerpo,
+      hayRequestId: Boolean(peticion.headers.get('x-request-id')),
+      formaFirma: (peticion.headers.get('x-signature') ?? '').replace(/v1=[0-9a-f]+/i, 'v1=<oculto>'),
+      tipo: cuerpo?.type,
+      accion: cuerpo?.action,
+    })
     return new Response(null, { status: 401 })
   }
 
