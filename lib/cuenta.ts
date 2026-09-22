@@ -71,6 +71,10 @@ export interface PedidoCuenta {
   codigoSeguimiento: string | null
   /** Enlace propio del pedido: sirve para abrir su seguimiento a pantalla completa. */
   token: string
+  /** Cómo se pagó, para que el cliente reconozca el cargo en su cartola. */
+  metodoPago: string | null
+  /** A dónde va, ya armado en una línea. `null` si fue retiro en persona. */
+  entrega: string | null
   courier: string | null
   pagadoEn: string | null
   enviadoEn: string | null
@@ -85,6 +89,10 @@ interface FilaPedidoBruta {
   id: string
   numero: number | string
   token_seguimiento: string
+  metodo_pago: string | null
+  direccion: { entrega?: string; direccion?: string | null } | null
+  region: string | null
+  comuna: string | null
   created_at: string
   estado: string
   total_clp: number | string
@@ -101,6 +109,18 @@ interface FilaPedidoBruta {
         productos: { nombre: string; slug: string | null; imagen_url: string | null } | { nombre: string; slug: string | null; imagen_url: string | null }[] | null
       }[]
     | null
+}
+
+/**
+ * A dónde va el pedido, en una línea.
+ *
+ * `direccion` es un jsonb que guarda si fue envío o retiro, así que la forma
+ * de la entrega se lee de ahí y no del hecho de que haya o no comuna.
+ */
+function describirEntrega(p: FilaPedidoBruta): string | null {
+  if (p.direccion?.entrega === 'retiro') return 'Retiro en persona'
+  const partes = [p.direccion?.direccion, p.comuna, p.region].filter((x): x is string => Boolean(x?.trim()))
+  return partes.length > 0 ? partes.join(', ') : null
 }
 
 /**
@@ -125,8 +145,8 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
 
   const db = await crearClienteServidor()
   const COLUMNAS =
-    'id,numero,created_at,estado,total_clp,token_seguimiento,envio_url_seguimiento,envio_seguimiento,' +
-    'envio_courier,pagado_at,enviado_at,entregado_at,' +
+    'id,numero,created_at,estado,total_clp,token_seguimiento,metodo_pago,direccion,region,comuna,' +
+    'envio_url_seguimiento,envio_seguimiento,envio_courier,pagado_at,enviado_at,entregado_at,' +
     'pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
 
   // Dos consultas en vez de un `.or()` con el correo interpolado: ese texto
@@ -161,6 +181,8 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
     seguimiento: typeof p.envio_url_seguimiento === 'string' && p.envio_url_seguimiento.startsWith('https://') ? p.envio_url_seguimiento : null,
     codigoSeguimiento: p.envio_seguimiento ?? null,
     token: p.token_seguimiento,
+    metodoPago: p.metodo_pago ?? null,
+    entrega: describirEntrega(p),
     courier: p.envio_courier ?? null,
     pagadoEn: p.pagado_at ?? null,
     enviadoEn: p.enviado_at ?? null,

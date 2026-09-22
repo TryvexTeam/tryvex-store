@@ -27,6 +27,13 @@ const ESTADOS: Record<string, { texto: string; clase: string }> = {
   cancelado: { texto: 'Cancelado', clase: 'bg-black/[0.04] text-tinta-suave ring-borde' },
 }
 
+const PAGOS: Record<string, string> = {
+  transferencia: 'Transferencia bancaria',
+  mercadopago: 'Mercado Pago',
+  efectivo: 'Efectivo',
+  flow: 'Flow',
+}
+
 const fechaCorta = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
 
 /** En curso: el pedido todavía tiene pasos por delante. */
@@ -75,6 +82,25 @@ export function PedidoEnCuenta({ pedido, abierto }: { pedido: PedidoCuenta; abie
       </summary>
 
       <div className="border-t border-borde/60 px-4 pt-4 pb-5 t:px-5">
+        {/* A dónde va y cómo se pagó: lo primero que uno busca al revisar una
+            compra, y hasta ahora no estaba en ninguna parte. */}
+        {(pedido.entrega || pedido.metodoPago) && (
+          <dl className="mb-4 grid gap-3 border-b border-borde/60 pb-4 t:grid-cols-2">
+            {pedido.entrega && (
+              <div className="min-w-0">
+                <dt className="text-[12px] tracking-etiqueta text-tinta-suave uppercase">Entrega</dt>
+                <dd className="mt-0.5 text-[14px] break-words">{pedido.entrega}</dd>
+              </div>
+            )}
+            {pedido.metodoPago && (
+              <div className="min-w-0">
+                <dt className="text-[12px] tracking-etiqueta text-tinta-suave uppercase">Pago</dt>
+                <dd className="mt-0.5 text-[14px]">{PAGOS[pedido.metodoPago] ?? pedido.metodoPago}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+
         <ul className="grid gap-2.5">
           {pedido.items.map((i, n) => (
             <li key={`${pedido.id}-${n}`} className="flex items-center gap-3">

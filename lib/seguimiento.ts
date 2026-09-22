@@ -72,6 +72,11 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
           : null,
       codigoSeguimiento: p.envio_seguimiento ?? null,
       token,
+      // El enlace de seguimiento puede terminar reenviado por WhatsApp a
+      // cualquiera: la dirección y el medio de pago no viajan en él. Quien
+      // quiera esos datos entra a su cuenta.
+      metodoPago: null,
+      entrega: null,
       courier: p.envio_courier ?? null,
       pagadoEn: p.pagado_at ?? null,
       enviadoEn: p.enviado_at ?? null,

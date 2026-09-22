@@ -11,7 +11,8 @@ import { FormularioPerfil } from './perfil'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { AbrirBolsa } from './abrir-bolsa'
-import { PedidoEnCuenta, indiceDestacado, enCurso } from '@/components/tienda/pedido-cuenta'
+import { indiceDestacado, enCurso } from '@/components/tienda/pedido-cuenta'
+import { ListaPedidos } from '@/components/tienda/lista-pedidos'
 import { LineaEnvio } from '@/components/tienda/linea-envio'
 
 export const dynamic = 'force-dynamic'
@@ -99,24 +100,7 @@ export default async function MiCuenta() {
               )}
             </div>
 
-            {pedidos.length === 0 ? (
-              <div className="mt-4 text-[15px] text-tinta-suave">
-                <p>Todavía no tienes compras.</p>
-                <Link href="/tienda" className="mt-4 inline-block font-semibold text-spark hover:underline">Explorar la tienda →</Link>
-              </div>
-            ) : (
-              <ul className="mt-5 grid gap-3">
-                {pedidos.map((p) => (
-                  <li key={p.id}>
-                    {/* Todos plegados: el pedido en curso ya está desplegado
-                        arriba, y repetirlo abierto obligaría a bajar dos veces
-                        por lo mismo. Con uno solo, se abre porque no hay nada
-                        más que recorrer. */}
-                    <PedidoEnCuenta pedido={p} abierto={pedidos.length === 1} />
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ListaPedidos pedidos={pedidos} />
           </section>
 
           <div className="grid content-start gap-6">
