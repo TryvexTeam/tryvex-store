@@ -187,11 +187,14 @@ export async function consultarOrden(id: string): Promise<EstadoOrden | null> {
 export function firmaValida(params: {
   xSignature: string | null
   xRequestId: string | null
+  /** El de los query params: es el que Mercado Pago firmó. */
   dataId: string | null
+  /** El del cuerpo, que puede diferir del anterior. Solo como alternativa. */
+  dataIdCuerpo?: string | null
   secreto: string
   toleranciaSegundos?: number
 }): boolean {
-  const { xSignature, xRequestId, dataId, secreto, toleranciaSegundos = 600 } = params
+  const { xSignature, xRequestId, dataId, dataIdCuerpo, secreto, toleranciaSegundos = 600 } = params
   if (!xSignature || !secreto) return false
 
   let ts: string | null = null
@@ -206,17 +209,35 @@ export function firmaValida(params: {
   }
   if (!ts || !recibido) return false
 
-  const segmentos: string[] = []
-  if (dataId) segmentos.push(`id:${dataId.toLowerCase()}`)
-  if (xRequestId) segmentos.push(`request-id:${xRequestId}`)
-  segmentos.push(`ts:${ts}`)
-  const manifiesto = segmentos.join(';') + ';'
+  const arma = (id: string | null): string => {
+    const segmentos: string[] = []
+    if (id) segmentos.push(`id:${id.toLowerCase()}`)
+    if (xRequestId) segmentos.push(`request-id:${xRequestId}`)
+    segmentos.push(`ts:${ts}`)
+    return segmentos.join(';') + ';'
+  }
 
-  const calculado = crypto.createHmac('sha256', secreto).update(manifiesto).digest('hex')
+  /**
+   * Se prueban las formas válidas del manifiesto, no una sola.
+   *
+   * La documentación dice que el `id` sale de los query params y que, si no
+   * viene, ese segmento se omite. Rellenarlo con el `data.id` del cuerpo
+   * —como se hacía antes— construye un manifiesto que Mercado Pago nunca
+   * firmó, y entonces la firma no calza jamás: el pago se acredita y el
+   * pedido queda pendiente para siempre.
+   *
+   * Todas las variantes se comparan contra el mismo HMAC con el mismo secreto,
+   * así que probar varias no debilita nada: o el remitente conoce la clave, o
+   * ninguna calza.
+   */
+  const candidatos = [arma(dataId), arma(null), ...(dataIdCuerpo && dataIdCuerpo !== dataId ? [arma(dataIdCuerpo)] : [])]
 
-  const a = Buffer.from(calculado, 'utf8')
   const b = Buffer.from(recibido, 'utf8')
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false
+  const calza = candidatos.some((manifiesto) => {
+    const a = Buffer.from(crypto.createHmac('sha256', secreto).update(manifiesto).digest('hex'), 'utf8')
+    return a.length === b.length && crypto.timingSafeEqual(a, b)
+  })
+  if (!calza) return false
 
   // Una firma válida capturada hoy no debería servir la semana que viene.
   const enviado = Number(ts)
