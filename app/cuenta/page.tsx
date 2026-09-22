@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { exigirCuenta, leerMisFavoritos, leerMisPedidos, type PedidoCuenta } from '@/lib/cuenta'
+import { exigirCuenta, leerMisFavoritos, leerMisPedidos } from '@/lib/cuenta'
 import { leerVitrina } from '@/lib/tienda'
 import { clp } from '@/lib/formato'
 import { Cabecera } from '@/components/tienda/cabecera'
@@ -11,9 +11,7 @@ import { FormularioPerfil } from './perfil'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { AbrirBolsa } from './abrir-bolsa'
-import { LineaEnvio } from '@/components/tienda/linea-envio'
-import { BotonCourier } from '@/components/tienda/boton-courier'
-import { enlaceDeSeguimiento } from '@/lib/couriers'
+import { PedidoEnCuenta, indiceDestacado } from '@/components/tienda/pedido-cuenta'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -21,21 +19,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-const ESTADOS: Record<string, string> = {
-  pendiente: 'Esperando pago',
-  pagado: 'Pagado',
-  preparando: 'Preparando',
-  enviado: 'Enviado',
-  entregado: 'Entregado',
-  cancelado: 'Cancelado',
-}
-
-const fechaCorta = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
-
 export default async function MiCuenta() {
   const cuenta = await exigirCuenta()
   const [pedidos, favoritos, { categorias, configuracion }] = await Promise.all([leerMisPedidos(), leerMisFavoritos(), leerVitrina()])
   const saludo = cuenta.nombre?.split(' ')[0] ?? 'Hola'
+  const destacado = indiceDestacado(pedidos)
+  const enCurso = pedidos.filter((p) => ['pendiente', 'pagado', 'preparando', 'enviado'].includes(p.estado)).length
 
   return (
     <div className="tienda flex min-h-dvh min-w-0 flex-col bg-papel-alt">
@@ -60,14 +49,31 @@ export default async function MiCuenta() {
 
         <div className="mt-10 grid gap-6 d:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <section aria-labelledby="compras-titulo" className="rounded-[24px] bg-papel p-5 ring-1 ring-borde/60 t:p-7">
-            <h2 id="compras-titulo" className="text-[24px] font-semibold tracking-tarjeta">Mis compras</h2>
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 id="compras-titulo" className="text-[24px] font-semibold tracking-tarjeta">Mis compras</h2>
+              {pedidos.length > 0 && (
+                <p className="text-[13px] text-tinta-suave">
+                  {enCurso} en curso · {pedidos.length} en total
+                </p>
+              )}
+            </div>
+
             {pedidos.length === 0 ? (
               <div className="mt-4 text-[15px] text-tinta-suave">
                 <p>Todavía no tienes compras.</p>
                 <Link href="/tienda" className="mt-4 inline-block font-semibold text-spark hover:underline">Explorar la tienda →</Link>
               </div>
             ) : (
-              <ul className="mt-5 divide-y divide-borde/60">{pedidos.map((p) => <FilaPedido key={p.id} pedido={p} />)}</ul>
+              <ul className="mt-5 grid gap-3">
+                {pedidos.map((p, i) => (
+                  <li key={p.id}>
+                    {/* Solo el pedido en curso más reciente viene abierto: el
+                        resto se despliega a pedido, para poder recorrer el
+                        historial de un vistazo. */}
+                    <PedidoEnCuenta pedido={p} abierto={i === destacado} />
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
 
@@ -112,39 +118,5 @@ export default async function MiCuenta() {
         retracto={configuracion?.retracto_texto ?? null}
       />
     </div>
-  )
-}
-
-function FilaPedido({ pedido }: { pedido: PedidoCuenta }) {
-  const enlaceCourier = enlaceDeSeguimiento({
-    courier: pedido.courier,
-    codigo: pedido.codigoSeguimiento,
-    urlGuardada: pedido.seguimiento,
-  })
-
-  return (
-    <li className="py-4 first:pt-0 last:pb-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[16px] font-semibold">Pedido <span className="cifra">#{pedido.numero}</span></p>
-        <p className="cifra text-[16px] font-semibold">{clp(pedido.total)}</p>
-      </div>
-      <p className="mt-1 text-[14px] text-tinta-suave">
-        {fechaCorta.format(new Date(pedido.fecha))} · <span className="font-medium text-tinta">{ESTADOS[pedido.estado] ?? pedido.estado}</span>
-      </p>
-      <ul className="mt-3 flex flex-wrap gap-2">
-        {pedido.items.map((i, n) => (
-          <li key={`${pedido.id}-${n}`} className="flex items-center gap-2 rounded-full bg-papel-alt py-1 pr-3 pl-1 text-[13px]">
-            <span className="relative size-7 overflow-hidden rounded-full bg-papel">{i.imagen && <Image src={i.imagen} alt="" fill sizes="28px" className="object-contain p-0.5" />}</span>
-            {i.cantidad} × {i.nombre}
-          </li>
-        ))}
-      </ul>
-
-      <LineaEnvio pedido={pedido} />
-
-      {/* Misma salida al courier que en la página pública de seguimiento: una
-          sola forma de hacerlo, para que no diverjan. */}
-      {enlaceCourier && <BotonCourier enlace={enlaceCourier} />}
-    </li>
   )
 }
