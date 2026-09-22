@@ -22,6 +22,19 @@ export interface Courier {
   /** Forma del código, para reconocerlo y para avisar si no calza. */
   formato: RegExp
   ayudaFormato: string
+  /** Color de marca, leído de su propio sitio. Tiñe el botón. */
+  color: string
+  /** Color del texto sobre `color`, para que el contraste no dependa del azar. */
+  colorTexto: string
+  /**
+   * Logotipo servido desde la tienda, no desde el sitio del courier: un
+   * enlace a su CDN se rompe cuando ellos cambian el archivo. Se usa para
+   * identificar quién lleva el envío, nada más.
+   */
+  logo: string | null
+  /** Proporción del logo, para reservarle el espacio exacto y no mover la página. */
+  logoAncho: number
+  logoAlto: number
 }
 
 export const COURIERS: Courier[] = [
@@ -33,6 +46,12 @@ export const COURIERS: Courier[] = [
     enlaceDirecto: (codigo) => `https://www.starken.cl/seguimiento?codigo=${encodeURIComponent(codigo)}`,
     formato: /^\d{9}$/,
     ayudaFormato: '9 dígitos',
+    // Verificado en starken.cl: rgb(0, 157, 78).
+    color: '#009D4E',
+    colorTexto: '#FFFFFF',
+    logo: '/couriers/starken.webp',
+    logoAncho: 479,
+    logoAlto: 119,
   },
   {
     id: 'correos',
@@ -43,6 +62,12 @@ export const COURIERS: Courier[] = [
     enlaceDirecto: null,
     formato: /^\d{12,13}$/,
     ayudaFormato: '13 dígitos (si el tuyo tiene 12, Correos calcula el verificador)',
+    // Verificado en correos.cl: rgb(214, 0, 26).
+    color: '#D6001A',
+    colorTexto: '#FFFFFF',
+    logo: '/couriers/correos.svg',
+    logoAncho: 148,
+    logoAlto: 20,
   },
   {
     id: 'chilexpress',
@@ -54,6 +79,12 @@ export const COURIERS: Courier[] = [
       `https://www.chilexpress.cl/Views/ChilexpressCL/Resultado-busqueda.aspx?DATA=${encodeURIComponent(codigo)}`,
     formato: /^\d{10,12}$/,
     ayudaFormato: '10 a 12 dígitos, sin letras',
+    // Color de marca conocido; no se leyó de su sitio como los dos anteriores.
+    color: '#E30613',
+    colorTexto: '#FFFFFF',
+    logo: null,
+    logoAncho: 0,
+    logoAlto: 0,
   },
   {
     id: 'bluexpress',
@@ -62,6 +93,12 @@ export const COURIERS: Courier[] = [
     enlaceDirecto: null,
     formato: /^\d{10}$/,
     ayudaFormato: '10 dígitos',
+    // Color de marca conocido; no verificado en su sitio.
+    color: '#005BAA',
+    colorTexto: '#FFFFFF',
+    logo: null,
+    logoAncho: 0,
+    logoAlto: 0,
   },
 ]
 
@@ -103,6 +140,11 @@ export interface EnlaceSeguimiento {
   /** `true` si abre el envío; `false` si solo abre el buscador del courier. */
   directo: boolean
   codigo: string
+  color: string
+  colorTexto: string
+  logo: string | null
+  logoAncho: number
+  logoAlto: number
 }
 
 /**
@@ -122,15 +164,19 @@ export function enlaceDeSeguimiento(params: {
   const courier = courierPorId(params.courier) ?? courierProbable(codigo)
   if (!courier) return null
 
+  const marca = {
+    nombre: courier.nombre,
+    color: courier.color,
+    colorTexto: courier.colorTexto,
+    logo: courier.logo,
+    logoAncho: courier.logoAncho,
+    logoAlto: courier.logoAlto,
+  }
+
   if (params.urlGuardada?.startsWith('https://')) {
-    return { nombre: courier.nombre, url: params.urlGuardada, directo: true, codigo }
+    return { ...marca, url: params.urlGuardada, directo: true, codigo }
   }
 
   const directo = courier.enlaceDirecto?.(codigo) ?? null
-  return {
-    nombre: courier.nombre,
-    url: directo ?? courier.pagina,
-    directo: Boolean(directo),
-    codigo,
-  }
+  return { ...marca, url: directo ?? courier.pagina, directo: Boolean(directo), codigo }
 }
