@@ -5,6 +5,7 @@ import { clp } from '@/lib/formato'
 import { enlaceDeSeguimiento } from '@/lib/couriers'
 import { LineaEnvio } from '@/components/tienda/linea-envio'
 import { BotonCourier } from '@/components/tienda/boton-courier'
+import { BotonRepetir } from '@/components/tienda/boton-repetir'
 
 /**
  * Un pedido en «Mis compras», plegado por defecto.
@@ -137,11 +138,12 @@ export function PedidoEnCuenta({ pedido, abierto }: { pedido: PedidoCuenta; abie
                 <path d="M4 2.5 7.5 6 4 9.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
+            <BotonRepetir pedidoId={pedido.id} />
             <Link
               href="/ayuda"
               className="inline-flex items-center rounded-full px-4 py-2.5 text-[14px] ring-1 ring-borde ring-inset transition-colors hover:bg-papel"
             >
-              Necesito ayuda con este pedido
+              Necesito ayuda
             </Link>
           </div>
         </div>

@@ -33,7 +33,7 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
     .select(
       'id,numero,created_at,estado,total_clp,envio_url_seguimiento,envio_seguimiento,envio_courier,' +
         'pagado_at,enviado_at,entregado_at,cliente_nombre,' +
-        'pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
+        'pedido_items(cantidad,subtotal_clp,variante_id,productos(nombre,slug,imagen_url,sku))'
     )
     .eq('token_seguimiento', token)
     .maybeSingle()
@@ -54,7 +54,15 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
     entregado_at: string | null
     cliente_nombre: string | null
     pedido_items:
-      | { cantidad: number | string; subtotal_clp: number | string; productos: { nombre: string; slug: string | null; imagen_url: string | null } | { nombre: string; slug: string | null; imagen_url: string | null }[] | null }[]
+      | {
+          cantidad: number | string
+          subtotal_clp: number | string
+          variante_id: string | null
+          productos:
+            | { nombre: string; slug: string | null; imagen_url: string | null; sku: string | null }
+            | { nombre: string; slug: string | null; imagen_url: string | null; sku: string | null }[]
+            | null
+        }[]
       | null
   }
 
@@ -89,6 +97,8 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
           imagen: producto?.imagen_url ? urlPublica(producto.imagen_url) : null,
           cantidad: Number(i.cantidad),
           subtotal: Number(i.subtotal_clp),
+          sku: producto?.sku ?? null,
+          varianteId: i.variante_id ?? null,
         }
       }),
     },

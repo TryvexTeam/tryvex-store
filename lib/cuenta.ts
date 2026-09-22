@@ -58,6 +58,9 @@ export interface ItemPedidoCuenta {
   imagen: string | null
   cantidad: number
   subtotal: number
+  /** Para volver a comprar lo mismo. `null` si el producto ya no existe. */
+  sku: string | null
+  varianteId: string | null
 }
 
 export interface PedidoCuenta {
@@ -106,7 +109,11 @@ interface FilaPedidoBruta {
     | {
         cantidad: number | string
         subtotal_clp: number | string
-        productos: { nombre: string; slug: string | null; imagen_url: string | null } | { nombre: string; slug: string | null; imagen_url: string | null }[] | null
+        variante_id: string | null
+        productos:
+          | { nombre: string; slug: string | null; imagen_url: string | null; sku: string | null }
+          | { nombre: string; slug: string | null; imagen_url: string | null; sku: string | null }[]
+          | null
       }[]
     | null
 }
@@ -147,7 +154,7 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
   const COLUMNAS =
     'id,numero,created_at,estado,total_clp,token_seguimiento,metodo_pago,direccion,region,comuna,' +
     'envio_url_seguimiento,envio_seguimiento,envio_courier,pagado_at,enviado_at,entregado_at,' +
-    'pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
+    'pedido_items(cantidad,subtotal_clp,variante_id,productos(nombre,slug,imagen_url,sku))'
 
   // Dos consultas en vez de un `.or()` con el correo interpolado: ese texto
   // viaja dentro de la sintaxis del filtro, y una coma o un paréntesis en el
@@ -195,6 +202,8 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
         imagen: producto?.imagen_url ? urlPublica(producto.imagen_url) : null,
         cantidad: Number(i.cantidad),
         subtotal: Number(i.subtotal_clp),
+        sku: producto?.sku ?? null,
+        varianteId: i.variante_id ?? null,
       }
     }),
   }))
