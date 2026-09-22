@@ -99,10 +99,15 @@ export function BotonCourier({ enlace }: { enlace: EnlaceCourier }) {
         </button>
       </div>
 
+      {/* Se dice de dónde sale cada cosa. Los hitos de arriba los marca la
+          tienda; el minuto a minuto lo sabe el courier. Sin esta distinción, un
+          «En camino» que quedó sin actualizar parece un dato en vivo que falla,
+          y el comprador deja de creerle al resto. */}
       <p className="mt-3 text-[13px] leading-relaxed text-tinta-suave">
+        Los estados de arriba los vamos marcando nosotros.{' '}
         {enlace.directo
-          ? `Verás el detalle del recorrido en el sitio de ${enlace.nombre}.`
-          : `${enlace.nombre} no permite abrir un envío por enlace: copia el código y pégalo en su buscador.`}
+          ? `El detalle minuto a minuto lo entrega ${enlace.nombre}.`
+          : `El detalle minuto a minuto lo entrega ${enlace.nombre}: copia el código y pégalo en su buscador, porque no permite abrir un envío por enlace.`}
       </p>
 
       <p aria-live="polite" className="sr-only">
