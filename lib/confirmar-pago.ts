@@ -1,6 +1,7 @@
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { correoPagoConfirmado } from '@/lib/correo'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
+import { urlPublica } from '@/lib/imagenes'
 
 /**
  * Da un pedido por pagado cuando la pasarela confirmó el cobro.
@@ -78,7 +79,7 @@ async function avisarPagoConfirmado(numero: number): Promise<void> {
     const db = crearClienteAdministrador()
     const { data } = await db
       .from('pedidos')
-      .select('numero,cliente_nombre,cliente_email,total_clp,token_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre))')
+      .select('numero,cliente_nombre,cliente_email,total_clp,token_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,imagen_url))')
       .eq('numero', numero)
       .maybeSingle()
 
@@ -88,7 +89,7 @@ async function avisarPagoConfirmado(numero: number): Promise<void> {
       cliente_email: string | null
       total_clp: number | string
       token_seguimiento: string
-      pedido_items: { cantidad: number; subtotal_clp: number | string; productos: { nombre: string } | { nombre: string }[] | null }[] | null
+      pedido_items: { cantidad: number; subtotal_clp: number | string; productos: { nombre: string; imagen_url: string | null } | { nombre: string; imagen_url: string | null }[] | null }[] | null
     } | null
 
     // Sin correo no hay a quién escribirle: el correo es opcional al comprar.
@@ -101,7 +102,12 @@ async function avisarPagoConfirmado(numero: number): Promise<void> {
       total: Number(p.total_clp),
       items: (p.pedido_items ?? []).map((i) => {
         const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
-        return { nombre: producto?.nombre ?? 'Producto', cantidad: Number(i.cantidad), subtotal: Number(i.subtotal_clp) }
+        return {
+          nombre: producto?.nombre ?? 'Producto',
+          cantidad: Number(i.cantidad),
+          subtotal: Number(i.subtotal_clp),
+          imagen: producto?.imagen_url ? urlPublica(producto.imagen_url) : null,
+        }
       }),
       urlSeguimiento: urlDeSeguimiento(p.token_seguimiento),
     })
