@@ -67,10 +67,38 @@ export interface PedidoCuenta {
   estado: string
   total: number
   seguimiento: string | null
+  /** Código que dio el courier. Se muestra en nuestra web, no obliga a salir a la suya. */
+  codigoSeguimiento: string | null
+  courier: string | null
+  pagadoEn: string | null
+  enviadoEn: string | null
+  entregadoEn: string | null
   items: ItemPedidoCuenta[]
 }
 
 const LIMITE_PEDIDOS = 50
+
+/** Lo que devuelve la consulta de pedidos, antes de darle forma para la vista. */
+interface FilaPedidoBruta {
+  id: string
+  numero: number | string
+  created_at: string
+  estado: string
+  total_clp: number | string
+  envio_url_seguimiento: string | null
+  envio_seguimiento: string | null
+  envio_courier: string | null
+  pagado_at: string | null
+  enviado_at: string | null
+  entregado_at: string | null
+  pedido_items:
+    | {
+        cantidad: number | string
+        subtotal_clp: number | string
+        productos: { nombre: string; slug: string | null; imagen_url: string | null } | { nombre: string; slug: string | null; imagen_url: string | null }[] | null
+      }[]
+    | null
+}
 
 /**
  * Pedidos de esta cuenta, y solo de esta cuenta.
@@ -94,7 +122,8 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
 
   const db = await crearClienteServidor()
   const COLUMNAS =
-    'id,numero,created_at,estado,total_clp,envio_url_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
+    'id,numero,created_at,estado,total_clp,envio_url_seguimiento,envio_seguimiento,envio_courier,' +
+    'pagado_at,enviado_at,entregado_at,pedido_items(cantidad,subtotal_clp,productos(nombre,slug,imagen_url))'
 
   // Dos consultas en vez de un `.or()` con el correo interpolado: ese texto
   // viaja dentro de la sintaxis del filtro, y una coma o un paréntesis en el
@@ -104,12 +133,16 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
     db.from('pedidos').select(COLUMNAS).eq('cliente_auth_id', cuenta.id).order('created_at', { ascending: false }).limit(LIMITE_PEDIDOS),
     cuenta.emailConfirmado
       ? db.from('pedidos').select(COLUMNAS).eq('cliente_email', cuenta.email).order('created_at', { ascending: false }).limit(LIMITE_PEDIDOS)
-      : Promise.resolve({ data: [] as never[] }),
+      : null,
   ])
 
   // Un pedido puede venir por ambas vías; se deduplica por id y se reordena.
-  const unicos = new Map<string, (typeof propios.data extends (infer T)[] | null ? T : never)>()
-  for (const p of [...(propios.data ?? []), ...(porCorreo.data ?? [])]) unicos.set(p.id as string, p)
+  const filas = [
+    ...((propios.data ?? []) as unknown as FilaPedidoBruta[]),
+    ...((porCorreo?.data ?? []) as unknown as FilaPedidoBruta[]),
+  ]
+  const unicos = new Map<string, FilaPedidoBruta>()
+  for (const p of filas) unicos.set(p.id, p)
   const data = [...unicos.values()]
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
     .slice(0, LIMITE_PEDIDOS)
@@ -122,6 +155,11 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
     total: Number(p.total_clp),
     // Solo enlaces https: un valor escrito a mano no debe abrir otro esquema.
     seguimiento: typeof p.envio_url_seguimiento === 'string' && p.envio_url_seguimiento.startsWith('https://') ? p.envio_url_seguimiento : null,
+    codigoSeguimiento: p.envio_seguimiento ?? null,
+    courier: p.envio_courier ?? null,
+    pagadoEn: p.pagado_at ?? null,
+    enviadoEn: p.enviado_at ?? null,
+    entregadoEn: p.entregado_at ?? null,
     items: (p.pedido_items ?? []).map((i) => {
       const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
       return {

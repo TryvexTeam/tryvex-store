@@ -11,6 +11,7 @@ import { FormularioPerfil } from './perfil'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { AbrirBolsa } from './abrir-bolsa'
+import { LineaEnvio } from '@/components/tienda/linea-envio'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -130,7 +131,16 @@ function FilaPedido({ pedido }: { pedido: PedidoCuenta }) {
           </li>
         ))}
       </ul>
-      {pedido.seguimiento && <a href={pedido.seguimiento} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-[14px] font-semibold text-spark hover:underline">Seguir envío ↗</a>}
+
+      <LineaEnvio pedido={pedido} />
+
+      {/* El código ya aparece en el recorrido; el enlace al courier es una salida
+          opcional, para quien quiera el detalle en la página de ellos. */}
+      {pedido.seguimiento && (
+        <a href={pedido.seguimiento} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-[13px] text-tinta-suave underline-offset-4 hover:underline">
+          Ver en la página del courier ↗
+        </a>
+      )}
     </li>
   )
 }
