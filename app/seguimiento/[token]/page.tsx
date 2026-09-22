@@ -6,6 +6,8 @@ import { leerSeguimientoPorToken } from '@/lib/seguimiento'
 import { leerVitrina } from '@/lib/tienda'
 import { clp } from '@/lib/formato'
 import { LineaEnvio } from '@/components/tienda/linea-envio'
+import { BotonCourier } from '@/components/tienda/boton-courier'
+import { enlaceDeSeguimiento } from '@/lib/couriers'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { PieTienda } from '@/components/tienda/pie-tienda'
@@ -37,6 +39,14 @@ export default async function Seguimiento({ params }: { params: Promise<{ token:
 
   const { pedido, saludo } = datos
 
+  // El enlace al courier se deriva del código y de quién lo lleva. Si el equipo
+  // pegó una URL a mano, esa manda.
+  const enlaceCourier = enlaceDeSeguimiento({
+    courier: pedido.courier,
+    codigo: pedido.codigoSeguimiento,
+    urlGuardada: pedido.seguimiento,
+  })
+
   return (
     <div className="tienda flex min-h-dvh min-w-0 flex-col bg-papel-alt">
       <Cabecera destinos={destinosMenu(categorias, '/')} ayuda={null} />
@@ -59,17 +69,7 @@ export default async function Seguimiento({ params }: { params: Promise<{ token:
             horizontal necesita espacio para que los hitos no se apelotonen. */}
         <section aria-label="Estado del envío" className="mt-8 rounded-[24px] bg-papel p-5 ring-1 ring-borde/60 t:p-8">
           <LineaEnvio pedido={pedido} />
-
-          {pedido.seguimiento && (
-            <a
-              href={pedido.seguimiento}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-block text-[13px] text-tinta-suave underline-offset-4 hover:underline"
-            >
-              Ver en la página del courier ↗
-            </a>
-          )}
+          {enlaceCourier && <BotonCourier enlace={enlaceCourier} />}
         </section>
 
         <div className="mt-6 grid gap-6 d:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

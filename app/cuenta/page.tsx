@@ -12,6 +12,8 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { AbrirBolsa } from './abrir-bolsa'
 import { LineaEnvio } from '@/components/tienda/linea-envio'
+import { BotonCourier } from '@/components/tienda/boton-courier'
+import { enlaceDeSeguimiento } from '@/lib/couriers'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -114,6 +116,12 @@ export default async function MiCuenta() {
 }
 
 function FilaPedido({ pedido }: { pedido: PedidoCuenta }) {
+  const enlaceCourier = enlaceDeSeguimiento({
+    courier: pedido.courier,
+    codigo: pedido.codigoSeguimiento,
+    urlGuardada: pedido.seguimiento,
+  })
+
   return (
     <li className="py-4 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -134,13 +142,9 @@ function FilaPedido({ pedido }: { pedido: PedidoCuenta }) {
 
       <LineaEnvio pedido={pedido} />
 
-      {/* El código ya aparece en el recorrido; el enlace al courier es una salida
-          opcional, para quien quiera el detalle en la página de ellos. */}
-      {pedido.seguimiento && (
-        <a href={pedido.seguimiento} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-[13px] text-tinta-suave underline-offset-4 hover:underline">
-          Ver en la página del courier ↗
-        </a>
-      )}
+      {/* Misma salida al courier que en la página pública de seguimiento: una
+          sola forma de hacerlo, para que no diverjan. */}
+      {enlaceCourier && <BotonCourier enlace={enlaceCourier} />}
     </li>
   )
 }
