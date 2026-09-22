@@ -4,9 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { varianteValida, stockDisponible } from '@/lib/variantes'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
-import { correoPedidoEnCamino } from '@/lib/correo'
+import { correoPedidoEnCamino, correoPedidoEntregado } from '@/lib/correo'
 import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
+import { urlPublica } from '@/lib/imagenes'
 
 export type Resultado = { ok: true; aviso?: string; id?: string } | { ok: false; error: string }
 
@@ -272,22 +273,28 @@ export async function cambiarEstado(pedido_id: string, nuevo: string): Promise<R
   // Al despachar se le avisa al comprador, con su enlace de seguimiento. Si el
   // correo falla no se deshace nada: el pedido ya salió, y eso es lo que
   // importa. El equipo se entera por el aviso.
-  if (nuevo === 'enviado') {
-    const enviado = await avisarDespacho(pedido_id)
-    if (!enviado) aviso = aviso ?? 'Pedido marcado como enviado. El correo al cliente no salió: avísale tú.'
+  if (nuevo === 'enviado' || nuevo === 'entregado') {
+    const enviado = await avisarAlCliente(pedido_id, nuevo)
+    if (!enviado) aviso = aviso ?? `Pedido marcado como ${nuevo}. El correo al cliente no salió: avísale tú.`
   }
 
   revalidar()
   return { ok: true, aviso }
 }
 
-/** Le escribe al comprador que su pedido salió. `false` si no se pudo. */
-async function avisarDespacho(pedido_id: string): Promise<boolean> {
+/**
+ * Le escribe al comprador según lo que acaba de pasar con su pedido.
+ *
+ * `false` si no se pudo, para que el panel avise al equipo y alguien escriba
+ * a mano. Nunca lanza: el pedido ya cambió de estado y eso no se deshace por
+ * un correo.
+ */
+async function avisarAlCliente(pedido_id: string, estado: 'enviado' | 'entregado'): Promise<boolean> {
   try {
     const db = crearClienteAdministrador()
     const { data } = await db
       .from('pedidos')
-      .select('numero,cliente_nombre,cliente_email,total_clp,token_seguimiento,envio_courier,envio_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre))')
+      .select('numero,cliente_nombre,cliente_email,total_clp,token_seguimiento,envio_courier,envio_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,imagen_url))')
       .eq('id', pedido_id)
       .maybeSingle()
 
@@ -299,28 +306,35 @@ async function avisarDespacho(pedido_id: string): Promise<boolean> {
       token_seguimiento: string
       envio_courier: string | null
       envio_seguimiento: string | null
-      pedido_items: { cantidad: number; subtotal_clp: number | string; productos: { nombre: string } | { nombre: string }[] | null }[] | null
+      pedido_items: { cantidad: number; subtotal_clp: number | string; productos: { nombre: string; imagen_url: string | null } | { nombre: string; imagen_url: string | null }[] | null }[] | null
     } | null
 
     // El correo es opcional al comprar: sin él no hay a quién escribirle, y eso
     // no es una falla que reportar.
     if (!p?.cliente_email) return true
 
-    return await correoPedidoEnCamino({
+    const comunes = {
       para: p.cliente_email,
       nombre: p.cliente_nombre,
       numero: p.numero,
       total: Number(p.total_clp),
-      courier: p.envio_courier,
-      codigo: p.envio_seguimiento,
       items: (p.pedido_items ?? []).map((i) => {
         const producto = Array.isArray(i.productos) ? i.productos[0] : i.productos
-        return { nombre: producto?.nombre ?? 'Producto', cantidad: Number(i.cantidad), subtotal: Number(i.subtotal_clp) }
+        return {
+          nombre: producto?.nombre ?? 'Producto',
+          cantidad: Number(i.cantidad),
+          subtotal: Number(i.subtotal_clp),
+          imagen: producto?.imagen_url ? urlPublica(producto.imagen_url) : null,
+        }
       }),
       urlSeguimiento: urlDeSeguimiento(p.token_seguimiento),
-    })
+    }
+
+    return estado === 'entregado'
+      ? await correoPedidoEntregado(comunes)
+      : await correoPedidoEnCamino({ ...comunes, courier: p.envio_courier, codigo: p.envio_seguimiento })
   } catch (e) {
-    console.error('[pedidos] el pedido salió, el aviso al comprador no', { pedido_id, e })
+    console.error('[pedidos] el pedido cambió de estado, el aviso al comprador no salió', { pedido_id, estado, e })
     return false
   }
 }
