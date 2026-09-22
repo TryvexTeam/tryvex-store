@@ -26,7 +26,11 @@ const TRANSICIONES: Record<string, string[]> = {
   cancelado: [],
 }
 
-export const ESTADOS = Object.keys(TRANSICIONES)
+// Aquí vivía `export const ESTADOS = Object.keys(TRANSICIONES)`. Un archivo
+// `'use server'` solo puede exportar funciones async, así que ese arreglo
+// rompía el módulo entero —y con él todo el panel de pedidos—, con un error
+// que ni siquiera apunta a esa línea. No lo usaba nadie: se eliminó.
+// Las transiciones permitidas se consultan con `siguientesEstados()`.
 
 async function contexto() {
   const supabase = await crearClienteServidor()
