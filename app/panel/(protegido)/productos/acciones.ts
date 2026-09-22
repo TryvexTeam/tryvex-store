@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
+import { montoDesdeTexto } from '@/lib/monto'
 import {
   UUID,
   esCondicion,
@@ -84,7 +85,7 @@ export async function guardarProducto(datos: FormData): Promise<Resultado> {
   const id = String(datos.get('id') ?? '')
   const nombre = String(datos.get('nombre') ?? '').trim()
   const descripcion = String(datos.get('descripcion') ?? '').trim()
-  const precio = Number(datos.get('precio_base'))
+  const precio = montoDesdeTexto(datos.get('precio_base')) ?? NaN
   const costo = Number(datos.get('costo_unitario'))
   const estado = String(datos.get('estado') ?? '')
   const categoriaId = String(datos.get('categoria_id') ?? '')
@@ -172,7 +173,7 @@ export async function guardarTramo(datos: FormData): Promise<Resultado> {
   const min = Number(datos.get('min_unidades'))
   const maxCrudo = String(datos.get('max_unidades') ?? '').trim()
   const max = maxCrudo === '' ? null : Number(maxCrudo)
-  const precio = Number(datos.get('precio_unitario'))
+  const precio = montoDesdeTexto(datos.get('precio_unitario')) ?? NaN
 
   if (!UUID.test(producto_id)) return fallo('Falta el producto.')
   if (id && !UUID.test(id)) return fallo('Tramo no válido.')

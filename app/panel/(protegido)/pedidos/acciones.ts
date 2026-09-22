@@ -5,6 +5,7 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { varianteValida, stockDisponible } from '@/lib/variantes'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { correoPedidoEnCamino } from '@/lib/correo'
+import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
 
 export type Resultado = { ok: true; aviso?: string; id?: string } | { ok: false; error: string }
@@ -81,8 +82,8 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
   const notas = String(datos.get('notas') ?? '').trim()
   const producto_id = String(datos.get('producto_id') ?? '')
   const cantidad = Number(datos.get('cantidad'))
-  const precio_unitario = Number(datos.get('precio_unitario'))
-  const envio = Number(datos.get('envio_clp') || 0)
+  const precio_unitario = montoDesdeTexto(datos.get('precio_unitario')) ?? NaN
+  const envio = montoDesdeTextoODefecto(datos.get('envio_clp'))
 
   if (!cliente_nombre) return { ok: false, error: 'Falta el nombre del cliente.' }
   if (!producto_id) return { ok: false, error: 'Falta el producto.' }

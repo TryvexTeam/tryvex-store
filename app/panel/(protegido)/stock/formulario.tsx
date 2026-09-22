@@ -155,7 +155,7 @@ export default function FormularioStock({
                 Precio unitario — tú decides
               </label>
               <input
-                id="precio" name="precio_unitario" type="number" min="0"
+                id="precio" name="precio_unitario" type="text" inputMode="numeric"
                 value={precio}
                 onChange={(e) => { setPrecio(e.target.value); setTocoPrecio(true) }}
                 placeholder="Precio unitario"
