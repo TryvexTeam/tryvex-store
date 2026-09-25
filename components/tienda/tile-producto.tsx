@@ -23,7 +23,7 @@ export function TileProducto({ producto, prioridad = false }: { producto: Produc
   return (
     <div className="relative min-w-0">
     <Link href={href} className="tienda-tile-colec group block min-w-0">
-      <div className="relative aspect-square overflow-hidden rounded-[18px] bg-[#f5f5f7]">
+      <div className="relative aspect-square overflow-hidden rounded-[18px] bg-white">
         {imagen ? (
           <ViewTransition name={`producto-${slug}`}>
             <Image
@@ -69,7 +69,7 @@ export function TileProducto({ producto, prioridad = false }: { producto: Produc
         )}
       </div>
     </Link>
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-square items-end justify-end p-2">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-square items-start justify-end p-3">
         <AgregarRapido producto={producto} />
       </div>
     </div>
