@@ -10,12 +10,13 @@ import {
   IconoProductos,
   IconoStock,
   IconoFinanzas,
+  IconoEstrella,
 } from './iconos'
 
 export type Destino = {
   href: string
   etiqueta: string
-  icono: 'resumen' | 'pedidos' | 'productos' | 'stock' | 'finanzas' | 'portada'
+  icono: 'resumen' | 'pedidos' | 'productos' | 'stock' | 'finanzas' | 'portada' | 'resenas'
 }
 
 const ICONOS = {
@@ -25,6 +26,7 @@ const ICONOS = {
   productos: IconoProductos,
   stock: IconoStock,
   finanzas: IconoFinanzas,
+  resenas: IconoEstrella,
 }
 
 /**

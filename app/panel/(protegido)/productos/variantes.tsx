@@ -7,6 +7,7 @@ import { skuDeVariante, type Variante } from '@/lib/catalogo'
 import { useAvisos } from '@/components/avisos'
 import { IconoMas } from '@/components/iconos'
 import { guardarVariante, quitarVariante, reactivarVariante } from './acciones-variantes'
+import { VariantesLote } from './variantes-lote'
 
 const campo =
   'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
@@ -28,7 +29,7 @@ type Props = {
  * el de un producto.
  */
 export function Variantes({ productoId, skuProducto, precioProducto, variantes }: Props) {
-  const [editando, setEditando] = useState<string | 'nueva' | null>(null)
+  const [editando, setEditando] = useState<string | 'nueva' | 'lote' | null>(null)
   const [pendiente, empezar] = useTransition()
   const avisos = useAvisos()
 
@@ -68,15 +69,24 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
             Color, talla u otra opción con stock propio. Opcional.
           </p>
         </div>
-        {editando !== 'nueva' && (
-          <button
-            type="button"
-            onClick={() => setEditando('nueva')}
-            className="presionable flex shrink-0 items-center gap-1 rounded-full bg-papel-alt px-3.5 py-2 text-[13px] font-medium"
-          >
-            <IconoMas size={15} />
-            Agregar
-          </button>
+        {editando !== 'nueva' && editando !== 'lote' && (
+          <div className="flex shrink-0 gap-1.5">
+            <button
+              type="button"
+              onClick={() => setEditando('lote')}
+              className="presionable rounded-full bg-papel-alt px-3 py-2 text-[13px] font-medium"
+            >
+              Crear varias
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditando('nueva')}
+              className="presionable flex items-center gap-1 rounded-full bg-papel-alt px-3 py-2 text-[13px] font-medium"
+            >
+              <IconoMas size={15} />
+              Agregar
+            </button>
+          </div>
         )}
       </div>
 
@@ -132,7 +142,16 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
         )}
       </ul>
 
-      {activas.length === 0 && editando !== 'nueva' && (
+      {editando === 'lote' && (
+        <VariantesLote
+          productoId={productoId}
+          skuProducto={skuProducto}
+          desdeOrden={activas.length}
+          onCerrar={() => setEditando(null)}
+        />
+      )}
+
+      {activas.length === 0 && editando !== 'nueva' && editando !== 'lote' && (
         <p className="rounded-[12px] bg-papel-alt px-4 py-5 text-center text-[13px] text-gris">
           Sin variantes: el producto se vende tal cual, con un solo stock.
         </p>

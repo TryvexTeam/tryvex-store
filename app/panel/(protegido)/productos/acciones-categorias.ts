@@ -8,6 +8,7 @@ import { slugificar } from '@/lib/imagenes'
 function revalidar(): void {
   revalidatePath('/panel/productos')
   revalidatePath('/')
+  revalidatePath('/tienda')
   revalidatePath('/api/feed/productos')
 }
 

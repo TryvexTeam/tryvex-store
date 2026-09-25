@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual } from '@/lib/sesion'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
+import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
 import FormularioMovimiento from './formulario'
 import Comprobante from './comprobante'
 
@@ -189,7 +190,7 @@ export default async function Finanzas() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-medium text-tinta">{m.descripcion}</p>
                     <p className="mt-0.5 truncate text-[12px] text-gris">
-                      {[m.categoria, m.contraparte, fmtFecha(m.fecha)].filter(Boolean).join(' · ')}
+                      {[etiquetaCategoria(categoriaHistorica(m.categoria, m.tipo), m.categoria), m.contraparte, fmtFecha(m.fecha)].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   {m.voucher_path && (

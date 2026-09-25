@@ -3,6 +3,7 @@ import { integranteActual } from '@/lib/sesion'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
 import FormularioStock from './formulario'
 import { productosConVariantes } from '@/lib/variantes-cliente'
+import { ConfigurarMinimo } from './configurar-minimo'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Stock' }
@@ -13,16 +14,14 @@ const ROTULO: Record<string, string> = {
   ajuste: 'Ajuste', reserva: 'Reserva', liberacion: 'Liberación',
 }
 
-/** Umbral bajo el cual conviene reponer. */
-const ALERTA = 5
-
 export default async function Stock() {
   await integranteActual()
   const supabase = await crearClienteServidor()
 
-  const [{ data: stock }, { data: productos }, { data: movs }] = await Promise.all([
+  const [{ data: stock }, { data: productos }, { data: minimos }, { data: movs }] = await Promise.all([
     supabase.from('v_stock_actual').select('producto_id,sku,nombre,stock'),
     productosConVariantes(supabase).then((data) => ({ data })),
+    supabase.from('productos').select('id,stock_minimo').neq('estado', 'archivado'),
     supabase
       .from('stock_movimientos')
       .select('id,tipo,cantidad,motivo,total_clp,precio_unitario,created_at,producto_id,producto_variantes(nombre),dim_integrantes(nombre)')
@@ -30,9 +29,11 @@ export default async function Stock() {
       .limit(50),
   ])
 
+  const minimoPorId = new Map((minimos ?? []).map((p) => [p.id, Number(p.stock_minimo ?? 5)]))
   const filas = stock ?? []
+  const minimoDe = (productoId: string) => minimoPorId.get(productoId) ?? 5
   const nombrePorId = new Map(filas.map((f) => [f.producto_id, f.nombre]))
-  const bajos = filas.filter((f) => (f.stock ?? 0) <= ALERTA)
+  const bajos = filas.filter((f) => Number(f.stock ?? 0) <= minimoDe(f.producto_id))
   const variantesDe = new Map((productos ?? []).map((p) => [p.id, p.variantes]))
 
   return (
@@ -46,7 +47,7 @@ export default async function Stock() {
 
       {bajos.length > 0 && (
         <p role="status" className="mb-6 rounded-[10px] bg-spark-suave px-4 py-3 text-[14px] text-rojo">
-          {bajos.map((b) => `${b.nombre}: quedan ${b.stock}`).join(' · ')}. Conviene reponer.
+          {bajos.map((b) => `${b.nombre}: quedan ${b.stock} (mínimo ${minimoDe(b.producto_id)})`).join(' · ')}. Conviene reponer.
         </p>
       )}
 
@@ -55,22 +56,23 @@ export default async function Stock() {
           <div
             key={f.producto_id}
             className={`rounded-[var(--radius-tarjeta)] p-6 ${
-              (f.stock ?? 0) <= ALERTA ? 'bg-papel ring-1 ring-rojo/30' : 'bg-tinta text-papel'
+              Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'bg-papel ring-1 ring-rojo/30' : 'bg-tinta text-papel'
             }`}
           >
             <p className={`text-[12px] font-semibold uppercase tracking-[0.05em] ${
-              (f.stock ?? 0) <= ALERTA ? 'text-gris' : 'text-white/60'
+              Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'text-gris' : 'text-white/60'
             }`}>
               {f.sku}
             </p>
             <p className="cifra mt-3 text-[2.4rem] leading-none font-semibold">{f.stock}</p>
-            <p className={`mt-2 text-[13px] ${(f.stock ?? 0) <= ALERTA ? 'text-gris' : 'text-white/55'}`}>
+            <p className={`mt-2 text-[13px] ${Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'text-gris' : 'text-white/55'}`}>
               unidades · {f.nombre}
             </p>
+            <ConfigurarMinimo productoId={f.producto_id} minimo={minimoDe(f.producto_id)} />
             {(variantesDe.get(f.producto_id) ?? []).length > 0 && (
-              <ul className={`mt-4 flex flex-wrap gap-1.5 text-[12px] ${(f.stock ?? 0) <= ALERTA ? 'text-tinta-suave' : 'text-white/75'}`}>
+              <ul className={`mt-4 flex flex-wrap gap-1.5 text-[12px] ${Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'text-tinta-suave' : 'text-white/75'}`}>
                 {(variantesDe.get(f.producto_id) ?? []).map((v) => (
-                  <li key={v.id} className={`rounded-full px-2.5 py-1 ${(f.stock ?? 0) <= ALERTA ? 'bg-papel-alt' : 'bg-white/10'}`}>
+                  <li key={v.id} className={`rounded-full px-2.5 py-1 ${Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'bg-papel-alt' : 'bg-white/10'}`}>
                     {v.nombre} <span className="cifra font-semibold">{v.stock}</span>
                   </li>
                 ))}
