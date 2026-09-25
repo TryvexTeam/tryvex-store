@@ -23,7 +23,7 @@ export function ListaProductos({ productos }: { productos: ProductoTienda[] }) {
           queda centrado, así una vitrina corta se ve intencional en vez de
           rota. Con catálogo lleno se comporta igual que antes. */}
       <ul className="mt-6 grid grid-cols-2 justify-center gap-x-4 gap-y-8 t:grid-cols-[repeat(auto-fit,minmax(240px,300px))] d:gap-x-5">
-        {recientes.map((producto, indice) => <li key={producto.id} className="revela min-w-0" style={{ '--i': `${indice * 4}%` } as CSSProperties}><div className="tienda-marco h-full overflow-hidden rounded-[18px] bg-papel p-2 pb-4 t:p-3 t:pb-5"><TileProducto producto={producto} prioridad={indice < 4} /></div></li>)}
+        {recientes.map((producto, indice) => <li key={producto.id} className="revela min-w-0" style={{ '--i': `${indice * 4}%` } as CSSProperties}><div className="h-full overflow-hidden rounded-[18px] bg-white p-2 pb-4 t:p-3 t:pb-5"><TileProducto producto={producto} prioridad={indice < 4} /></div></li>)}
       </ul>
       {/* El envoltorio oculta: `tienda-boton` fija su propio display y le gana a `t:hidden`. */}
       <div className="mt-8 flex justify-center t:hidden">
