@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
-import { cambiarEstado, crearPedido } from './acciones'
+import { cambiarEstado, crearPedido, crearVentaRapida } from './acciones'
 import { precioParaCantidad } from '../stock/acciones'
 import { clp } from '@/lib/formato'
 import type { ProductoConVariantes } from '@/lib/variantes-cliente'
@@ -88,15 +88,18 @@ const campo =
 export function NuevoPedido({
   productos,
   stock,
+  modoRapido = false,
 }: {
   productos: ProductoConVariantes[]
   stock: number
+  /** Venta presencial: abre el formulario y precarga canal y efectivo. */
+  modoRapido?: boolean
 }) {
-  const [abierto, setAbierto] = useState(false)
+  const [abierto, setAbierto] = useState(modoRapido)
   const [producto, setProducto] = useState(productos[0]?.id ?? '')
   const [variante, setVariante] = useState('')
-  const [canal, setCanal] = useState('whatsapp')
-  const [metodoPago, setMetodoPago] = useState('')
+  const [canal, setCanal] = useState(modoRapido ? 'presencial' : 'whatsapp')
+  const [metodoPago, setMetodoPago] = useState(modoRapido ? 'efectivo' : '')
   const [cantidad, setCantidad] = useState('1')
   const [precio, setPrecio] = useState('')
   const [envio, setEnvio] = useState('')
@@ -124,12 +127,13 @@ export function NuevoPedido({
     const datos = new FormData(e.currentTarget)
     const form = e.currentTarget
     iniciar(async () => {
-      const r = await crearPedido(datos)
+      const r = await (modoRapido ? crearVentaRapida(datos) : crearPedido(datos))
       if (r.ok) {
         form.reset()
         setCantidad('1'); setVariante(''); setPrecio(''); setEnvio(''); setTramo(null); setTocoPrecio(false)
-        setMsg({ tipo: 'ok', texto: r.aviso ?? 'Pedido creado y stock reservado.' })
-        setTimeout(() => { setMsg(null); setAbierto(false) }, 2200)
+        if (modoRapido) { setCanal('presencial'); setMetodoPago('efectivo') }
+        setMsg({ tipo: 'ok', texto: r.aviso ?? (modoRapido ? 'Venta cobrada y stock descontado.' : 'Pedido creado y stock reservado.') })
+        setTimeout(() => { setMsg(null); if (!modoRapido) setAbierto(false) }, 2200)
       } else {
         setMsg({ tipo: 'error', texto: r.error })
       }
@@ -154,7 +158,7 @@ export function NuevoPedido({
       className="w-full rounded-[var(--radius-tarjeta)] bg-papel p-5 ring-1 ring-borde/70"
     >
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-[15px] font-semibold">Nuevo pedido</h2>
+        <h2 className="text-[15px] font-semibold">{modoRapido ? 'Venta rápida presencial' : 'Nuevo pedido'}</h2>
         <button type="button" onClick={() => setAbierto(false)}
                 className="text-[13px] text-gris hover:text-tinta">Cerrar</button>
       </div>

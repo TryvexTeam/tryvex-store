@@ -18,9 +18,14 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   const destinos: Destino[] = [
     { href: '/panel', etiqueta: 'Resumen', icono: 'resumen' },
     { href: '/panel/pedidos', etiqueta: 'Pedidos', icono: 'pedidos' },
+    { href: '/panel/ventas', etiqueta: 'Vender', icono: 'pedidos' },
     { href: '/panel/productos', etiqueta: 'Productos', icono: 'productos' },
+    { href: '/panel/resenas', etiqueta: 'Reseñas', icono: 'resenas' },
     { href: '/panel/portada', etiqueta: 'Portada', icono: 'portada' },
     { href: '/panel/stock', etiqueta: 'Stock', icono: 'stock' },
+    { href: '/panel/cobranza', etiqueta: 'Cobranza', icono: 'pedidos' },
+    { href: '/panel/clientes', etiqueta: 'Clientes', icono: 'productos' },
+    { href: '/panel/reportes', etiqueta: 'Reportes', icono: 'resumen' },
     ...(yo.ver_finanzas
       ? [
           {

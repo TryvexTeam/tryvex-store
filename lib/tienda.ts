@@ -130,10 +130,14 @@ export async function leerVitrina(): Promise<Vitrina> {
     }
   })
 
-  // Solo categorías con algo que mostrar: una franja vacía es una promesa rota.
-  const conProductos: CategoriaTienda[] = (categorias ?? [])
-    .map((c) => ({ ...c, productos: vitrina.filter((p) => p.categoriaId === c.id) }))
-    .filter((c) => c.productos.length > 0)
+  // Las categorías son una entidad de navegación independiente del inventario.
+  // Se conservan aunque aún no tengan productos publicados o estos estén agotados:
+  // el visitante puede entrar a la familia y el equipo no necesita cargar stock
+  // para que una categoría creada sea visible en la tienda.
+  const conProductos: CategoriaTienda[] = (categorias ?? []).map((c) => ({
+    ...c,
+    productos: vitrina.filter((p) => p.categoriaId === c.id),
+  }))
 
   // El héroe muestra lo que está a la venta: primero lo disponible y con foto.
   const destacado =

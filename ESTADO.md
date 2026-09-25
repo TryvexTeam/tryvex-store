@@ -246,7 +246,7 @@ Pendiente del señor Ignacio: **datos bancarios y número de WhatsApp**.
 - **Pedidos:** ficha con hitos (pagado, enviado, entregado), despacho (región, comuna, courier, seguimiento), referencia de pago y boleta. Los enlaces solo aceptan https.
 - **Ajustes** (`/panel/ajustes`): cuenta bancaria, envío y textos legales en `configuracion_tienda`; `/comprar` ya los lee. Solo lo edita administración o finanzas (lo impone el RLS).
 - **Bitácora del equipo** en Resumen, escrita por triggers.
-- **Feed de servicio** `/api/feed/productos` para Google y Meta: solo publica lo publicado y agrupa las variantes con `item_group_id`. `FEED_TOKEN` es opcional.
+- **Feed de servicio** `/api/feed/productos` para Google y Meta: solo publica lo publicado y agrupa las variantes con `item_group_id`. Exige `FEED_TOKEN` y dominio canónico configurado; si falta alguno falla cerrado.
 - **Verificado:** tsc, next build, e2e Playwright 12/12 (datos de prueba eliminados), advisors sin hallazgos nuevos.
 - **Pendiente:** fase 2 (tienda web conectada al catálogo; `/comprar` todavía usa un SKU fijo); `app/comprar/datos-pago.ts` quedó sin uso y se puede borrar; faltan los datos bancarios reales, que se cargan en Ajustes.
 

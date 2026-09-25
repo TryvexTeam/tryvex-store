@@ -8,6 +8,8 @@ import { Carrusel } from '@/components/tienda/carrusel'
 import { CardProducto } from '@/components/tienda/card-producto'
 import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
+import { Comentarios } from '@/components/tienda/comentarios'
+import { leerResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
 /**
@@ -35,6 +37,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   const { slug } = await props.params
   const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
   if (!ficha) notFound()
+  const resenas = await leerResenas(ficha.id)
 
   const c = vitrina.configuracion
   const whatsapp = c?.whatsapp ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}` : null
@@ -59,6 +62,12 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'}
           retracto={c?.retracto_texto ?? 'Tienes 10 días desde que lo recibes para arrepentirte.'}
           whatsapp={whatsapp}
+        />
+
+        <Comentarios
+          resenas={resenas}
+          titulo={`Reseñas de ${ficha.nombre}`}
+          bajada="Opiniones de personas que compraron este producto en Tryvex."
         />
 
         {otros.length > 0 && (

@@ -2,6 +2,7 @@
 
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { crearPedidoConReserva } from '@/lib/pedidos/crear'
 import { leerConfiguracion, datosDePago } from '@/lib/configuracion'
 import { cotizarLineas, normalizarLineas, type LineaCotizada } from '@/lib/cotizacion'
 import { esRegion } from '@/lib/chile'
@@ -53,7 +54,7 @@ export async function cotizarBolsa(entrada: unknown): Promise<CotizacionBolsa> {
  * Va con service role a propósito: la tabla `pedidos` tiene RLS solo-equipo,
  * así que el navegador nunca escribe en la base. Del formulario solo se usa
  * qué productos y cuántos; precio, tramo, stock y envío se recalculan aquí.
- * Si una línea no se puede guardar, se deshace el pedido completo.
+ * PostgreSQL crea el pedido, sus líneas y las reservas como una sola operación.
  */
 export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   // Campo trampa: invisible para personas, los bots lo llenan.
@@ -121,20 +122,19 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   // así nadie puede colgar un pedido en la cuenta de otra persona.
   const { data: { user } } = await (await crearClienteServidor()).auth.getUser()
 
-  const db = crearClienteAdministrador()
-  const { data: pedido, error } = await db
-    .from('pedidos')
-    .insert({
-      cliente_auth_id: user?.id ?? null,
-      cliente_nombre: nombre,
-      cliente_email: email || null,
-      cliente_fono: fono,
+  // PostgreSQL bloquea el inventario, comprueba la disponibilidad y escribe el
+  // encabezado, las líneas y las reservas dentro de una sola transacción.
+  const creado = await crearPedidoConReserva({
+    encabezado: {
+      clienteAuthId: user?.id ?? null,
+      clienteNombre: nombre,
+      clienteEmail: email || null,
+      clienteFono: fono,
       canal: 'web',
-      estado: 'pendiente',
-      metodo_pago: metodo,
-      subtotal_clp: subtotal,
-      envio_clp: envio,
-      total_clp: total,
+      metodoPago: metodo,
+      subtotalClp: subtotal,
+      envioClp: envio,
+      totalClp: total,
       region: entrega === 'retiro' ? null : region,
       comuna: entrega === 'retiro' ? null : comuna,
       direccion: {
@@ -143,39 +143,22 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
         sucursal: entrega === 'sucursal' ? sucursal : null,
       },
       notas: lineas.some((l) => l.tramo) ? `Tramos: ${lineas.filter((l) => l.tramo).map((l) => `${l.nombre} ${l.tramo}`).join('; ')}` : null,
-    })
-    .select('id, numero')
-    .maybeSingle()
-  if (error || !pedido) return { ok: false, error: 'No pudimos registrar tu pedido. Intenta de nuevo en un momento.' }
-
-  const { error: errItems } = await db.from('pedido_items').insert(
-    lineas.map((l) => ({
-      pedido_id: pedido.id,
-      producto_id: l.productoId,
-      variante_id: l.varianteId,
+    },
+    items: lineas.map((l) => ({
+      productoId: l.productoId!,
+      varianteId: l.varianteId,
       cantidad: l.cantidad,
-      precio_unitario: l.precio,
-      tramo_aplicado: l.tramo,
-      subtotal_clp: l.subtotal,
-    }))
-  )
-  if (errItems) {
-    // Un pedido a medias confunde al equipo y reserva mal: se deshace entero.
-    await db.from('pedidos').delete().eq('id', pedido.id)
-    return { ok: false, error: 'No pudimos registrar tu pedido. Intenta de nuevo en un momento.' }
+      precioUnitario: l.precio,
+      tramoAplicado: l.tramo,
+      subtotalClp: l.subtotal,
+    })),
+  })
+  if (!creado.ok) {
+    const disponibles = typeof creado.disponible === 'number' ? ` Solo quedan ${creado.disponible} unidades.` : ''
+    return { ok: false, error: `${creado.error}.${disponibles}` }
   }
-
-  // Reserva: las unidades quedan comprometidas mientras se confirma el pago.
-  await db.from('stock_movimientos').insert(
-    lineas.map((l) => ({
-      producto_id: l.productoId,
-      variante_id: l.varianteId,
-      tipo: 'reserva',
-      cantidad: -l.cantidad,
-      motivo: `Pedido web #${pedido.numero} · ${nombre}`,
-      pedido_id: pedido.id,
-    }))
-  )
+  const pedido = creado
+  const db = crearClienteAdministrador()
 
   const detalle = lineas.map((l) => `${l.cantidad} × ${l.nombre}${l.variante ? ` (${l.variante})` : ''}`).join(', ')
   const mensaje = `Hola, soy ${nombre}. Hice el pedido #${pedido.numero} en Tryvex Store: ${detalle}. Total $${total.toLocaleString('es-CL')}.`

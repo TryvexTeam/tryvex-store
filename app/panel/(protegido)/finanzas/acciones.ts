@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { categoriaFinancieraValida, etiquetaCategoria, METODOS_PAGO } from '@/lib/finanzas'
 
 export type Resultado = { ok: true } | { ok: false; error: string }
 
 const TIPOS = ['ingreso', 'egreso'] as const
-const METODOS = ['transferencia', 'efectivo', 'tarjeta', 'mercadopago', 'otro'] as const
+const METODOS = METODOS_PAGO.map((metodo) => metodo.valor)
 
 /**
  * Registra un movimiento y, si viene un comprobante, lo sube al bucket privado.
@@ -45,7 +46,7 @@ export async function registrarMovimiento(datos: FormData): Promise<Resultado> {
   if (!TIPOS.includes(tipo as (typeof TIPOS)[number]))
     return { ok: false, error: 'Tipo inválido.' }
   if (!descripcion) return { ok: false, error: 'Falta la descripción.' }
-  if (!categoria) return { ok: false, error: 'Falta la categoría.' }
+  if (!categoriaFinancieraValida(categoria, tipo)) return { ok: false, error: 'La categoría no corresponde al tipo de movimiento.' }
   if (!Number.isFinite(monto) || monto <= 0)
     return { ok: false, error: 'El monto debe ser mayor que cero.' }
   if (!fecha) return { ok: false, error: 'Falta la fecha.' }
@@ -77,7 +78,9 @@ export async function registrarMovimiento(datos: FormData): Promise<Resultado> {
 
   const { error } = await supabase.from('movimientos_financieros').insert({
     tipo,
-    categoria,
+    // La columna existente conserva una etiqueta legible. La migración agrega
+    // categoria_codigo para reportes estables sin exigirla antes de aplicarse.
+    categoria: etiquetaCategoria(categoria),
     descripcion,
     monto_clp: monto,
     fecha,

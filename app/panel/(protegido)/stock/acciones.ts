@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { exigirIntegrante } from '@/lib/autorizacion'
 import { varianteValida, stockDisponible } from '@/lib/variantes'
 
 export type Resultado = { ok: true; aviso?: string } | { ok: false; error: string }
@@ -45,6 +46,29 @@ export async function precioParaCantidad(
     .maybeSingle()
 
   return p ? { precio: Number(p.precio_base), etiqueta: 'Precio de lista' } : null
+}
+
+export async function guardarStockMinimo(datos: FormData): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+
+  const productoId = String(datos.get('producto_id') ?? '')
+  const minimo = Number(datos.get('stock_minimo'))
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(productoId))
+    return { ok: false, error: 'Producto no válido.' }
+  if (!Number.isInteger(minimo) || minimo < 0 || minimo > 1_000_000)
+    return { ok: false, error: 'El mínimo debe ser un entero entre 0 y 1.000.000.' }
+
+  // El RLS del catálogo mantiene la última palabra sobre quién puede editarlo.
+  const { error } = await sesion.supabase
+    .from('productos')
+    .update({ stock_minimo: minimo })
+    .eq('id', productoId)
+  if (error) return { ok: false, error: error.message }
+
+  revalidatePath('/panel/stock')
+  revalidatePath('/panel')
+  return { ok: true }
 }
 
 export async function registrarStock(datos: FormData): Promise<Resultado> {
