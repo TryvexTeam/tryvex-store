@@ -3,19 +3,7 @@
 import { useRef, useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
 import { registrarMovimiento } from './acciones'
-
-const CATEGORIAS = {
-  ingreso: ['Venta', 'Venta mayorista', 'Devolución de proveedor', 'Otro ingreso'],
-  egreso: ['Compra de stock', 'Importación', 'Envíos', 'Publicidad', 'Comisiones', 'Otro gasto'],
-} as const
-
-const METODOS = [
-  { v: 'transferencia', t: 'Transferencia' },
-  { v: 'efectivo', t: 'Efectivo' },
-  { v: 'tarjeta', t: 'Tarjeta' },
-  { v: 'mercadopago', t: 'Mercado Pago' },
-  { v: 'otro', t: 'Otro' },
-]
+import { categoriasPara, METODOS_PAGO } from '@/lib/finanzas'
 
 const campo =
   'w-full min-h-11 rounded-[10px] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
@@ -41,6 +29,8 @@ export default function FormularioMovimiento() {
       if (r.ok) {
         form.current?.reset()
         setNombreArchivo(null)
+        setCategoria('')
+        setMetodoPago('')
         setListo(true)
         setTimeout(() => setListo(false), 2600)
       } else {
@@ -123,7 +113,7 @@ export default function FormularioMovimiento() {
             name="categoria"
             etiqueta="Categoría"
             placeholder="Elige una"
-            opciones={CATEGORIAS[tipo].map((c) => ({ valor: c, etiqueta: c }))}
+            opciones={categoriasPara(tipo).map((categoria) => ({ valor: categoria.codigo, etiqueta: categoria.etiqueta }))}
             valor={categoria}
             alCambiar={setCategoria}
             required
@@ -134,7 +124,7 @@ export default function FormularioMovimiento() {
             name="metodo_pago"
             etiqueta="Método de pago"
             placeholder="Sin especificar"
-            opciones={METODOS.map((m) => ({ valor: m.v, etiqueta: m.t }))}
+            opciones={METODOS_PAGO.map((metodo) => ({ valor: metodo.valor, etiqueta: metodo.etiqueta }))}
             valor={metodoPago}
             alCambiar={setMetodoPago}
             disabled={enviando}

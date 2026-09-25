@@ -8,6 +8,7 @@ import { BUCKET, PESO_MAXIMO, TIPOS_ACEPTADOS, nombreArchivo, slugificar } from 
 function revalidar(): void {
   revalidatePath('/panel/productos')
   revalidatePath('/')
+  revalidatePath('/tienda')
   revalidatePath('/api/feed/productos')
 }
 

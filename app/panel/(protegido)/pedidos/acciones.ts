@@ -2,8 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import { varianteValida, stockDisponible } from '@/lib/variantes'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
+import { crearPedidoConReserva } from '@/lib/pedidos/crear'
+import { confirmarPagoDePedido } from '@/lib/confirmar-pago'
 import { correoPedidoEnCamino, correoPedidoEntregado } from '@/lib/correo'
 import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
@@ -95,69 +96,75 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
   if (!Number.isFinite(envio) || envio < 0)
     return { ok: false, error: 'El envío no es válido.' }
 
-  const variante = await varianteValida(supabase, producto_id, String(datos.get('variante_id') ?? ''))
-  if (!variante.ok) return variante
-  const variante_id = variante.id
-
-  // No comprometer unidades que no existen.
-  const stock = await stockDisponible(supabase, producto_id, variante_id)
-  if (cantidad > stock)
-    return { ok: false, error: `Solo hay ${stock} unidades disponibles.` }
-
   const subtotal = cantidad * precio_unitario
   const total = subtotal + envio
+  const creado = await crearPedidoConReserva({
+    encabezado: {
+      clienteNombre: cliente_nombre,
+      clienteEmail: cliente_email || null,
+      clienteFono: cliente_fono || null,
+      canal,
+      metodoPago: metodo_pago || null,
+      subtotalClp: subtotal,
+      envioClp: envio,
+      totalClp: total,
+      notas: notas || null,
+      atendidoPor: yo.id,
+    },
+    items: [{
+      productoId: producto_id,
+      varianteId: String(datos.get('variante_id') ?? '') || null,
+      cantidad,
+      precioUnitario: precio_unitario,
+      subtotalClp: subtotal,
+    }],
+  })
+
+  if (!creado.ok) {
+    const disponibles = typeof creado.disponible === 'number' ? ` Solo hay ${creado.disponible} unidades disponibles.` : ''
+    return { ok: false, error: `${creado.error}.${disponibles}` }
+  }
+
+  revalidar()
+  return { ok: true, id: creado.id }
+}
+
+/**
+ * Venta presencial de una sola línea.
+ *
+ * Primero se crea la reserva como cualquier pedido y luego se confirma por la
+ * RPC transaccional usada por Mercado Pago. La referencia local única hace que
+ * un reintento no pueda duplicar ni el ingreso ni la salida de inventario.
+ */
+export async function crearVentaRapida(datos: FormData): Promise<Resultado> {
+  datos.set('canal', 'presencial')
+  const creado = await crearPedido(datos)
+  if (!creado.ok || !creado.id) return creado
+  if (creado.aviso) return { ok: false, error: creado.aviso }
+
+  const { supabase, error: errSesion } = await contexto()
+  if (errSesion) return { ok: false, error: `La venta quedó creada pero requiere confirmar pago: ${errSesion}` }
 
   const { data: pedido, error: errPedido } = await supabase
     .from('pedidos')
-    .insert({
-      cliente_nombre,
-      cliente_email: cliente_email || null,
-      cliente_fono: cliente_fono || null,
-      canal,
-      metodo_pago: metodo_pago || null,
-      subtotal_clp: subtotal,
-      envio_clp: envio,
-      total_clp: total,
-      notas: notas || null,
-      atendido_por: yo.id,
-    })
-    .select('id, numero')
+    .select('numero,total_clp,metodo_pago')
+    .eq('id', creado.id)
     .maybeSingle()
+  if (errPedido || !pedido)
+    return { ok: false, error: 'La venta quedó creada pero requiere confirmar pago. Abre el pedido y márcalo como pagado.' }
 
-  if (errPedido || !pedido) return { ok: false, error: errPedido?.message ?? 'No se pudo crear.' }
-
-  const { error: errItem } = await supabase.from('pedido_items').insert({
-    pedido_id: pedido.id,
-    producto_id,
-    variante_id,
-    cantidad,
-    precio_unitario,
-    subtotal_clp: subtotal,
+  const proveedor = pedido.metodo_pago || 'presencial'
+  const pagado = await confirmarPagoDePedido({
+    referenciaExterna: String(pedido.numero),
+    proveedor,
+    referenciaPago: `presencial-${pedido.numero}-${crypto.randomUUID()}`,
+    totalPagado: Number(pedido.total_clp),
   })
-
-  if (errItem) {
-    // Un pedido sin líneas no sirve para nada y ensucia la lista.
-    await supabase.from('pedidos').delete().eq('id', pedido.id)
-    return { ok: false, error: errItem.message }
-  }
-
-  // Reserva: las unidades quedan comprometidas aunque aún no esté pagado.
-  const { error: errStock } = await supabase.from('stock_movimientos').insert({
-    producto_id,
-    variante_id,
-    tipo: 'reserva',
-    cantidad: -cantidad,
-    motivo: `Pedido #${pedido.numero} · ${cliente_nombre}`,
-    pedido_id: pedido.id,
-    creado_por: yo.id,
-  })
-
-  const aviso = errStock
-    ? `Pedido creado, pero no se reservó el stock: ${errStock.message}`
-    : undefined
+  if (!pagado.ok)
+    return { ok: false, error: `La venta quedó creada pero requiere confirmar pago: ${pagado.error}` }
 
   revalidar()
-  return { ok: true, id: pedido.id, aviso }
+  return { ok: true, id: creado.id }
 }
 
 /** Mueve el pedido de estado y aplica los efectos de ese cambio. */
@@ -180,67 +187,27 @@ export async function cambiarEstado(pedido_id: string, nuevo: string): Promise<R
       error: `Un pedido ${pedido.estado} no puede pasar a ${nuevo}.`,
     }
 
+  // La confirmación de pago modifica pedido, finanzas y stock como una sola
+  // transacción. No se replica aquí con operaciones separadas.
+  if (nuevo === 'pagado') {
+    const pagado = await confirmarPagoDePedido({
+      referenciaExterna: String(pedido.numero),
+      proveedor: pedido.metodo_pago || 'manual',
+      referenciaPago: `manual-${pedido.numero}-${crypto.randomUUID()}`,
+      totalPagado: Number(pedido.total_clp),
+    })
+    if (!pagado.ok) return { ok: false, error: pagado.error }
+
+    revalidar()
+    return { ok: true }
+  }
+
   const { data: items } = await supabase
     .from('pedido_items')
     .select('producto_id,variante_id,cantidad,precio_unitario')
     .eq('pedido_id', pedido_id)
 
   let aviso: string | undefined
-
-  // ── Pagado: la reserva se convierte en venta y entra la plata ──────
-  if (nuevo === 'pagado') {
-    let movimiento_id: string | null = null
-
-    if (yo.gestionar_finanzas) {
-      const { data: mov, error: errMov } = await supabase
-        .from('movimientos_financieros')
-        .insert({
-          tipo: 'ingreso',
-          categoria: 'Venta',
-          descripcion: `Pedido #${pedido.numero} · ${pedido.cliente_nombre}`,
-          monto_clp: Number(pedido.total_clp),
-          fecha: new Date().toISOString().slice(0, 10),
-          metodo_pago: pedido.metodo_pago ?? null,
-          contraparte: pedido.cliente_nombre,
-          creado_por: yo.id,
-        })
-        .select('id')
-        .maybeSingle()
-
-      if (errMov) aviso = `Pedido marcado pagado, pero no se anotó en finanzas: ${errMov.message}`
-      else movimiento_id = mov?.id ?? null
-    } else {
-      aviso = 'Pedido pagado. El ingreso en finanzas queda pendiente: no tienes ese permiso.'
-    }
-
-    // Se libera la reserva y se registra la venta. Dos filas en vez de una
-    // para que el historial cuente lo que pasó de verdad.
-    for (const it of items ?? []) {
-      await supabase.from('stock_movimientos').insert([
-        {
-          producto_id: it.producto_id,
-          variante_id: it.variante_id,
-          tipo: 'liberacion',
-          cantidad: it.cantidad,
-          motivo: `Pedido #${pedido.numero} pagado`,
-          pedido_id: pedido.id,
-          creado_por: yo.id,
-        },
-        {
-          producto_id: it.producto_id,
-          variante_id: it.variante_id,
-          tipo: 'venta',
-          cantidad: -it.cantidad,
-          precio_unitario: it.precio_unitario,
-          total_clp: it.cantidad * Number(it.precio_unitario),
-          motivo: `Pedido #${pedido.numero} · ${pedido.cliente_nombre}`,
-          pedido_id: pedido.id,
-          movimiento_id,
-          creado_por: yo.id,
-        },
-      ])
-    }
-  }
 
   // ── Cancelado: las unidades vuelven a estar disponibles ────────────
   if (nuevo === 'cancelado') {

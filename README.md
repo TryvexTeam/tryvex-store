@@ -48,8 +48,11 @@ La tienda queda en `http://localhost:3000` y el panel en `/panel`.
 | `NEXT_PUBLIC_SUPABASE_URL` | Sí | Dirección del proyecto de Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Sí | Clave pública. Viaja al navegador; las políticas RLS son las que protegen los datos |
 | `SUPABASE_SERVICE_ROLE_KEY` | Sí | **Solo servidor.** El checkout la necesita porque crear un pedido escribe en una tabla cuyas políticas son solo para el equipo |
-| `NEXT_PUBLIC_URL_TIENDA` | No | Dirección pública del sitio, usada por el feed de productos. Por omisión, `https://tryvexstore.cl` |
-| `FEED_TOKEN` | No | Si se define, `/api/feed/productos` exige `?token=`. **Sin ella el feed queda abierto a cualquiera** |
+| `NEXT_PUBLIC_URL_TIENDA` | Sí en producción | Dirección pública canónica de la tienda, usada en enlaces de Mercado Pago y en el feed de productos. Debe ser una URL `https://` real, sin rutas ni parámetros. |
+| `FEED_TOKEN` | Sí si se habilita el feed | Secreto largo para `/api/feed/productos?token=…`. El feed responde 503 mientras no esté definido, para no exponer catálogo y disponibilidad por accidente. |
+| `MP_ACCESS_TOKEN` | Sí si se ofrece Mercado Pago | Credencial privada del servidor para crear y consultar órdenes. |
+| `MP_WEBHOOK_SECRET` | Sí si se ofrece Mercado Pago | Secreto privado para validar avisos firmados del webhook. Sin él, el webhook responde 503 y no acredita pagos. |
+| `NEXT_PUBLIC_MP_PUBLIC_KEY` | No | Solo es necesaria si se incorpora el SDK de Mercado Pago al navegador. |
 
 `SUPABASE_SERVICE_ROLE_KEY` salta todas las políticas RLS y da acceso completo a la base de
 datos. Nunca debe llevar el prefijo `NEXT_PUBLIC_`: ese prefijo hace que Next la empaquete
@@ -61,12 +64,16 @@ El proyecto se despliega sin configuración especial: **Root Directory en `./`**
 **Framework Preset en Next.js**, que es lo que Vercel detecta solo al haber un
 `package.json` con `next` en la raíz.
 
-Lo único que hay que cargar a mano son las **variables de entorno**: las tres
-obligatorias de la tabla de arriba, en Production y Preview.
+Cargue en Vercel las variables aplicables de la tabla anterior: Supabase en Production y
+Preview; Mercado Pago y feed solo cuando esos servicios se habiliten. Use el dominio final
+para `NEXT_PUBLIC_URL_TIENDA`, no una URL temporal de Preview.
 
 Después del primer despliegue, en Supabase → Authentication → URL Configuration, agregar la
 dirección de Vercel a **Redirect URLs**. Sin eso, el acceso al panel rebota al intentar
 entrar.
+
+La lista verificable de código y los pasos que requieren acceso a Vercel, Supabase, Mercado
+Pago o datos comerciales están en [`docs/CHECKLIST-LANZAMIENTO.md`](docs/CHECKLIST-LANZAMIENTO.md).
 
 ## Antes de la primera venta real
 
