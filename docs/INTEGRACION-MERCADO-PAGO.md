@@ -313,3 +313,55 @@ dependencias a un proyecto que ya sufrió builds pesados en esta máquina.
 
 Falta la verificación que importa: una compra real de prueba. No se puede hacer hasta
 cargar el Access Token y configurar los webhooks.
+
+---
+
+## Estado al 2026-09-26 — la tienda cobra de verdad
+
+**El pedido #34 se pagó con Mercado Pago y se confirmó solo.** La orden se creó, el
+comprador pagó, el webhook validó la firma, reconsultó la order contra la API y marcó el
+pedido como pagado sin que nadie tocara el panel. Con dinero real: fue una prueba de $5.
+
+Eso cierra lo que quedaba abierto cuando se escribió la primera parte de esta bitácora.
+
+### Lo que se sumó después
+
+| Pieza | Dónde |
+|---|---|
+| Correos de la tienda (pago, despacho, entrega) | `lib/correo.ts` |
+| Confirmación de pago atómica | `supabase/migraciones-tienda/2026-09-21-confirmar-pago-transaccional.sql` |
+| Expiración de pedidos abandonados | `supabase/migraciones-tienda/2026-09-22-expirar-pedidos-abandonados.sql` |
+| Retiro en sucursal para el comprador | commit `7f76d31` |
+| Montos escritos como se escriben en Chile | `lib/monto.ts` |
+
+**Arreglo importante del webhook** (`82701b3`): el manifiesto se firma con el `data.id` de
+los *query params*. Se estaba sustituyendo por el del cuerpo cuando faltaba, y eso arma un
+manifiesto que Mercado Pago nunca firmó — la firma no calzaba jamás y los pagos quedaban sin
+confirmar. Ahora el del cuerpo viaja aparte, como alternativa, nunca en reemplazo.
+
+**Por qué la confirmación pasó a SQL:** antes vivía en la aplicación, que leía el pedido,
+anotaba el ingreso, movía el stock y recién al final cambiaba el estado. El filtro
+`.eq('estado','pendiente')` evitaba dejarlo pagado dos veces, pero no evitaba que dos avisos
+llegaran hasta ahí habiendo insertado ya su ingreso y su descuento. Mercado Pago manda varias
+notificaciones por pago y reintenta hasta recibir un 200, así que no era hipotético. El
+`select ... for update` bloquea la fila: el segundo aviso espera, ve que ya no está pendiente
+y se va sin tocar nada.
+
+**Por qué expiran los pedidos abandonados:** cada pedido reserva sus unidades al confirmarse.
+Si nadie pagaba, la reserva no se soltaba nunca. La tienda llegó a mostrar «Agotado» con 33
+unidades en bodega, tomadas por 12 pedidos sin pagar. Un pedido con pago declarado no se
+toca: eso lo revisa una persona.
+
+### Variables de entorno que el proyecto espera
+
+`MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`,
+`CORREO_LOGO_URL`, `NEXT_PUBLIC_URL_TIENDA`, más las tres de Supabase.
+
+### Pendientes
+
+- [ ] WhatsApp sin cargar en `configuracion_tienda`
+- [ ] Rotar `SUPABASE_SERVICE_ROLE_KEY` (quedó expuesta en una conversación del CLI)
+- [ ] PR #10 abierto (`feat/tarjetas-producto-boton-plus`)
+- [ ] Aviso al comprador por WhatsApp con el enlace de seguimiento
+- [ ] Boleta electrónica: sin ella no se puede contratar Webpay (mitad de comisión), no se
+      recupera el IVA crédito de las compras y no hay tarifas de empresa con couriers
