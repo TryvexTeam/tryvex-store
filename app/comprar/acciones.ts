@@ -76,7 +76,8 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
 
   if (nombre.length < 3) return { ok: false, error: 'Escribe tu nombre y apellido.' }
   if (soloDigitos(fono).length < 8) return { ok: false, error: 'Revisa tu teléfono: necesitamos al menos 8 dígitos.' }
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'Revisa el formato de tu correo.' }
+  if (!email) return { ok: false, error: 'Escribe tu correo: ahí te llega la confirmación y el enlace para seguir tu pedido.' }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'Revisa el formato de tu correo.' }
   if (!(METODOS as readonly string[]).includes(metodo)) return { ok: false, error: 'Elige cómo quieres pagar.' }
   if (entrega === 'envio') {
     if (!esRegion(region)) return { ok: false, error: 'Elige tu región.' }
@@ -127,7 +128,7 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
     .insert({
       cliente_auth_id: user?.id ?? null,
       cliente_nombre: nombre,
-      cliente_email: email || null,
+      cliente_email: email,
       cliente_fono: fono,
       canal: 'web',
       estado: 'pendiente',
@@ -199,7 +200,7 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
           // exactamente la suma de los ítems, y así cuadra por construcción.
           ...(envio > 0 ? [{ titulo: 'Envío', cantidad: 1, precioUnitario: envio }] : []),
         ],
-        emailComprador: email || 'comprador@tryvex.tech',
+        emailComprador: email,
         referenciaExterna: String(pedido.numero),
         // Estable por pedido: si el comprador recarga, no se abre una segunda orden.
         claveIdempotencia: `pedido-${pedido.id}`,

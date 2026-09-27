@@ -35,7 +35,7 @@ const PAGOS: Record<string, string> = {
   flow: 'Flow',
 }
 
-const fechaCorta = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+const fechaCorta = new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', day: 'numeric', month: 'short', year: 'numeric' })
 
 /** En curso: el pedido todavía tiene pasos por delante. */
 export function enCurso(estado: string): boolean {

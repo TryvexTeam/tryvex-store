@@ -20,7 +20,10 @@ interface Paso {
   estado: 'hecho' | 'actual' | 'pendiente'
 }
 
+// El servidor de Vercel corre en UTC: sin zona explícita, un pago de la 1 p. m.
+// en Santiago se mostraba a las 4 p. m.
 const hora = new Intl.DateTimeFormat('es-CL', {
+  timeZone: 'America/Santiago',
   day: 'numeric',
   month: 'short',
   hour: '2-digit',

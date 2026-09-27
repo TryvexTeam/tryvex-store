@@ -85,11 +85,14 @@ export default function Checkout({
   lineaDirecta,
   envio,
   datosPago,
+  emailCuenta,
 }: {
   /** «Comprar ahora»: una línea que no pasa por la bolsa. */
   lineaDirecta: LineaPedida | null
   envio: EnvioCompra
   datosPago: DatosPago
+  /** Correo de la sesión, para no pedirle a quien ya tiene cuenta que lo escriba. */
+  emailCuenta: string | null
 }) {
   const bolsa = useBolsa()
   const desdeBolsa = lineaDirecta === null
@@ -245,7 +248,10 @@ export default function Checkout({
           <div className="grid gap-3 t:grid-cols-2">
             <div className="t:col-span-2"><Campo id="nombre" name="nombre" etiqueta="Nombre y apellido" autoComplete="name" required disabled={enviando} /></div>
             <Campo id="fono" name="fono" etiqueta="Teléfono" inputMode="tel" autoComplete="tel" required disabled={enviando} />
-            <Campo id="email" name="email" etiqueta="Correo (opcional)" type="email" autoComplete="email" disabled={enviando} />
+            <Campo id="email" name="email" etiqueta="Correo" type="email" autoComplete="email" required defaultValue={emailCuenta ?? undefined} disabled={enviando} />
+            {/* Obligatorio: es el único canal por el que llega la confirmación
+                del pago y el enlace de seguimiento a quien compra sin cuenta. */}
+            <p className="text-[13px] text-tinta-suave t:col-span-2">Te enviaremos la confirmación y el enlace para seguir tu pedido.</p>
           </div>
         </Paso>
 
