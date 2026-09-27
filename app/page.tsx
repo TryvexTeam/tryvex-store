@@ -9,7 +9,8 @@ import { CierreCampana, FranjaConfianza, HeroeCampana } from '@/components/tiend
 import { BannerDoble, BannerAncho, MosaicoCampana } from '@/components/tienda/editorial'
 import { ListaProductos } from '@/components/tienda/lista-productos'
 import { FilaCategorias } from '@/components/tienda/fila-categorias'
-import { GaleriaGuiada, ProductoFoco, TituloEco } from '@/components/tienda/escenas-scroll'
+import { ProductoFoco, TituloEco } from '@/components/tienda/escenas-scroll'
+import { ExploraColeccion } from '@/components/tienda/coleccion'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
@@ -81,7 +82,7 @@ export default async function Inicio() {
             envio, retracto, pago) ya los muestra <FranjaConfianza /> arriba en
             62 px. Repetirlos costaba 767 px de scroll. El componente queda para
             reutilizarse donde no exista la franja. */}
-        <GaleriaGuiada />
+        <ExploraColeccion piezas={piezas} />
         <TituloEco />
         <BannerAncho piezas={piezas} />
         <MosaicoCampana piezas={piezas} />

@@ -999,10 +999,6 @@ body {
 .foco-producto { width: min(70vw, 42svh, 560px); }
 .foco-producto img { filter: drop-shadow(0 40px 50px rgb(0 0 0 / 55%)); }
 
-.galeria-pieza { width: min(72vw, 36svh, 420px); }
-.galeria-ventana { overflow-x: auto; scroll-snap-type: x mandatory; }
-.galeria-fila { width: max-content; }
-.galeria-pieza { scroll-snap-align: center; }
 
 .eco-estela { display: none; }
 
@@ -1034,13 +1030,6 @@ body {
     .confianza-franja-a { animation: confianza-izquierda linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
     .confianza-franja-b { animation: confianza-derecha linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
 
-    /* Galería */
-    /* 180svh = 36svh por foto. A 300svh este tramo media 2.733 px con CERO
-       productos dentro: el segundo bloque mas grande de la home no vendia nada. */
-    .galeria-tramo { height: 130svh; view-timeline-name: --galeria; }
-    .galeria-ventana { overflow: visible; scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
-    .galeria-fila { will-change: transform; animation: galeria-desliza both cubic-bezier(0.45, 0, 0.55, 1); animation-timeline: --galeria; animation-range: contain 8% contain 92%; }
-    .galeria-progreso { animation: escena-progreso both linear; animation-timeline: --galeria; animation-range: contain 8% contain 92%; }
 
     /* Eco */
     .eco-estela { display: block; opacity: 0; color: var(--color-tinta); animation: eco-estela linear both; animation-timeline: view(); animation-range: entry 40% cover 60%; }
@@ -1070,7 +1059,6 @@ body {
 .confianza-franja-b { transform: translateX(-30%); }
 @keyframes confianza-izquierda { from { transform: translate3d(4%, 0, 0); } to { transform: translate3d(-38%, 0, 0); } }
 @keyframes confianza-derecha { from { transform: translate3d(-46%, 0, 0); } to { transform: translate3d(-4%, 0, 0); } }
-@keyframes galeria-desliza { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-100% + 100vw), 0, 0); } }
 @keyframes eco-estela { from { opacity: 0; transform: none; } to { opacity: var(--eco-o); transform: translateY(var(--eco-y)); } }
 /* El héroe ya parte como tarjeta: apenas despegado del borde y redondeado.
    Al bajar se sigue recogiendo desde ahí. Antes partía de borde a borde y
