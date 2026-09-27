@@ -3,6 +3,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { clp } from '@/lib/formato'
 import { leerPromosHeroe, type ProductoTienda } from '@/lib/tienda'
+import { FRASES_POR_DEFECTO, escenaFocoDe } from '@/lib/foco'
+import { VideoFoco } from './video-foco'
 
 /**
  * Escenas guiadas por el scroll (v15). Todo en CSS con `animation-timeline`:
@@ -13,39 +15,75 @@ import { leerPromosHeroe, type ProductoTienda } from '@/lib/tienda'
  */
 
 /* ── Producto en foco ──────────────────────────────────────────────
-   Escenario fijo durante un tramo alto: el producto sube, crece y gira,
-   el halo se enciende, tres afirmaciones se relevan y una barra marca el
-   avance. Al final aparece la compra. */
-export async function ProductoFoco({ producto }: { producto: ProductoTienda | null }) {
-  if (!producto?.imagen) return null
-  const promo = await leerPromosHeroe()
-  const afirmaciones = [
-    { antes: 'Diseñados para', resaltado: 'acompañarte.' },
-    promo.ahorroMaximo
-      ? { antes: `Hasta ${promo.ahorroMaximo}% menos`, resaltado: 'comprando por volumen.' }
-      : { antes: 'Precios claros,', resaltado: 'sin sorpresas.' },
-    { antes: 'Envío a todo', resaltado: 'Chile.' },
-  ]
+   Escenario fijo durante un tramo alto: tres afirmaciones se relevan, una
+   barra marca el avance y al final aparece la compra. Se edita desde el
+   panel (Portada → Escena en foco): el producto, las frases y un video que
+   corre en bucle o avanza con el scroll. Sin video, el producto sube, crece
+   y gira sobre su halo, como antes.
+
+   La tarjeta mide lo mismo que el banner principal: mismo margen lateral,
+   mismas esquinas y misma altura, para que las dos escenas grandes de la
+   portada se lean como parte de un mismo sistema. */
+export async function ProductoFoco({
+  productos,
+  destacado,
+  pieza,
+}: {
+  productos: ProductoTienda[]
+  destacado: ProductoTienda | null
+  pieza: { visible: boolean; contenido: Record<string, unknown> } | undefined
+}) {
+  if (pieza && !pieza.visible) return null
+  const escena = escenaFocoDe(pieza?.contenido)
+  const producto = (escena.producto && productos.find((p) => p.slug === escena.producto)) || destacado
+  if (!producto) return null
+  if (!escena.video && !producto.imagen) return null
+
+  // Sin frases guardadas en el panel, la segunda sigue calculando el ahorro
+  // por volumen, como siempre.
+  const conFrases = Array.isArray(pieza?.contenido.frases)
+  const promo = conFrases ? null : await leerPromosHeroe()
+  const afirmaciones = conFrases
+    ? escena.frases
+    : [
+        FRASES_POR_DEFECTO[0],
+        promo?.ahorroMaximo
+          ? { antes: `Hasta ${promo.ahorroMaximo}% menos`, resaltado: 'comprando por volumen.' }
+          : FRASES_POR_DEFECTO[1],
+        FRASES_POR_DEFECTO[2],
+      ]
 
   return (
     <section aria-labelledby="foco-titulo" className="foco-tramo relative mt-16 t:mt-24">
-      <div className="foco-escenario escena-encuadre flex flex-col items-center justify-center overflow-hidden bg-black px-[22px] text-white">
-        <span aria-hidden className="foco-halo pointer-events-none absolute inset-0" />
-        <p className="foco-antetitulo relative text-[13px] font-semibold tracking-[0.12em] text-white/60 uppercase t:text-[15px]">{producto.nombre}</p>
-        <h2 id="foco-titulo" className="sr-only">{afirmaciones.map((a) => `${a.antes} ${a.resaltado}`).join(' ')}</h2>
-        <div aria-hidden className="foco-frases relative mt-3 grid w-full max-w-[18ch] place-items-center text-center font-semibold tracking-display">
-          {afirmaciones.map((a, i) => (
-            <p key={a.antes} className={`foco-frase foco-frase-${i + 1} col-start-1 row-start-1 text-balance`}>
-              {a.antes} <span className="foco-degradado">{a.resaltado}</span>
-            </p>
-          ))}
+      <div className="escena-encuadre flex items-center px-[var(--margen-heroe)]">
+        <div className="foco-escenario relative isolate flex h-[min(640px,calc(100svh-96px-var(--margen-heroe)))] w-full flex-col items-center justify-center overflow-hidden rounded-[28px] bg-black px-[22px] text-white d:h-[min(760px,calc(100svh-88px-var(--margen-heroe)))]">
+          {escena.video ? (
+            <>
+              <VideoFoco src={escena.video} modo={escena.modo} />
+              {/* Velo: las frases se leen sobre cualquier video. */}
+              <span aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_45%,rgb(0_0_0/45%),rgb(0_0_0/15%)_70%,transparent)]" />
+            </>
+          ) : (
+            <span aria-hidden className="foco-halo pointer-events-none absolute inset-0" />
+          )}
+          <p className="foco-antetitulo relative text-[13px] font-semibold tracking-[0.12em] text-white/70 uppercase t:text-[15px]">{producto.nombre}</p>
+          <h2 id="foco-titulo" className="sr-only">{afirmaciones.map((a) => `${a.antes} ${a.resaltado}`).join(' ')}</h2>
+          <div aria-hidden className="foco-frases relative mt-3 grid w-full max-w-[18ch] place-items-center text-center font-semibold tracking-display">
+            {afirmaciones.map((a, i) => (
+              <p key={`${i}-${a.antes}`} className={`foco-frase foco-frase-${i + 1} col-start-1 row-start-1 text-balance`}>
+                {a.antes} <span className="foco-degradado">{a.resaltado}</span>
+              </p>
+            ))}
+          </div>
+          {!escena.video && producto.imagen && (
+            <div className="foco-producto relative mt-4 aspect-square">
+              <Image src={producto.imagen} alt="" fill sizes="(min-width: 735px) 560px, 70vw" className="object-contain" />
+            </div>
+          )}
+          <Link href={producto.href} className={`foco-cta tienda-boton relative bg-white text-black hover:bg-white/85 ${escena.video ? 'mt-8' : 'mt-2'}`}>
+            Comprar desde <span className="cifra ml-1">{clp(producto.precio)}</span>
+          </Link>
         </div>
-        <div className="foco-producto relative mt-4 aspect-square">
-          <Image src={producto.imagen} alt="" fill sizes="(min-width: 735px) 560px, 70vw" className="object-contain" />
-        </div>
-        <Link href={producto.href} className="foco-cta tienda-boton relative mt-2 bg-white text-black hover:bg-white/85">
-          Comprar desde <span className="cifra ml-1">{clp(producto.precio)}</span>
-        </Link>
       </div>
     </section>
   )

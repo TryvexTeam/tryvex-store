@@ -76,7 +76,7 @@ export default async function Inicio() {
             vende, después por qué. */}
         <ListaProductos productos={productos} />
         <BannerDoble piezas={piezas} />
-        <ProductoFoco producto={destacado} />
+        <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
         {/* ConfianzaEnMovimiento sale de la home: sus cuatro datos (garantia,
             envio, retracto, pago) ya los muestra <FranjaConfianza /> arriba en
             62 px. Repetirlos costaba 767 px de scroll. El componente queda para
