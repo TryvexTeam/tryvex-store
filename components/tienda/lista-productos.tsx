@@ -15,14 +15,16 @@ export function ListaProductos({ productos }: { productos: ProductoTienda[] }) {
 
   return (
     <section id="lo-nuevo" aria-labelledby="lo-nuevo-titulo" className="pt-10 t:pt-16">
-      <div className="mx-auto flex w-full max-w-[1204px] items-end justify-between gap-4 px-[22px]">
+      <div className="flex items-end justify-between gap-4 px-[var(--canal)]">
         <div>
           <h2 id="lo-nuevo-titulo" className="revela text-[28px] leading-[1.1] font-semibold tracking-seccion t:text-[36px]">Todo lo nuevo.</h2>
           <p className="mt-2 text-[16px] text-tinta-suave t:text-[17px]">Lo más reciente que llegó a la tienda.</p>
         </div>
         <Link href="/tienda" className="shrink-0 text-[14px] font-medium text-spark hover:underline">Ver todo ({productos.length}) →</Link>
       </div>
-      <div className="mt-3 px-[var(--canal)]">
+      {/* Sin margen propio: la pista ya se alinea con el título y así la fila
+          corre hasta el borde de la pantalla, como en Apple. */}
+      <div className="mt-3">
         <Carrusel etiqueta="Todo lo nuevo">
           {recientes.map((producto, indice) => (
             <div key={producto.id} className="revela-escala" style={{ '--i': `${indice * 4}%` } as CSSProperties}>

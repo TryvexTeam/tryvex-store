@@ -5,6 +5,12 @@ import { Children, useCallback, useEffect, useRef, useState } from 'react'
 /** Separación entre cards: la misma en toda la tienda. */
 const SEPARACION = 20
 
+/** Duración del avance con flechas: se lee como deslizamiento, no como salto. */
+const DURACION = 650
+
+/** Arranca y frena con suavidad (ease-in-out cúbica). */
+const suave = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
+
 /**
  * Fila deslizable de la vitrina.
  *
@@ -47,12 +53,47 @@ export function Carrusel({ etiqueta, children }: { etiqueta: string; children: R
     }
   }, [medir])
 
+  const animacion = useRef(0)
+
+  /**
+   * Avance de una card con animación propia.
+   *
+   * `scrollBy({ behavior: 'smooth' })` sobre una pista con encaje obligatorio
+   * pelea con el encaje: Chrome recalcula el destino a mitad de camino y la
+   * fila da un tirón. Aquí el encaje se suspende mientras dura el
+   * movimiento, la posición se interpola con una curva que arranca y frena
+   * suave, y al final el encaje vuelve, ya sobre una card exacta.
+   */
   function avanzar(sentido: 1 | -1) {
     const el = pista.current
     const card = el?.querySelector('li')
     if (!el || !card) return
-    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    el.scrollBy({ left: sentido * (card.getBoundingClientRect().width + SEPARACION), behavior: quieto ? 'auto' : 'smooth' })
+
+    const paso = card.getBoundingClientRect().width + SEPARACION
+    const maximo = el.scrollWidth - el.clientWidth
+    const desde = el.scrollLeft
+    // Destino alineado a la grilla de cards: dos clics rápidos no dejan la
+    // fila a medias.
+    const destino = Math.min(maximo, Math.max(0, Math.round((desde + sentido * paso) / paso) * paso))
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      el.scrollLeft = destino
+      return
+    }
+
+    cancelAnimationFrame(animacion.current)
+    el.style.scrollSnapType = 'none'
+    const inicio = performance.now()
+    const cuadro = (ahora: number) => {
+      const t = Math.min(1, (ahora - inicio) / DURACION)
+      el.scrollLeft = desde + (destino - desde) * suave(t)
+      if (t < 1) {
+        animacion.current = requestAnimationFrame(cuadro)
+      } else {
+        el.style.scrollSnapType = ''
+      }
+    }
+    animacion.current = requestAnimationFrame(cuadro)
   }
 
   const flecha =

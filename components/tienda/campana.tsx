@@ -66,11 +66,11 @@ export function FranjaCategoria({ categoria }: { categoria: CategoriaTienda }) {
   if (categoria.productos.length < 2) return null
   return (
     <section aria-labelledby={`categoria-${categoria.slug}`} className="pt-10 t:pt-16">
-      <div className="mx-auto flex w-full max-w-[1204px] items-end justify-between gap-4 px-[22px]">
+      <div className="flex items-end justify-between gap-4 px-[var(--canal)]">
         <h2 id={`categoria-${categoria.slug}`} className="revela text-[28px] leading-[1.1] font-semibold tracking-seccion t:text-[36px]">{categoria.nombre}.</h2>
         <Link href={`/tienda?cat=${encodeURIComponent(categoria.slug)}`} className="shrink-0 text-[14px] font-medium text-spark hover:underline">Ver categoría →</Link>
       </div>
-      <div className="mt-3 px-[var(--canal)]"><Carrusel etiqueta={categoria.nombre}>{categoria.productos.map((producto, indice) => <div key={producto.id} className="revela-escala" style={{ '--i': `${indice * 4}%` } as CSSProperties}><CardProducto producto={producto} transicion={false} /></div>)}</Carrusel></div>
+      <div className="mt-3"><Carrusel etiqueta={categoria.nombre}>{categoria.productos.map((producto, indice) => <div key={producto.id} className="revela-escala" style={{ '--i': `${indice * 4}%` } as CSSProperties}><CardProducto producto={producto} transicion={false} /></div>)}</Carrusel></div>
     </section>
   )
 }

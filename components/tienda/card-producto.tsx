@@ -162,8 +162,8 @@ function avisoDe(producto: ProductoTienda): string | null {
  *   aviso 12/600 a 360 · nombre 17/600 con dos líneas reservadas a 381 ·
  *   precio 14/400 a 451.
  *
- * El aviso va donde Apple dice «Nuevo», pero en gris oscuro: nada de texto
- * de color sobre los productos. El + queda arriba a la derecha, fuera del
+ * El aviso va donde Apple dice «Nuevo», en rojo vino: se distingue sin
+ * gritar como el rojo de la marca. «Agotado» va en gris. El + queda arriba a la derecha, fuera del
  * enlace, porque un botón dentro de un enlace no es válido.
  */
 export function CardProducto({ producto, transicion = true }: { producto: ProductoTienda; transicion?: boolean }) {
@@ -189,7 +189,7 @@ export function CardProducto({ producto, transicion = true }: { producto: Produc
           )}
         </div>
 
-        <p className="mt-[3px] h-4 text-[12px] leading-4 font-semibold tracking-[-0.01em] text-tinta-suave">{aviso}</p>
+        <p className={`mt-[3px] h-4 text-[12px] leading-4 font-semibold tracking-[-0.01em] ${agotado ? 'text-tinta-suave' : 'text-vino'}`}>{aviso}</p>
         <h3 className="mt-[5px] line-clamp-2 h-[42px] text-[17px] leading-[21px] font-semibold tracking-[-0.022em]">{nombre}</h3>
         <p className="mt-auto pb-[33px] text-[14px] leading-[18px] tracking-[-0.016em] text-tinta">
           <Precio producto={producto} />

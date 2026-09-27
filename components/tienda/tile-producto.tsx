@@ -16,9 +16,8 @@ const MAX_MUESTRAS = 6
  * siempre en el mismo orden para que la grilla se lea como una tabla.
  *
  * La oferta no lleva píldora roja sobre la foto: el precio tachado ya la
- * cuenta, y el porcentaje va al pie, a la derecha, en el mismo negro del
- * precio. Nada de texto de color sobre los productos: una grilla con todo en
- * oferta se veía como un mar de rojo.
+ * cuenta, y el porcentaje va al pie, a la derecha, en rojo vino: se nota
+ * sin que una grilla con todo en oferta se vea como un mar de rojo.
  */
 export function TileProducto({ producto, prioridad = false }: { producto: ProductoTienda; prioridad?: boolean }) {
   const { nombre, slug, imagen, precio, precioAntes, agotado, colores, href } = producto
@@ -65,7 +64,7 @@ export function TileProducto({ producto, prioridad = false }: { producto: Produc
             </span>
           )}
           {descuento > 0 && (
-            <span className="cifra ml-auto text-[12px] font-semibold text-tinta t:text-[13px]">
+            <span className="cifra ml-auto text-[12px] font-semibold text-vino t:text-[13px]">
               {descuento}% menos
             </span>
           )}

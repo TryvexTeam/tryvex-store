@@ -181,6 +181,9 @@
   --color-verde: #1d9e4b;
   --color-ambar: #b25000;
   --color-rojo: #d70015;
+  /* Vino: los avisos de las cards (oferta, nuevo). Más sobrio que el spark
+     para no competir con el producto; 9:1 sobre blanco. */
+  --color-vino: #8c1c32;
 
   /* Geist: la tipografia de marca de Tryvex, ya cargada por next/font. */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
@@ -569,9 +572,12 @@ body {
 }
 
 /* Canal: margen lateral que alinea el título de cada franja con su primera
-   card. Crece con la pantalla para que la fila no se pegue al borde. */
+   card. Medido en apple.com/cl/store (2026-09-26, en px CSS): 22 hasta
+   ~930 de ancho, crece en recta (43,5 a 1000 · 100 a 1182) y se detiene en
+   140 desde 1309. Antes centraba en 1160 px sin techo: a 1586 px dejaba
+   213 px vacíos antes de la primera card. */
 .tienda {
-  --canal: max(22px, calc((100% - 1160px) / 2));
+  --canal: clamp(22px, 31.25vw - 269px, 140px);
 }
 /* Ojo: --canal es un porcentaje del padre. Dentro de una caja con ancho
    máximo NO se usa como relleno (se aplicaría dos veces en pantallas
