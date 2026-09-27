@@ -149,7 +149,7 @@ export function CardEditorial({ categoria, href }: { categoria: CategoriaTienda;
 function avisoDe(producto: ProductoTienda): string | null {
   const { precio, precioAntes, agotado, etiqueta } = producto
   if (agotado) return 'Agotado'
-  if (precioAntes && precioAntes > precio) return `${Math.round((1 - precio / precioAntes) * 100)}% de descuento`
+  if (precioAntes && precioAntes > precio) return `${Math.floor((1 - precio / precioAntes) * 100)}% de descuento` // hacia abajo: nunca promete de más
   if (etiqueta && !/últimas unidades/i.test(etiqueta)) return etiqueta
   return null
 }
@@ -166,13 +166,22 @@ function avisoDe(producto: ProductoTienda): string | null {
  * gritar como el rojo de la marca. «Agotado» va en gris. El + queda arriba a la derecha, fuera del
  * enlace, porque un botón dentro de un enlace no es válido.
  */
-export function CardProducto({ producto, transicion = true }: { producto: ProductoTienda; transicion?: boolean }) {
+export function CardProducto({
+  producto,
+  transicion = true,
+  fluida = false,
+}: {
+  producto: ProductoTienda
+  transicion?: boolean
+  /** En una grilla, la card toma el ancho de su columna en vez de los 313 px fijos. */
+  fluida?: boolean
+}) {
   const { nombre, imagen, agotado, colores, href } = producto
   const aviso = avisoDe(producto)
 
   return (
     <div className="relative">
-      <Link href={href} className="tienda-card tienda-card-producto relative flex h-[450px] flex-col overflow-hidden rounded-[18px] bg-papel px-7 d:h-[500px]">
+      <Link href={href} className={`tienda-card tienda-card-producto relative flex h-[450px] flex-col overflow-hidden rounded-[18px] bg-papel px-7 d:h-[500px] ${fluida ? 'tienda-card-fluida' : ''}`}>
         <div className="relative mx-auto mt-[52px] size-[200px] shrink-0 d:mt-[69px] d:size-[230px]">
           <Foto src={imagen} slug={producto.slug} sizes="230px" className={`tienda-card-objeto object-contain ${agotado ? 'opacity-60' : ''}`} transicion={transicion} />
         </div>

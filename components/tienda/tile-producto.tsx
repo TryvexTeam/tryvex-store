@@ -24,7 +24,7 @@ export function TileProducto({ producto, prioridad = false }: { producto: Produc
   // Solo «Agotado» se marca sobre la foto, en neutro: las etiquetas de
   // colores («Últimas unidades», ofertas) competían con el producto.
   const insignia = agotado ? 'Agotado' : null
-  const descuento = !agotado && precioAntes && precioAntes > precio ? Math.round((1 - precio / precioAntes) * 100) : 0
+  const descuento = !agotado && precioAntes && precioAntes > precio ? Math.floor((1 - precio / precioAntes) * 100) : 0
 
   return (
     <div className="relative min-w-0">

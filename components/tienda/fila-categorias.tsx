@@ -4,66 +4,73 @@ import { Estrella } from '@/app/marca'
 import type { CategoriaTienda } from '@/lib/tienda'
 
 /**
- * Navegador de familias: la fila de acceso que abre el catálogo.
+ * Fila de familias, medida sobre la de apple.com/cl/store: cada ítem mide
+ * 146 × 148, la foto 120 × 78 a 18 px del borde y el nombre 14/600 con
+ * interlineado 20 a 112 px. Sin caja ni borde: el objeto se reconoce solo.
  *
- * Patrón de navegación por reconocimiento: el objeto se ve, no se lee. La foto
- * va suelta sobre el papel —sin caja, sin borde, sin sombra— y solo la etiqueta
- * ancla debajo. Cualquier contenedor visible compite con el producto y vuelve
- * la fila un muestrario de tarjetas en vez de una barra de navegación.
+ * Arranca en el canal de la página, como el título, y se desliza con el
+ * dedo o la rueda. La familia activa se marca con el nombre en negro y
+ * subrayado; las demás van en gris.
  *
- * La familia activa se marca con subrayado, no con relleno ni con anillo: el
- * subrayado pesa lo justo para decir «estás aquí» sin robarle atención al resto
- * de la fila.
- *
- * Carrusel por scroll nativo con `snap`: sin librería. En teléfono se arrastra
- * con el dedo como cualquier fila del sistema; en escritorio la última asoma y
- * sugiere que hay más.
+ * `conTodo` agrega al inicio «Todo», para volver al catálogo completo desde
+ * la tienda (en la portada no hace falta).
  */
-export function FilaCategorias({ categorias, activa }: { categorias: CategoriaTienda[]; activa: string | null }) {
+export function FilaCategorias({
+  categorias,
+  activa,
+  conTodo = false,
+}: {
+  categorias: CategoriaTienda[]
+  activa: string | null
+  conTodo?: boolean
+}) {
   if (categorias.length === 0) return null
 
-  return (
-    <nav aria-label="Familias de productos" className="border-b border-borde/50 bg-papel-alt">
-      <ul className="sin-barra mx-auto flex max-w-[1204px] snap-x snap-mandatory gap-2 overflow-x-auto px-[22px] py-6 t:justify-center t:gap-4 t:py-8">
-        {categorias.map((c) => {
-          const foto = c.productos.find((p) => p.imagen)?.imagen ?? null
-          const esActiva = activa === c.slug
+  const items = [
+    ...(conTodo ? [{ clave: 'todo', nombre: 'Todo', href: '/tienda', foto: null as string | null, activa: activa === null }] : []),
+    ...categorias.map((c) => ({
+      clave: c.id,
+      nombre: c.nombre,
+      href: `/tienda?cat=${encodeURIComponent(c.slug)}`,
+      foto: c.productos.find((p) => p.imagen)?.imagen ?? null,
+      activa: activa === c.slug,
+    })),
+  ]
 
-          return (
-            <li key={c.id} className="shrink-0 snap-start">
-              <Link
-                href={`/tienda?cat=${encodeURIComponent(c.slug)}`}
-                aria-current={esActiva ? 'page' : undefined}
-                className="tienda-familia group flex w-[104px] flex-col items-center gap-3 rounded-[12px] px-2 py-2 text-center t:w-[124px]"
-              >
-                <span className="relative h-[72px] w-full t:h-[84px]">
-                  {foto ? (
-                    <Image
-                      src={foto}
-                      alt=""
-                      fill
-                      sizes="124px"
-                      className="tienda-card-objeto object-contain"
-                    />
-                  ) : (
-                    <span aria-hidden className="grid size-full place-items-center text-borde">
+  return (
+    <nav aria-label="Familias de productos">
+      <ul className="sin-barra flex snap-x overflow-x-auto px-[var(--canal)] py-2 [scroll-padding-inline:var(--canal)]">
+        {items.map((it) => (
+          <li key={it.clave} className="shrink-0 snap-start">
+            <Link
+              href={it.href}
+              aria-current={it.activa ? 'page' : undefined}
+              className="tienda-familia group relative block h-[148px] w-[124px] text-center focus-visible:outline-2 focus-visible:outline-offset-[-2px] t:w-[146px]"
+            >
+              <span className="absolute top-[18px] left-1/2 h-[78px] w-[120px] -translate-x-1/2">
+                {it.foto ? (
+                  <Image src={it.foto} alt="" fill sizes="120px" className="tienda-card-objeto object-contain" />
+                ) : (
+                  <span aria-hidden className={`grid size-full place-items-center ${it.activa ? 'text-tinta' : 'text-gris'}`}>
+                    {/* «Todo»: cuatro puntos, el catálogo entero. */}
+                    {it.clave === 'todo' ? (
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2" /><rect x="13" y="3" width="8" height="8" rx="2" /><rect x="3" y="13" width="8" height="8" rx="2" /><rect x="13" y="13" width="8" height="8" rx="2" /></svg>
+                    ) : (
                       <Estrella size={34} />
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={`text-[12px] leading-tight tracking-apoyo t:text-[14px] ${
-                    esActiva
-                      ? 'font-semibold text-tinta underline decoration-2 underline-offset-[6px]'
-                      : 'text-tinta-suave group-hover:text-tinta'
-                  }`}
-                >
-                  {c.nombre}
-                </span>
-              </Link>
-            </li>
-          )
-        })}
+                    )}
+                  </span>
+                )}
+              </span>
+              <span
+                className={`absolute inset-x-1 top-[112px] line-clamp-2 text-[14px] leading-5 font-semibold tracking-[-0.016em] ${
+                  it.activa ? 'text-tinta underline decoration-2 underline-offset-[5px]' : 'text-tinta-suave group-hover:text-tinta'
+                }`}
+              >
+                {it.nombre}
+              </span>
+            </Link>
+          </li>
+        ))}
       </ul>
     </nav>
   )

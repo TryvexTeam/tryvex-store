@@ -1119,3 +1119,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .aviso-bolsa { animation: none; }
 }
+
+/* Card de producto dentro de una grilla: toma el ancho de la columna. */
+.tienda-card.tienda-card-fluida {
+  width: 100%;
+}
