@@ -134,8 +134,11 @@ export default async function Pedidos() {
                   </p>
                 </div>
                 <span className="cifra shrink-0 text-[15px] font-medium">{clp(p.total_clp)}</span>
-                <Acciones id={p.id} estado={p.estado} />
-                <DetallePedido pedido={p} />
+                {/* En el teléfono, las acciones bajan a su propia fila, a lo ancho. */}
+                <div className="flex w-full flex-col gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
+                  <Acciones id={p.id} estado={p.estado} />
+                  <div className="self-end sm:self-auto"><DetallePedido pedido={p} /></div>
+                </div>
               </li>
             )
           })}

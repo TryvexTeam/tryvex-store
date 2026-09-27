@@ -89,8 +89,8 @@ export default function FormularioLogin({ volver }: { volver: string }) {
       <button
         type="submit"
         disabled={enviando || !email || !clave}
-        className="w-full rounded-full bg-spark px-6 py-3 text-[15px] font-medium text-white
-                   transition-colors hover:bg-spark-hover disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-full rounded-full bg-tinta px-6 py-3 text-[15px] font-medium text-white
+                   transition-colors hover:bg-tinta/85 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {enviando ? 'Entrando…' : 'Entrar'}
       </button>

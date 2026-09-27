@@ -105,8 +105,8 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
         <button
           type="button"
           onClick={() => setCreando(true)}
-          className="presionable flex min-h-11 shrink-0 items-center gap-1.5 rounded-[10px] bg-spark px-4
-                     text-[14px] font-semibold text-white hover:bg-spark-hover"
+          className="presionable flex min-h-11 shrink-0 items-center gap-1.5 rounded-[10px] bg-tinta px-4
+                     text-[14px] font-semibold text-white hover:bg-tinta/85"
         >
           <IconoMas size={17} />
           <span className="hidden sm:inline">Nuevo producto</span>
@@ -177,8 +177,8 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
             <button
               type="button"
               onClick={() => setCreando(true)}
-              className="presionable mt-5 inline-flex items-center gap-1.5 rounded-[10px] bg-spark px-4 py-2.5
-                         text-[14px] font-semibold text-white hover:bg-spark-hover"
+              className="presionable mt-5 inline-flex items-center gap-1.5 rounded-[10px] bg-tinta px-4 py-2.5
+                         text-[14px] font-semibold text-white hover:bg-tinta/85"
             >
               <IconoMas size={17} />
               Crear producto
@@ -266,22 +266,29 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
             ? `${ROTULO_ESTADO[enDetalle.estado]} · SKU ${enDetalle.sku} · ${enDetalle.stock} en stock`
             : undefined
         }
+        ancho="amplio"
       >
         {enDetalle && (
-          <div className="space-y-8">
-            <Galeria productoId={enDetalle.id} galeria={enDetalle.galeria} portada={enDetalle.imagen_url} />
-            <EditorProducto
-              producto={enDetalle}
-              categorias={categorias}
-              tramos={tramos.filter((t) => t.producto_id === enDetalle.id)}
-              enHoja
-            />
-            <Variantes
-              productoId={enDetalle.id}
-              skuProducto={enDetalle.sku}
-              precioProducto={Number(enDetalle.precio_base)}
-              variantes={enDetalle.variantes}
-            />
+          // Escritorio: fotos a la izquierda, fijas mientras se edita a la
+          // derecha. Teléfono: todo en una columna.
+          <div className="grid gap-8 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] md:gap-10">
+            <div className="md:sticky md:top-0 md:self-start">
+              <Galeria productoId={enDetalle.id} galeria={enDetalle.galeria} portada={enDetalle.imagen_url} />
+            </div>
+            <div className="min-w-0 space-y-8">
+              <EditorProducto
+                producto={enDetalle}
+                categorias={categorias}
+                tramos={tramos.filter((t) => t.producto_id === enDetalle.id)}
+                enHoja
+              />
+              <Variantes
+                productoId={enDetalle.id}
+                skuProducto={enDetalle.sku}
+                precioProducto={Number(enDetalle.precio_base)}
+                variantes={enDetalle.variantes}
+              />
+            </div>
           </div>
         )}
       </Hoja>
@@ -407,8 +414,8 @@ function HojaCrear({
         )}
 
         <button type="submit" disabled={pendiente}
-                className="presionable w-full rounded-[10px] bg-spark py-3 text-[15px] font-semibold text-white
-                           hover:bg-spark-hover disabled:opacity-60">
+                className="presionable w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white
+                           hover:bg-tinta/85 disabled:opacity-60">
           {pendiente ? 'Creando…' : 'Crear y añadir fotos'}
         </button>
       </form>

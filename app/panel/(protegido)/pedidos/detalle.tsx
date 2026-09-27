@@ -85,9 +85,13 @@ export function DetallePedido({ pedido }: { pedido: PedidoDetalle }) {
       <Hoja abierta={abierta} onCerrar={() => setAbierta(false)}
             titulo={`Pedido #${pedido.numero}`} bajada={`${pedido.cliente_nombre} · ${clp(pedido.total_clp)}`}>
         <div className="space-y-7">
-          <div className="flex items-center justify-between gap-3">
-            <Estado estado={pedido.estado} />
-            <Acciones id={pedido.id} estado={pedido.estado} />
+          {/* El estado arriba y lo que se puede hacer debajo, a todo el ancho:
+              compartir una fila dejaba el rótulo suelto y los botones apretados. */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-[13px] text-gris">
+              Estado <Estado estado={pedido.estado} />
+            </div>
+            <Acciones id={pedido.id} estado={pedido.estado} className="sm:w-full [&>div]:sm:flex-wrap" />
           </div>
 
           <ol aria-label="Seguimiento" className="grid grid-cols-4 gap-1.5">
@@ -147,7 +151,7 @@ export function DetallePedido({ pedido }: { pedido: PedidoDetalle }) {
               <div className="sm:col-span-2">{texto('boleta_url', 'Enlace a la boleta', { type: 'url', placeholder: 'https://' })}</div>
             </fieldset>
             <button type="submit" disabled={guardando}
-                    className="presionable w-full rounded-[10px] bg-spark py-3 text-[15px] font-semibold text-white hover:bg-spark-hover disabled:opacity-60">
+                    className="presionable w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white hover:bg-tinta/85 disabled:opacity-60">
               {guardando ? 'Guardando…' : 'Guardar pedido'}
             </button>
           </form>

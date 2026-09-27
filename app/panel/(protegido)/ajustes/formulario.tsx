@@ -132,8 +132,8 @@ export function FormularioAjustes({
       {puedeEditar && (
         <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] md:bottom-4">
           <button type="submit" disabled={guardando}
-                  className="presionable w-full rounded-[12px] bg-spark py-3.5 text-[15px] font-semibold text-white
-                             shadow-[var(--shadow-alzado)] hover:bg-spark-hover disabled:opacity-60">
+                  className="presionable w-full rounded-[12px] bg-tinta py-3.5 text-[15px] font-semibold text-white
+                             shadow-[var(--shadow-alzado)] hover:bg-tinta/85 disabled:opacity-60">
             {guardando ? 'Guardando…' : 'Guardar ajustes'}
           </button>
         </div>

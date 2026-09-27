@@ -244,7 +244,7 @@ function FormularioVariante({
 
       <div className="flex gap-2">
         <button type="submit" disabled={pendiente || !nombre.trim()}
-                className="presionable rounded-full bg-spark px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
+                className="presionable rounded-full bg-tinta px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
           {pendiente ? 'Guardando…' : variante ? 'Guardar variante' : 'Crear variante'}
         </button>
         <button type="button" onClick={onListo} className="rounded-full px-4 py-2.5 text-[13px] text-gris">
