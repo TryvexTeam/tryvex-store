@@ -31,7 +31,7 @@ export function PieTienda({
 
   return (
     <footer className="border-t border-borde/70 bg-papel-alt">
-      <div className="mx-auto max-w-[1204px] px-[22px] py-8 d:py-10">
+      <div className="px-[var(--canal)] py-8 d:py-10">
         <div className="d:hidden">
           {grupos.map((grupo) => (
             <details key={grupo.titulo} className="group border-b border-borde/70 py-3 first:pt-0">

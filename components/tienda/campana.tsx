@@ -24,7 +24,7 @@ const CONFIANZA = [
 export function FranjaConfianza() {
   return (
     <section aria-label="Por qué comprar aquí" className="border-b border-borde/60 bg-papel">
-      <ul className="mx-auto grid max-w-[1204px] grid-cols-2 gap-x-4 gap-y-3 px-[22px] py-5 d:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-3 px-[var(--canal)] py-5 d:grid-cols-4">
         {CONFIANZA.map((item) => (
           <li key={item.texto} className="flex items-center justify-start gap-2.5 text-[13px] font-medium text-tinta-suave t:text-[14px] d:justify-center">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-spark" aria-hidden><path d={item.trazo} /></svg>
@@ -41,7 +41,7 @@ export function CategoriasDestacadas({ categorias }: { categorias: CategoriaTien
   const unica = categorias.length === 1
 
   return (
-    <section aria-labelledby="categorias-titulo" className="mx-auto w-full max-w-[1204px] px-[22px] pt-10 t:pt-16">
+    <section aria-labelledby="categorias-titulo" className="w-full px-[var(--canal)] pt-10 t:pt-16">
       <h2 id="categorias-titulo" className="revela text-[28px] leading-[1.1] font-semibold tracking-seccion t:text-[36px]">Explora por categoría.</h2>
       <p className="mt-2 text-[16px] text-tinta-suave t:text-[17px]">El catálogo se organiza para que encuentre más rápido lo que necesita.</p>
       {/* Una sola categoría: tile ancha (2/3) + «Toda la tienda» (1/3), sin columnas vacías. */}

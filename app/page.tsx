@@ -82,7 +82,7 @@ export default async function Inicio() {
         <TituloEco />
         <BannerAncho piezas={piezas} />
         <MosaicoCampana piezas={piezas} />
-        <section id="beneficios" aria-labelledby="beneficios-titulo" className="mx-auto w-full max-w-[1204px] px-[22px] pt-10 t:pt-16">
+        <section id="beneficios" aria-labelledby="beneficios-titulo" className="w-full px-[var(--canal)] pt-10 t:pt-16">
           <h2 id="beneficios-titulo" className="revela text-[28px] leading-[1.1] font-semibold tracking-seccion t:text-[36px]">Tryvex hace la diferencia.</h2>
           <p className="mt-2 text-[16px] text-tinta-suave t:text-[17px]">Comprar aquí tiene sus ventajas.</p>
           <div className="mt-6"><CardsBeneficio beneficios={beneficiosDe(configuracion)} /></div>

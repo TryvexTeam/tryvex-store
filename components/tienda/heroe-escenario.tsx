@@ -54,7 +54,7 @@ function CifraPromo({ tipo, promo, tarjeta = false }: { tipo: EscenaHeroe['promo
 function CapsulaCompra({ producto }: { producto: ProductoHeroe }) {
   return (
     // Sin .heroe-linea-contenido: su `display:block` anulaba el flex y pegaba el precio al botón.
-    <div className="heroe-capsula mx-auto mt-6 inline-flex items-center gap-4 rounded-full py-2 pr-2 pl-5 backdrop-blur-xl d:absolute d:right-[max(22px,calc((100vw-1160px)/2))] d:bottom-24 d:mt-0">
+    <div className="heroe-capsula mx-auto mt-6 inline-flex items-center gap-4 rounded-full py-2 pr-2 pl-5 backdrop-blur-xl d:absolute d:right-[calc(var(--margen-heroe)+32px)] d:bottom-24 d:mt-0">
       <span className="text-[15px] font-semibold t:text-[16px]">
         {producto.agotado ? 'Agotado' : <>Desde <span className="cifra">{clp(producto.precio)}</span></>}
       </span>

@@ -78,7 +78,7 @@ export function ConfianzaEnMovimiento() {
           {FRANJA_B.map((t, i) => <span key={i} className="flex items-center gap-[0.9em]">{t}<span className="text-spark">·</span></span>)}
         </p>
       </div>
-      <ul className="mx-auto mt-14 grid max-w-[1204px] gap-3 px-[22px] t:mt-20 t:grid-cols-2 d:grid-cols-4">
+      <ul className="mt-14 grid gap-3 px-[var(--canal)] t:mt-20 t:grid-cols-2 d:grid-cols-4">
         {GARANTIAS.map((g, i) => (
           <li key={g.titulo} className="revela rounded-[24px] bg-papel-alt p-6" style={{ '--i': `${i * 6}%` } as CSSProperties}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-spark" aria-hidden><path d={g.trazo} /></svg>
@@ -124,11 +124,11 @@ export function GaleriaGuiada() {
   return (
     <section aria-labelledby="galeria-titulo" className="galeria-tramo relative mt-16 t:mt-24">
       <div className="galeria-escenario escena-encuadre flex flex-col justify-center overflow-hidden">
-        <h2 id="galeria-titulo" className="mx-auto w-full max-w-[1204px] px-[22px] text-[32px] leading-[1.05] font-semibold tracking-seccion t:text-[48px]">
+        <h2 id="galeria-titulo" className="w-full px-[var(--canal)] text-[32px] leading-[1.05] font-semibold tracking-seccion t:text-[48px]">
           Explora la colección.
         </h2>
         <div className="galeria-ventana mt-6 t:mt-8">
-          <ul className="galeria-fila flex gap-4 pl-[max(22px,calc((100vw-1160px)/2))] pr-[max(22px,calc((100vw-1160px)/2))] t:gap-5">
+          <ul className="galeria-fila flex gap-4 px-[var(--canal)] t:gap-5">
             {PIEZAS.map((p) => (
               <li key={p.src} className="galeria-pieza relative aspect-[1122/1402] shrink-0 overflow-hidden rounded-[28px] bg-papel-alt">
                 <Image src={p.src} alt="" fill sizes="(min-width: 735px) 420px, 72vw" className="object-cover" />

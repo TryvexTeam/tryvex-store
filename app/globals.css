@@ -258,6 +258,17 @@ body {
   }
 }
 
+/* Estado base del héroe: tarjeta apenas despegada del borde y redondeada.
+   Su margen es propio y fino (12 a 24 px): con el canal de las filas, que
+   llega a 140 px, el banner se veía encajonado. Así se ve igual en
+   navegadores sin timelines de scroll y con movimiento reducido. */
+.tienda {
+  --margen-heroe: clamp(12px, 1.25vw, 24px);
+}
+.heroe-escenario {
+  clip-path: inset(0 var(--margen-heroe) 0 var(--margen-heroe) round 28px);
+}
+
 /* ── Tienda v8: escenario ──────────────────────────────────────
    Transición con dirección (v12): la escena nueva entra como cortina desde el
    lado hacia el que se avanza, su foto se asienta desde un leve zoom y la
@@ -579,10 +590,10 @@ body {
 .tienda {
   --canal: clamp(22px, 31.25vw - 269px, 140px);
 }
-/* Ojo: --canal es un porcentaje del padre. Dentro de una caja con ancho
-   máximo NO se usa como relleno (se aplicaría dos veces en pantallas
-   anchas): ahí va px-[22px] con max-w-[1204px] = 1160 + 2 × 22, que deja
-   el borde izquierdo exactamente en --canal. */
+/* --canal depende del ancho de la ventana (vw), no del padre: toda la
+   portada lo usa como relleno lateral para que títulos, banners y filas
+   partan del mismo borde, como en apple.com/cl/store. No combinarlo con
+   max-w-[1204px]: el contenido ya no se centra en 1160 px. */
 
 .tienda-pista {
   padding-inline: var(--canal);
@@ -1061,7 +1072,13 @@ body {
 @keyframes confianza-derecha { from { transform: translate3d(-46%, 0, 0); } to { transform: translate3d(-4%, 0, 0); } }
 @keyframes galeria-desliza { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-100% + 100vw), 0, 0); } }
 @keyframes eco-estela { from { opacity: 0; transform: none; } to { opacity: var(--eco-o); transform: translateY(var(--eco-y)); } }
-@keyframes heroe-a-tarjeta { from { clip-path: inset(0 0 0 0 round 0); } to { clip-path: inset(0 2.5% 3% 2.5% round 32px); } }
+/* El héroe ya parte como tarjeta: apenas despegado del borde y redondeado.
+   Al bajar se sigue recogiendo desde ahí. Antes partía de borde a borde y
+   sin esquinas, y solo se volvía tarjeta con el scroll. */
+@keyframes heroe-a-tarjeta {
+  from { clip-path: inset(0 var(--margen-heroe) 0 var(--margen-heroe) round 28px); }
+  to { clip-path: inset(0 calc(var(--margen-heroe) + 2.5%) 3% calc(var(--margen-heroe) + 2.5%) round 32px); }
+}
 
 /* ── Línea de envío ──────────────────────────────────────────────────────────
    Vertical en el teléfono, horizontal desde tablet. La animación cuenta el
