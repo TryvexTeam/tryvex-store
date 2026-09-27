@@ -43,6 +43,8 @@ export interface CategoriaTienda {
   nombre: string
   slug: string
   descripcion: string | null
+  /** Foto elegida en el panel para la fila de familias. Nula: la del primer producto. */
+  imagen: string | null
   productos: ProductoTienda[]
 }
 
@@ -81,7 +83,7 @@ export async function leerVitrina(): Promise<Vitrina> {
         .select('id,sku,slug,nombre,descripcion,precio_base,precio_antes,imagen_url,etiqueta,categoria_id,publicado_at')
         .eq('estado', 'publicado')
         .order('publicado_at', { ascending: false, nullsFirst: false }),
-      db.from('categorias').select('id,nombre,slug,descripcion').eq('activo', true).order('orden'),
+      db.from('categorias').select('id,nombre,slug,descripcion,imagen_url').eq('activo', true).order('orden'),
       db.from('producto_variantes').select('producto_id,nombre,color_hex').eq('activo', true).order('orden'),
       db.from('v_stock_actual').select('producto_id,stock'),
       leerConfiguracion(),
@@ -132,7 +134,11 @@ export async function leerVitrina(): Promise<Vitrina> {
 
   // Solo categorías con algo que mostrar: una franja vacía es una promesa rota.
   const conProductos: CategoriaTienda[] = (categorias ?? [])
-    .map((c) => ({ ...c, productos: vitrina.filter((p) => p.categoriaId === c.id) }))
+    .map(({ imagen_url, ...c }) => ({
+      ...c,
+      imagen: imagen_url ? urlPublica(imagen_url) : null,
+      productos: vitrina.filter((p) => p.categoriaId === c.id),
+    }))
     .filter((c) => c.productos.length > 0)
 
   // El héroe muestra lo que está a la venta: primero lo disponible y con foto.

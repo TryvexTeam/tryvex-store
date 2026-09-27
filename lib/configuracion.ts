@@ -9,7 +9,10 @@ import { crearClienteAdministrador } from '@/lib/supabase/administrador'
  */
 export interface ConfiguracionTienda {
   nombre_tienda: string
+  /** Buzón que recibe los mensajes: a donde apunta el clic. */
   email_contacto: string | null
+  /** Correo que se muestra (de marca). Vacío: se muestra `email_contacto`. */
+  email_visible: string | null
   whatsapp: string | null
   banco: string | null
   tipo_cuenta: string | null
@@ -29,7 +32,7 @@ export interface ConfiguracionTienda {
 }
 
 export const COLUMNAS_CONFIGURACION =
-  'nombre_tienda,email_contacto,whatsapp,banco,tipo_cuenta,numero_cuenta,rut,titular,email_pagos,' +
+  'nombre_tienda,email_contacto,email_visible,whatsapp,banco,tipo_cuenta,numero_cuenta,rut,titular,email_pagos,' +
   'envio_tarifa_clp,envio_gratis_desde_clp,envio_plazo_texto,retiro_habilitado,retiro_direccion,' +
   'garantia_texto,retracto_texto,envio_politica_texto,updated_at'
 

@@ -32,7 +32,8 @@ export function FilaCategorias({
       clave: c.id,
       nombre: c.nombre,
       href: `/tienda?cat=${encodeURIComponent(c.slug)}`,
-      foto: c.productos.find((p) => p.imagen)?.imagen ?? null,
+      // La foto elegida en el panel manda; si no hay, la del primer producto.
+      foto: c.imagen ?? c.productos.find((p) => p.imagen)?.imagen ?? null,
       activa: activa === c.slug,
     })),
   ]

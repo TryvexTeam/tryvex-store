@@ -56,7 +56,7 @@ function Logo({ marca, alto }: { marca: Marca; alto: number }) {
         // Logo oficial a color (favicon de mercadopago.cl): óvalo celeste,
         // manos blancas y contorno azul, sobre su amarillo.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src="/pagos/mercadopago.svg" alt="Mercado Pago" width={64} height={64} className="h-[82%] w-auto" />
+        <img src="/pagos/mercadopago.svg" alt="Mercado Pago" width={64} height={64} style={{ height: Math.round(alto * 0.8), width: Math.round(alto * 0.8) }} className="block shrink-0" />
       ) : (
         <svg viewBox="0 0 24 24" role="img" aria-label={marca.nombre} className={marca.fondo ? 'h-[72%] w-[72%]' : 'h-[62%] w-[62%]'} fill={marca.color}>
           <path d={marca.trazo} />

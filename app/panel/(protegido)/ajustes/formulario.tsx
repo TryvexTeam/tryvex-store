@@ -26,7 +26,8 @@ const SECCIONES: { titulo: string; bajada: string; campos: Campo[] }[] = [
     bajada: 'Cómo se presenta y por dónde la contactan.',
     campos: [
       { nombre: 'nombre_tienda', etiqueta: 'Nombre' },
-      { nombre: 'email_contacto', etiqueta: 'Correo de contacto', tipo: 'email' },
+      { nombre: 'email_visible', etiqueta: 'Correo que se muestra', tipo: 'email', ayuda: 'El que ven los clientes en la tienda, por ejemplo tryvex@tryvex.tech' },
+      { nombre: 'email_contacto', etiqueta: 'Correo que recibe los mensajes', tipo: 'email', ayuda: 'Al tocar el correo en la tienda, se abre un mensaje dirigido aquí' },
       { nombre: 'whatsapp', etiqueta: 'WhatsApp', tipo: 'tel', ayuda: 'Con código de país: 56912345678' },
     ],
   },

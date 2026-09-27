@@ -76,7 +76,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
       </main>
       <PieTienda
         nombre={c?.nombre_tienda ?? 'Tryvex'}
-        email={c?.email_contacto ?? null}
+        email={c?.email_contacto ?? null} emailVisible={c?.email_visible ?? null}
         whatsapp={c?.whatsapp ?? null}
         garantia={c?.garantia_texto ?? null}
         retracto={c?.retracto_texto ?? null}

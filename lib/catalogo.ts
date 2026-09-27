@@ -46,6 +46,8 @@ export interface Categoria {
   descripcion: string | null
   orden: number
   activo: boolean
+  /** Foto propia para la fila de familias de la tienda (ruta en el bucket). */
+  imagen_url: string | null
 }
 
 export interface Variante {

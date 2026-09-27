@@ -5,12 +5,15 @@ import { GRUPOS_PIE } from '@/lib/ayuda'
 export function PieTienda({
   nombre,
   email,
+  emailVisible,
   whatsapp,
   garantia,
   retracto,
 }: {
   nombre: string
   email: string | null
+  /** Lo que se lee en el pie; el clic igual escribe a `email`. */
+  emailVisible?: string | null
   whatsapp: string | null
   garantia: string | null
   retracto: string | null
@@ -22,7 +25,7 @@ export function PieTienda({
           ...grupo,
           enlaces: [
             ...grupo.enlaces,
-            ...(email ? [{ texto: email, href: `mailto:${email}` }] : []),
+            ...(email ? [{ texto: emailVisible || email, href: `mailto:${email}` }] : []),
             ...(canalWhatsapp ? [{ texto: 'WhatsApp', href: `https://wa.me/${canalWhatsapp}`, externo: true }] : []),
           ],
         }

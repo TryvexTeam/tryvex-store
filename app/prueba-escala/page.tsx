@@ -37,6 +37,7 @@ const categorias: CategoriaTienda[] = Array.from({ length: 8 }, (_, indice) => (
   nombre: `Categoría de prueba ${indice + 1}`,
   slug: `escala-categoria-${indice + 1}`,
   descripcion: null,
+  imagen: null,
   productos: productos.filter((producto) => producto.categoriaId === `escala-categoria-${indice + 1}`),
 }))
 
