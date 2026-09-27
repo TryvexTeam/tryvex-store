@@ -201,7 +201,7 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
       aria-live={reproduciendo && !reducido ? 'off' : 'polite'}
       data-tono={escenas[activa]?.tono ?? 'oscuro'}
       data-direccion={direccion}
-      className="heroe heroe-escenario heroe-banner relative isolate flex min-h-[min(640px,calc(100svh-48px))] flex-col overflow-hidden bg-black text-white d:min-h-[min(760px,calc(100svh-44px))]"
+      className="heroe heroe-escenario heroe-banner relative isolate mt-[var(--margen-heroe)] flex min-h-[min(640px,calc(100svh-96px-var(--margen-heroe)))] flex-col overflow-hidden bg-black text-white d:min-h-[min(760px,calc(100svh-88px-var(--margen-heroe)))]"
       onPointerDown={alBajarPuntero}
       onPointerUp={alSubirPuntero}
       onFocusCapture={alEnfocar}

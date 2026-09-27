@@ -57,7 +57,10 @@ export default async function Inicio() {
   return (
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
       <FranjaAnuncio configuracion={configuracion} />
-      <Cabecera destinos={destinosMenu(categorias)} ayuda={whatsapp} sobreHeroe />
+      {/* La cabecera ya no se monta sobre el banner: el banner es una tarjeta
+          despegada del borde, y encima de él van la franja de despachos y la
+          cabecera con su fondo propio, como en Apple. */}
+      <Cabecera destinos={destinosMenu(categorias)} ayuda={whatsapp} />
       <main className="min-w-0 flex-1">
         <HeroeCampana productos={productos} piezas={piezas} />
         <FranjaConfianza />
