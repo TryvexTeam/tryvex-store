@@ -110,5 +110,5 @@ export async function POST(peticion: Request) {
     revalidatePath('/cuenta')
   }
 
-  return Response.json({ recibido: true, pedido: resultado.numero, aplicado: resultado.aplicado })
+  return Response.json({ recibido: true, pedido: resultado.numero, aplicado: resultado.aplicado, correo: resultado.correo })
 }

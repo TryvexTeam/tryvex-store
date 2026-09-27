@@ -23,8 +23,15 @@ import { urlPublica } from '@/lib/imagenes'
  * pendiente y se va sin tocar nada.
  */
 export type ResultadoConfirmacion =
-  | { ok: true; aplicado: boolean; numero: number }
+  | { ok: true; aplicado: boolean; numero: number; correo?: EstadoCorreo }
   | { ok: false; error: string }
+
+/**
+ * Qué pasó con el aviso al comprador. Viaja en la respuesta del webhook, que
+ * Mercado Pago guarda en su panel: así un correo que no salió se ve, en vez
+ * de perderse en un log que Vercel borra en una hora.
+ */
+export type EstadoCorreo = 'enviado' | 'sin-correo' | 'fallo'
 
 export async function confirmarPagoDePedido(params: {
   referenciaExterna: string
@@ -62,26 +69,30 @@ export async function confirmarPagoDePedido(params: {
 
   // El aviso al comprador va solo cuando el pago se aplicó de verdad. Un
   // segundo webhook del mismo pago no vuelve a escribirle.
-  if (r.aplicado) await avisarPagoConfirmado(numero)
+  const correo = r.aplicado ? await avisarPagoConfirmado(numero) : undefined
 
-  return { ok: true, aplicado: Boolean(r.aplicado), numero: r.numero ?? numero }
+  return { ok: true, aplicado: Boolean(r.aplicado), numero: r.numero ?? numero, correo }
 }
 
 /**
  * Le escribe al comprador que su pago entró.
  *
  * Nada de lo que pase aquí puede voltear una venta ya cobrada: si el correo
- * falla, se anota y se sigue. Por eso no propaga errores ni se espera su
- * resultado para responderle a Mercado Pago.
+ * falla, se anota y se sigue: no propaga errores, solo informa qué pasó.
  */
-async function avisarPagoConfirmado(numero: number): Promise<void> {
+async function avisarPagoConfirmado(numero: number): Promise<EstadoCorreo> {
   try {
     const db = crearClienteAdministrador()
-    const { data } = await db
+    const { data, error } = await db
       .from('pedidos')
       .select('numero,cliente_nombre,cliente_email,total_clp,token_seguimiento,pedido_items(cantidad,subtotal_clp,productos(nombre,imagen_url))')
       .eq('numero', numero)
       .maybeSingle()
+
+    if (error) {
+      console.error('[confirmar-pago] no se pudo leer el pedido para avisar', { numero, error: error.message })
+      return 'fallo'
+    }
 
     const p = data as unknown as {
       numero: number
@@ -93,9 +104,12 @@ async function avisarPagoConfirmado(numero: number): Promise<void> {
     } | null
 
     // Sin correo no hay a quién escribirle: el correo es opcional al comprar.
-    if (!p?.cliente_email) return
+    if (!p?.cliente_email) {
+      console.warn('[confirmar-pago] pedido pagado sin correo: nadie recibe el aviso', { numero })
+      return 'sin-correo'
+    }
 
-    await correoPagoConfirmado({
+    const enviado = await correoPagoConfirmado({
       para: p.cliente_email,
       nombre: p.cliente_nombre,
       numero: p.numero,
@@ -111,7 +125,9 @@ async function avisarPagoConfirmado(numero: number): Promise<void> {
       }),
       urlSeguimiento: urlDeSeguimiento(p.token_seguimiento),
     })
+    return enviado ? 'enviado' : 'fallo'
   } catch (e) {
     console.error('[confirmar-pago] el pago quedó bien, el aviso al comprador no salió', { numero, e })
+    return 'fallo'
   }
 }

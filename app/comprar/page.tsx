@@ -7,6 +7,7 @@ import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
+import { crearClienteServidor } from '@/lib/supabase/servidor'
 import Checkout from './formulario'
 
 export const dynamic = 'force-dynamic'
@@ -42,7 +43,11 @@ export default async function Comprar(props: PageProps<'/comprar'>) {
         }
       : null
 
-  const [configuracion, vitrina] = await Promise.all([leerConfiguracion(), leerVitrina()])
+  const [configuracion, vitrina, sesion] = await Promise.all([
+    leerConfiguracion(),
+    leerVitrina(),
+    crearClienteServidor().then((db) => db.auth.getUser()),
+  ])
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
 
   return (
@@ -63,6 +68,7 @@ export default async function Comprar(props: PageProps<'/comprar'>) {
             retiroDireccion: configuracion?.retiro_direccion ?? null,
           }}
           datosPago={datosDePago(configuracion)}
+          emailCuenta={sesion.data.user?.email ?? null}
         />
       </main>
       <PieTienda

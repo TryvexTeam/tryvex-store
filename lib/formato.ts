@@ -6,4 +6,4 @@ export const clp = (n: number | string | null | undefined) => {
 }
 
 export const fecha = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  iso ? new Date(iso).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', day: '2-digit', month: 'short', year: 'numeric' }) : '—'
