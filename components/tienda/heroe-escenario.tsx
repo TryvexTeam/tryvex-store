@@ -63,6 +63,30 @@ function CapsulaCompra({ producto }: { producto: ProductoHeroe }) {
   )
 }
 
+/**
+ * Video de la escena: corre solo, en silencio y en bucle, cubriendo la escena
+ * igual que la foto. La foto de escritorio queda de imagen de espera mientras
+ * carga. Solo la escena activa reproduce; con movimiento reducido, el video
+ * queda quieto en su primer cuadro.
+ */
+function VideoEscena({ escena, activa, reducido }: { escena: EscenaHeroe; activa: boolean; reducido: boolean }) {
+  const poster = escena.fotos ? getImageProps({ src: escena.fotos.escritorio.src, alt: '', width: escena.fotos.escritorio.ancho, height: escena.fotos.escritorio.alto, sizes: '100vw' }).props.src : undefined
+  return (
+    <video
+      key={escena.video}
+      src={escena.video}
+      poster={poster}
+      autoPlay={activa && !reducido}
+      muted
+      loop
+      playsInline
+      preload={activa ? 'auto' : 'metadata'}
+      aria-hidden
+      className="absolute inset-0 size-full object-cover"
+    />
+  )
+}
+
 function FotoEscena({ escena, activa }: { escena: EscenaHeroe; activa: boolean }) {
   if (!escena.fotos) return null
   const comun = { alt: escena.fotos.movil.alt, sizes: '100vw' }
@@ -232,7 +256,11 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                 className={`absolute inset-x-0 top-[var(--movil-desde)] bottom-0 t:[mask-image:none] ${escena.movilDesde ? '[mask-image:linear-gradient(to_bottom,transparent,#000_16%)]' : ''} ${escena.texto === 'arriba' ? 't:top-[40%]' : 't:top-0'}`}
                 style={{ '--movil-desde': `${escena.movilDesde ?? 0}%` } as CSSProperties}
               >
-                {escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />}
+                {escena.video ? (
+                  <VideoEscena escena={escena} activa={esActiva} reducido={reducido} />
+                ) : (
+                  escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />
+                )}
                 <span aria-hidden className="heroe-velo absolute inset-0" />
               </div>
             </div>

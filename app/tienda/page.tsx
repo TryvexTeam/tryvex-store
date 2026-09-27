@@ -57,7 +57,7 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
   const soloOfertas = uno(q.ofertas) === '1'
   const ordenQ = uno(q.orden)
   const orden: Orden = ordenQ && ordenQ in ORDENES ? (ordenQ as Orden) : 'recientes'
-  const vista: Vista = uno(q.vista) === 'catalogo' ? 'catalogo' : 'pares'
+  const vista: Vista = uno(q.vista) === 'amplia' ? 'amplia' : 'pares'
 
   const categoria = categorias.find((c) => c.slug === cat) ?? null
   const termino = normal(busqueda)
@@ -116,18 +116,21 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
             <Link href="/tienda" className="tienda-boton mt-6 bg-tinta text-white hover:bg-tinta/85">Ver todo el catálogo</Link>
           </div>
         ) : (
-          // Desde tablet, exactamente la card de la portada (309 × 450 y
-          // 313 × 500 desde 1069 px): columnas del ancho de la card, tantas
-          // como quepan. En el teléfono, la vista elegida: de a dos con la
-          // card compacta, o una por fila con la de la portada.
+          // «Más por fila»: la card compacta de la portada, 2 en el teléfono,
+          // 3 en tablet y en escritorio tantas como quepan, con un mínimo de
+          // 200 px y un máximo de seis por fila.
+          // «Tarjetas grandes»: exactamente la card de la portada (309 × 450 y
+          // 313 × 500 desde 1069 px), una por fila en el teléfono.
           <ul
-            className={`grid gap-3 px-[var(--canal)] pt-6 t:grid-cols-[repeat(auto-fill,309px)] t:gap-5 d:grid-cols-[repeat(auto-fill,313px)] ${
-              vista === 'pares' ? 'grid-cols-2' : 'grid-cols-1'
+            className={`grid gap-3 px-[var(--canal)] pt-6 t:gap-5 ${
+              vista === 'pares'
+                ? 'grid-cols-2 t:grid-cols-3 d:grid-cols-[repeat(auto-fill,minmax(max(200px,calc((100%-100px)/6)),1fr))]'
+                : 'grid-cols-1 t:grid-cols-[repeat(auto-fill,309px)] d:grid-cols-[repeat(auto-fill,313px)]'
             }`}
           >
             {lista.map((p) => (
               <li key={p.id} className="min-w-0">
-                <CardProducto producto={p} fluida={vista === 'pares' ? 'movil' : false} />
+                <CardProducto producto={p} fluida={vista === 'pares'} />
               </li>
             ))}
           </ul>

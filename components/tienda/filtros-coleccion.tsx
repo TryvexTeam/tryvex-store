@@ -12,12 +12,13 @@ export const ORDENES = {
 export type Orden = keyof typeof ORDENES
 
 /**
- * Columnas de la grilla en el teléfono, como el selector de dunedragon.cl.
- * «pares»: dos por fila, con la card compacta (la vista de siempre).
- * «catalogo»: una por fila, con la card de la portada. Desde tablet la grilla
- * usa siempre la card de la portada a su tamaño fijo, y el selector se oculta.
+ * Columnas de la grilla, como el selector de dunedragon.cl.
+ * «pares» (por defecto, «más por fila»): la card compacta, dos por fila en el
+ * teléfono, tres en tablet y hasta seis en pantallas anchas.
+ * «amplia» («tarjetas grandes»): exactamente la card de la portada, 313 × 500,
+ * una por fila en el teléfono.
  */
-export type Vista = 'pares' | 'catalogo'
+export type Vista = 'pares' | 'amplia'
 
 export interface EstadoFiltros {
   cat?: string
@@ -200,10 +201,10 @@ export function FiltrosColeccion({ estado, resultados }: { estado: EstadoFiltros
 
           <div className="flex shrink-0 items-center gap-3">
             {/* Columnas de la grilla: de a dos o en catálogo. */}
-            <div role="radiogroup" aria-label="Vista de la grilla" className="flex items-center rounded-full bg-papel p-1 ring-1 ring-borde t:hidden">
+            <div role="radiogroup" aria-label="Vista de la grilla" className="flex items-center rounded-full bg-papel p-1 ring-1 ring-borde">
               {([
-                ['pares', 'Dos por fila', 'M3 4h7.5v16H3zM13.5 4H21v16h-7.5z'],
-                ['catalogo', 'Uno por fila', 'M3 4h18v7H3zM3 13h18v7H3z'],
+                ['pares', 'Más productos por fila', 'M3 4h4.5v4.5H3zM9.75 4h4.5v4.5h-4.5zM16.5 4H21v4.5h-4.5zM3 10.75h4.5v4.5H3zM9.75 10.75h4.5v4.5h-4.5zM16.5 10.75H21v4.5h-4.5zM3 17.5h4.5V20H3zM9.75 17.5h4.5V20h-4.5zM16.5 17.5H21V20h-4.5z'],
+                ['amplia', 'Tarjetas grandes', 'M3 4h7.5v16H3zM13.5 4H21v16h-7.5z'],
               ] as const).map(([v, etiqueta, trazo]) => {
                 const activa = estado.vista === v
                 return (

@@ -23,6 +23,11 @@ export interface EscenaHeroe {
     escritorio: FotoCampana
   }
   estilo?: 'foto' | 'tarjeta'
+  /**
+   * Video de la escena, subido desde el panel. Si existe, reemplaza a la foto
+   * (que queda como imagen de espera mientras el video carga).
+   */
+  video?: string
   /** Centro del producto para que el recorte nazca exactamente en él. */
   foco: { x: number; y: number }
   /** % desde arriba donde empieza la foto en teléfono (0 = a sangre). */
@@ -160,6 +165,8 @@ export function escenasConPiezas(
     const movil = txt(c, 'foto_movil')
     const escritorio = txt(c, 'foto_escritorio')
     const alt = txt(c, 'alt') ?? e.fotos?.movil.alt ?? ''
+    // Solo http(s): una URL mal cargada no puede terminar en el src del video.
+    const video = txt(c, 'video')
 
     return [{
       ...e,
@@ -173,6 +180,7 @@ export function escenasConPiezas(
             escritorio: { src: escritorio, ancho: 1930, alto: 815, alt },
           }
         : e.fotos,
+      video: video && /^https?:\/\//i.test(video) ? video : e.video,
     }]
   })
 }
