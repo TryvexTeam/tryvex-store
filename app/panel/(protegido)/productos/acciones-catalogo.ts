@@ -365,6 +365,38 @@ export async function fijarPortada(productoId: string, ruta: string): Promise<Re
   return { ok: true }
 }
 
+/**
+ * Guarda el orden completo de la galería, tal como quedó al arrastrar.
+ *
+ * El orden llega del navegador: se acepta solo si es exactamente la misma
+ * galería reordenada, sin rutas de más, de menos ni repetidas. Si alguien
+ * subió o borró algo mientras tanto, se rechaza y el panel se refresca.
+ */
+export async function reordenarGaleria(productoId: string, orden: string[]): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+
+  const cargado = await cargarProducto(sesion.supabase, productoId)
+  if (!cargado.ok) return cargado
+  const { producto } = cargado
+
+  const mismo =
+    Array.isArray(orden) &&
+    orden.length === producto.galeria.length &&
+    new Set(orden).size === orden.length &&
+    orden.every((r) => typeof r === 'string' && producto.galeria.includes(r))
+  if (!mismo) return fallo('La galería cambió mientras la ordenabas. Vuelve a intentarlo.')
+
+  const { error } = await sesion.supabase
+    .from('productos')
+    .update({ galeria: orden, updated_at: new Date().toISOString() })
+    .eq('id', producto.id)
+
+  if (error) return fallo(error.message)
+  revalidar()
+  return { ok: true }
+}
+
 /** Mueve una imagen dentro de la galería. Ese orden es el que ve la tienda. */
 export async function moverImagen(
   productoId: string,

@@ -45,9 +45,11 @@ export async function leerFicha(slug: string): Promise<FichaProducto | null> {
   const stockPor = new Map((stockVar ?? []).map((s) => [s.variante_id as string, Number(s.stock ?? 0)]))
   const total = Number(stock?.stock ?? 0)
 
-  // La portada va primero; el resto de la galería conserva su orden.
+  // La ficha sigue el orden exacto de la galería que el equipo arma en el
+  // panel (fotos y videos). La portada manda solo en las tarjetas; si la
+  // galería está vacía, la portada sola es la galería.
   const rutas = rutasDeGaleria(p.galeria)
-  const orden = p.imagen_url ? [p.imagen_url, ...rutas.filter((r) => r !== p.imagen_url)] : rutas
+  const orden = rutas.length ? rutas : p.imagen_url ? [p.imagen_url] : []
 
   return {
     id: p.id,

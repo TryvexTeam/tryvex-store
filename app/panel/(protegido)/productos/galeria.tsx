@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { urlPublica, MAX_POR_PRODUCTO, PESO_MAXIMO, PESO_MAXIMO_VIDEO, TIPOS_ACEPTADOS, TIPOS_VIDEO, BUCKET, esVideo } from '@/lib/imagenes'
 import { crearClienteNavegador } from '@/lib/supabase/cliente'
-import { subirImagen, borrarImagen, fijarPortada, moverImagen, pedirSubidaVideo, confirmarVideo } from './acciones-catalogo'
+import { subirImagen, borrarImagen, fijarPortada, moverImagen, pedirSubidaVideo, confirmarVideo, reordenarGaleria } from './acciones-catalogo'
 import { useAvisos } from '@/components/avisos'
 import {
   IconoCamara,
@@ -44,6 +44,11 @@ export function Galeria({ productoId, galeria, portada }: Props) {
   const [subiendo, setSubiendo] = useState(0)
   const [encima, setEncima] = useState(false)
   const [sel, setSel] = useState(0)
+  // Orden local mientras se arrastra: se ve al instante y se guarda al soltar.
+  const [orden, setOrden] = useState(galeria)
+  const arrastrada = useRef<number | null>(null)
+  const ordenInicial = useRef<string[]>(galeria)
+  useEffect(() => setOrden(galeria), [galeria])
 
   const lleno = galeria.length >= MAX_POR_PRODUCTO
   const ocupado = pendiente || subiendo > 0
@@ -53,7 +58,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
     if (sel > galeria.length - 1) setSel(Math.max(0, galeria.length - 1))
   }, [galeria.length, sel])
 
-  const actual = galeria[sel] ?? null
+  const actual = orden[sel] ?? null
   const esPortada = actual !== null && actual === portada
   const actualEsVideo = esVideo(actual)
 
@@ -298,8 +303,46 @@ export function Galeria({ productoId, galeria, portada }: Props) {
 
           {/* ── Tira de miniaturas ─────────────────────────────────── */}
           <ul className="sin-barra mt-3 flex gap-2 overflow-x-auto pb-1">
-            {galeria.map((ruta, i) => (
-              <li key={ruta} className="shrink-0">
+            {orden.map((ruta, i) => (
+              <li
+                key={ruta}
+                className={`shrink-0 ${arrastrada.current === i ? 'opacity-50' : ''}`}
+                draggable={!ocupado}
+                onDragStart={(e) => {
+                  arrastrada.current = i
+                  ordenInicial.current = orden
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', ruta)
+                }}
+                onDragEnter={() => {
+                  const desde = arrastrada.current
+                  if (desde === null || desde === i) return
+                  const nuevo = [...orden]
+                  const [movida] = nuevo.splice(desde, 1)
+                  nuevo.splice(i, 0, movida)
+                  arrastrada.current = i
+                  setOrden(nuevo)
+                  setSel(i)
+                }}
+                onDragOver={(e) => {
+                  if (arrastrada.current !== null) e.preventDefault()
+                }}
+                onDragEnd={() => {
+                  arrastrada.current = null
+                  const cambio = orden.some((r, j) => r !== ordenInicial.current[j])
+                  if (!cambio) return
+                  const previo = ordenInicial.current
+                  empezar(async () => {
+                    const r = await reordenarGaleria(productoId, orden)
+                    if (r.ok) avisos.ok('Orden actualizado.')
+                    else {
+                      setOrden(previo)
+                      setError(r.error)
+                      avisos.error(r.error)
+                    }
+                  })
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => setSel(i)}
@@ -378,7 +421,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
 
       {galeria.length > 0 && (
         <p className="mt-2 text-[12px] text-gris">
-          El orden es el que verá la tienda. Fotos JPG, PNG, WebP o HEIC hasta 5 MB; videos MP4 o WebM hasta 30 MB.
+          Arrastra las miniaturas para ordenarlas (en el teléfono, usa las flechas). Ese orden es el que verá la tienda. Fotos JPG, PNG, WebP o HEIC hasta 5 MB; videos MP4 o WebM hasta 30 MB.
         </p>
       )}
 
