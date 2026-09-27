@@ -10,6 +10,7 @@ const CORTO_MAX = 120
 const TEXTOS: Record<string, number> = {
   nombre_tienda: CORTO_MAX,
   email_contacto: CORTO_MAX,
+  email_visible: CORTO_MAX,
   whatsapp: 20,
   banco: CORTO_MAX,
   tipo_cuenta: CORTO_MAX,
@@ -51,7 +52,7 @@ export async function guardarConfiguracion(datos: FormData): Promise<Resultado> 
   }
 
   if (!cambios.nombre_tienda) return fallo('La tienda necesita un nombre.')
-  for (const c of ['email_contacto', 'email_pagos'])
+  for (const c of ['email_contacto', 'email_visible', 'email_pagos'])
     if (cambios[c] && !EMAIL.test(String(cambios[c]))) return fallo('Revisa el formato de los correos.')
   if (cambios.rut && !RUT.test(String(cambios.rut))) return fallo('El RUT debe verse como 76.123.456-7.')
   if (cambios.whatsapp) cambios.whatsapp = String(cambios.whatsapp).replace(/\D/g, '')

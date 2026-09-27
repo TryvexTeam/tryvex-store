@@ -39,8 +39,8 @@ function Pieza({ clave, asset, titulo, bajada, claro = false, formato = 'doble',
   const externo = /^https?:\/\//i.test(href)
 
   const sizes = formato === 'ancho'
-    ? '(min-width: 1204px) 1160px, calc(100vw - 44px)'
-    : '(min-width: 1204px) 572px, (min-width: 1069px) calc((100vw - 60px) / 2), calc(100vw - 44px)'
+    ? '(min-width: 1309px) calc(100vw - 280px), calc(100vw - 44px)'
+    : '(min-width: 1069px) calc((100vw - 60px) / 2), calc(100vw - 44px)'
   const movil = getImageProps({ src: srcMovil, alt, width: 1122, height: 1402, sizes, loading: 'lazy' }).props
   const escritorio = getImageProps({ src: srcEscritorio, alt, width: 1930, height: 815, sizes, loading: 'lazy' }).props
 

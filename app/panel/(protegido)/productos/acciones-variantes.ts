@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
 import { UUID, numeroOpcional, textoOpcional } from '@/lib/catalogo'
+import { BUCKET, PESO_MAXIMO, TIPOS_ACEPTADOS, nombreArchivo } from '@/lib/imagenes'
 
 /**
  * Variantes de un producto: color, talla o cualquier opción con stock propio.
@@ -122,5 +123,85 @@ export async function reactivarVariante(id: string): Promise<Resultado> {
   const { error } = await sesion.supabase.from('producto_variantes').update({ activo: true }).eq('id', id)
   if (error) return fallo(error.message)
   revalidar()
+  return { ok: true }
+}
+
+/** Qué imagen de la variante se toca: el círculo o la foto. */
+type ArchivoVariante = 'muestra' | 'foto'
+const COLUMNA: Record<ArchivoVariante, 'muestra_url' | 'imagen_url'> = { muestra: 'muestra_url', foto: 'imagen_url' }
+const CARPETA: Record<ArchivoVariante, string> = { muestra: 'muestras', foto: 'variantes' }
+
+/**
+ * Sube la muestra (el círculo de color o diseño) o la foto de una variante.
+ *
+ * Va al bucket bajo `<producto_id>/muestras/` o `<producto_id>/variantes/`:
+ * dentro de la carpeta del producto, así que la cubren las mismas reglas de
+ * escritura del equipo. La imagen anterior se borra después de guardar la
+ * nueva, para no dejar la variante apuntando a un archivo que ya no existe.
+ */
+export async function subirArchivoVariante(datos: FormData): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+
+  const id = String(datos.get('id') ?? '')
+  const tipo = String(datos.get('tipo') ?? '') as ArchivoVariante
+  const archivo = datos.get('archivo')
+  if (!UUID.test(id)) return fallo('Variante no válida.')
+  if (!(tipo in COLUMNA)) return fallo('No se sabe qué imagen de la variante cambiar.')
+  if (!(archivo instanceof File) || archivo.size === 0) return fallo('No llegó ninguna imagen.')
+  if (!TIPOS_ACEPTADOS.includes(archivo.type as (typeof TIPOS_ACEPTADOS)[number]))
+    return fallo('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
+  if (archivo.size > PESO_MAXIMO)
+    return fallo(`La imagen pesa ${(archivo.size / 1024 / 1024).toFixed(1)} MB y el máximo son 5 MB.`)
+
+  const columna = COLUMNA[tipo]
+  const { data: v, error: errLectura } = await supabase
+    .from('producto_variantes')
+    .select(`producto_id,${columna}`)
+    .eq('id', id)
+    .maybeSingle()
+  if (errLectura) return fallo(errLectura.message)
+  if (!v) return fallo('La variante ya no existe.')
+
+  const productoId = (v as Record<string, unknown>).producto_id as string
+  const anterior = ((v as Record<string, unknown>)[columna] as string | null) ?? null
+  const ruta = nombreArchivo(`${productoId}/${CARPETA[tipo]}`, archivo.name)
+
+  const { error: errSubida } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { cacheControl: '31536000', upsert: false })
+  if (errSubida) return fallo(`No se pudo subir: ${errSubida.message}`)
+
+  const { error } = await supabase.from('producto_variantes').update({ [columna]: ruta }).eq('id', id)
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([ruta])
+    return fallo(error.message)
+  }
+  // Solo se borra lo que vive en su carpeta: una foto de la galería que se
+  // hubiera usado como foto de la variante no se toca.
+  if (anterior && anterior.startsWith(`${productoId}/${CARPETA[tipo]}/`)) await supabase.storage.from(BUCKET).remove([anterior])
+
+  revalidar()
+  revalidatePath('/tienda')
+  return { ok: true }
+}
+
+/** Quita la muestra o la foto: el círculo vuelve a su color y la card a la foto del producto. */
+export async function quitarArchivoVariante(id: string, tipo: ArchivoVariante): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+  if (!UUID.test(id)) return fallo('Variante no válida.')
+  if (!(tipo in COLUMNA)) return fallo('No se sabe qué imagen de la variante quitar.')
+
+  const columna = COLUMNA[tipo]
+  const { data: v } = await supabase.from('producto_variantes').select(`producto_id,${columna}`).eq('id', id).maybeSingle()
+  const { error } = await supabase.from('producto_variantes').update({ [columna]: null }).eq('id', id)
+  if (error) return fallo(error.message)
+  const productoId = ((v as Record<string, unknown> | null)?.producto_id as string | undefined) ?? ''
+  const anterior = ((v as Record<string, unknown> | null)?.[columna] as string | null | undefined) ?? null
+  if (anterior && productoId && anterior.startsWith(`${productoId}/${CARPETA[tipo]}/`)) await supabase.storage.from(BUCKET).remove([anterior])
+
+  revalidar()
+  revalidatePath('/tienda')
   return { ok: true }
 }

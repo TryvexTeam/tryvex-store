@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Casilla } from '@/components/casilla'
 import { Selector } from '@/components/selector'
 import { guardarPieza, subirImagenPieza } from './acciones'
+import { CampoVideo } from './campo-video'
 
 export interface PiezaEditable {
   clave: string
@@ -212,6 +213,9 @@ export function EditorPieza({ pieza }: { pieza: PiezaEditable }) {
             </div>
           </>
         )}
+
+        {/* Solo las escenas del banner llevan video; las franjas usan fotos. */}
+        {pieza.clave.startsWith('heroe-') && <CampoVideo clave={pieza.clave} valor={txt(c, 'video') || null} />}
 
         <Selector
           id={`dt-${pieza.clave}`}

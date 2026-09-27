@@ -53,7 +53,7 @@ export function Casilla({
       <span
         aria-hidden
         className="grid size-[22px] shrink-0 place-items-center rounded-[7px] bg-papel ring-1 ring-borde transition-colors
-                   peer-checked:bg-spark peer-checked:ring-spark
+                   peer-checked:bg-tinta peer-checked:ring-tinta
                    peer-focus-visible:ring-2 peer-focus-visible:ring-spark peer-focus-visible:ring-offset-2
                    [&>svg]:scale-75 [&>svg]:opacity-0 [&>svg]:transition-all
                    peer-checked:[&>svg]:scale-100 peer-checked:[&>svg]:opacity-100"

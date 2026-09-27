@@ -34,7 +34,7 @@ export default async function CambiosYDevoluciones() {
           <p>Las condiciones aún no están publicadas. <Link href="/contacto" className="text-spark hover:underline">Revise los canales de contacto.</Link></p>
         )}
       </PaginaServicio>
-      <PieTienda nombre={configuracion?.nombre_tienda ?? 'Tryvex'} email={configuracion?.email_contacto ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
+      <PieTienda nombre={configuracion?.nombre_tienda ?? 'Tryvex'} email={configuracion?.email_contacto ?? null} emailVisible={configuracion?.email_visible ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
     </div>
   )
 }

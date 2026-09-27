@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { EditorPieza, type PiezaEditable } from './editor'
+import { EditorFoco } from './editor-foco'
+import { CLAVE_FOCO, escenaFocoDe } from '@/lib/foco'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Portada' }
@@ -16,10 +18,10 @@ export const metadata: Metadata = { title: 'Portada' }
  */
 export default async function PortadaPanel() {
   const db = crearClienteAdministrador()
-  const { data } = await db
-    .from('secciones_landing')
-    .select('clave,titulo,visible,orden,contenido')
-    .order('orden')
+  const [{ data }, { data: listaProductos }] = await Promise.all([
+    db.from('secciones_landing').select('clave,titulo,visible,orden,contenido').order('orden'),
+    db.from('productos').select('slug,nombre').eq('activo', true).order('nombre'),
+  ])
 
   const piezas: PiezaEditable[] = (data ?? []).map((f) => ({
     clave: f.clave as string,
@@ -31,6 +33,9 @@ export default async function PortadaPanel() {
 
   const heroe = piezas.filter((p) => p.clave.startsWith('heroe-'))
   const editoriales = piezas.filter((p) => p.clave.startsWith('editorial-'))
+  const foco = piezas.find((p) => p.clave === CLAVE_FOCO)
+  const productos = (listaProductos ?? [])
+    .filter((p): p is { slug: string; nombre: string } => Boolean(p.slug && p.nombre))
 
   return (
     <main className="mx-auto w-full max-w-[1204px] px-[22px] py-8">
@@ -59,6 +64,20 @@ export default async function PortadaPanel() {
               {heroe.map((p) => <EditorPieza key={p.clave} pieza={p} />)}
             </div>
           </section>
+
+          {foco && (
+            <section aria-labelledby="foco-titulo" className="mt-10">
+              <h2 id="foco-titulo" className="text-[19px] font-semibold tracking-cuerpo text-tinta">
+                Escena en foco
+              </h2>
+              <p className="mt-1 text-[14px] text-gris">
+                La escena grande de «Diseñados para acompañarte»: video, producto y frases.
+              </p>
+              <div className="mt-4">
+                <EditorFoco escena={escenaFocoDe(foco.contenido)} visible={foco.visible} productos={productos} />
+              </div>
+            </section>
+          )}
 
           <section aria-labelledby="editorial-titulo" className="mt-10">
             <h2 id="editorial-titulo" className="text-[19px] font-semibold tracking-cuerpo text-tinta">

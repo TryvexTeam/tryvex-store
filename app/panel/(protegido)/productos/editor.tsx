@@ -287,8 +287,8 @@ export default function EditorProducto({
         </div>
 
         <button type="submit" disabled={guardando}
-                className="presionable mt-6 w-full rounded-[10px] bg-spark py-3 text-[15px] font-semibold text-white
-                           hover:bg-spark-hover disabled:opacity-60 sm:w-auto sm:px-8">
+                className="presionable mt-6 w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white
+                           hover:bg-tinta/85 disabled:opacity-60 sm:w-auto sm:px-8">
           {guardando ? 'Guardando…' : 'Guardar producto'}
         </button>
       </form>
@@ -345,7 +345,7 @@ export default function EditorProducto({
                 <input name="precio_unitario" type="text" inputMode="numeric" placeholder="Precio" required aria-label="Precio unitario" disabled={guardando} className={`${campo} cifra`} />
                 <div className="col-span-2 flex gap-2 sm:col-span-1">
                   <button type="submit" disabled={guardando}
-                          className="presionable rounded-full bg-spark px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40">
+                          className="presionable rounded-full bg-tinta px-4 py-2.5 text-[13px] font-medium text-white disabled:opacity-40">
                     Crear
                   </button>
                   <button type="button" onClick={() => setNuevo(false)} className="rounded-full px-3 py-2.5 text-[13px] text-gris">

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
-import { BUCKET, PESO_MAXIMO, TIPOS_ACEPTADOS, urlPublica } from '@/lib/imagenes'
+import { BUCKET, PESO_MAXIMO, PESO_MAXIMO_VIDEO, TIPOS_ACEPTADOS, TIPOS_VIDEO, esVideo, urlPublica } from '@/lib/imagenes'
 
 /**
  * Guardado de las piezas editables de la portada.
@@ -161,6 +161,101 @@ export async function guardarPieza(datos: FormData): Promise<Resultado> {
 
   if (error) return fallo('No pudimos guardar los cambios.')
 
+  revalidatePath('/')
+  revalidatePath('/panel/portada')
+  return { ok: true }
+}
+
+/* ── Video de una escena del banner ───────────────────────────────────
+   Mismo camino que el video de la escena en foco: el servidor firma la
+   subida, el navegador la hace directo al bucket (Vercel corta los envíos de
+   más de 4,5 MB) y el servidor la confirma y la deja aplicada. Vive bajo
+   `campana/<clave>/`, que ya cubren las reglas de escritura de la portada. */
+
+async function contenidoDeEscena(
+  supabase: Awaited<ReturnType<typeof exigirIntegrante>> extends infer R ? (R extends { supabase: infer S } ? S : never) : never,
+  clave: string,
+): Promise<Resultado<{ contenido: Record<string, unknown> }>> {
+  if (!clave.startsWith('heroe-')) return fallo('Solo las escenas del banner llevan video aquí.')
+  const { data, error } = await supabase.from('secciones_landing').select('contenido').eq('clave', clave).maybeSingle()
+  if (error) return fallo('No pudimos leer la escena. Intenta de nuevo.')
+  if (!data) return fallo('Esa escena ya no existe.')
+  return { ok: true, contenido: (data.contenido ?? {}) as Record<string, unknown> }
+}
+
+/** Ruta del bucket a partir de la URL pública guardada, si es de esa escena. */
+function rutaDeVideo(url: unknown, clave: string): string | null {
+  if (typeof url !== 'string') return null
+  const marca = `/storage/v1/object/public/${BUCKET}/`
+  const i = url.indexOf(marca)
+  const ruta = i > -1 ? url.slice(i + marca.length) : ''
+  return ruta.startsWith(`campana/${clave}/`) ? ruta : null
+}
+
+export async function pedirSubidaVideoEscena(clave: string, tipo: string, peso: number): Promise<Resultado<{ ruta: string; token: string }>> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  if (!TIPOS_VIDEO.includes(tipo as (typeof TIPOS_VIDEO)[number])) return fallo('Formato de video no admitido. Usa MP4 o WebM.')
+  if (!Number.isFinite(peso) || peso <= 0) return fallo('El video llegó vacío.')
+  if (peso > PESO_MAXIMO_VIDEO) return fallo(`El video pesa ${(peso / 1024 / 1024).toFixed(1)} MB y el máximo son 30 MB.`)
+
+  const leido = await contenidoDeEscena(sesion.supabase, clave)
+  if (!leido.ok) return leido
+
+  const extension = tipo === 'video/webm' ? 'webm' : 'mp4'
+  const ruta = `campana/${clave}/video-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${extension}`
+  const { data, error } = await sesion.supabase.storage.from(BUCKET).createSignedUploadUrl(ruta)
+  if (error || !data) return fallo(`No se pudo preparar la subida: ${error?.message ?? 'sin respuesta'}`)
+  return { ok: true, ruta, token: data.token }
+}
+
+export async function confirmarVideoEscena(clave: string, ruta: string): Promise<Resultado<{ url: string }>> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+
+  const carpeta = `campana/${clave}`
+  if (!ruta.startsWith(`${carpeta}/`) || ruta.includes('..') || !esVideo(ruta)) return fallo('Ese video no es de la escena.')
+  const archivo = ruta.slice(carpeta.length + 1)
+  const { data: encontrados, error: errLista } = await supabase.storage.from(BUCKET).list(carpeta, { search: archivo })
+  if (errLista) return fallo(errLista.message)
+  if (!encontrados?.some((o) => o.name === archivo)) return fallo('El video no terminó de subirse. Inténtalo de nuevo.')
+
+  const leido = await contenidoDeEscena(supabase, clave)
+  if (!leido.ok) {
+    await supabase.storage.from(BUCKET).remove([ruta])
+    return leido
+  }
+  const anterior = rutaDeVideo(leido.contenido.video, clave)
+  const url = urlPublica(ruta)
+  const { error } = await supabase
+    .from('secciones_landing')
+    .update({ contenido: { ...leido.contenido, video: url }, updated_at: new Date().toISOString(), updated_by: sesion.integranteId })
+    .eq('clave', clave)
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([ruta])
+    return fallo('No pudimos guardar el video.')
+  }
+  if (anterior && anterior !== ruta) await supabase.storage.from(BUCKET).remove([anterior])
+
+  revalidatePath('/')
+  revalidatePath('/panel/portada')
+  return { ok: true, url }
+}
+
+export async function quitarVideoEscena(clave: string): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+  const leido = await contenidoDeEscena(supabase, clave)
+  if (!leido.ok) return leido
+  const anterior = rutaDeVideo(leido.contenido.video, clave)
+  const { error } = await supabase
+    .from('secciones_landing')
+    .update({ contenido: { ...leido.contenido, video: null }, updated_at: new Date().toISOString(), updated_by: sesion.integranteId })
+    .eq('clave', clave)
+  if (error) return fallo('No pudimos quitar el video.')
+  if (anterior) await supabase.storage.from(BUCKET).remove([anterior])
   revalidatePath('/')
   revalidatePath('/panel/portada')
   return { ok: true }

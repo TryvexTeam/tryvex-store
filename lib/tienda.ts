@@ -18,8 +18,15 @@ const POCAS_UNIDADES = 5
 const LARGO_FRASE = 90
 
 export interface ColorTienda {
+  /** Id de la variante: la card lo lleva a la ficha para abrirla con ese color. */
+  id: string
   nombre: string
-  hex: string
+  /** Color plano del círculo. */
+  hex: string | null
+  /** Imagen del círculo (diseño de dos tonos, textura). Manda sobre `hex`. */
+  muestra: string | null
+  /** Foto de la variante: la card la muestra al elegir el círculo. */
+  imagen: string | null
 }
 
 export interface ProductoTienda {
@@ -43,6 +50,8 @@ export interface CategoriaTienda {
   nombre: string
   slug: string
   descripcion: string | null
+  /** Foto elegida en el panel para la fila de familias. Nula: la del primer producto. */
+  imagen: string | null
   productos: ProductoTienda[]
 }
 
@@ -81,8 +90,8 @@ export async function leerVitrina(): Promise<Vitrina> {
         .select('id,sku,slug,nombre,descripcion,precio_base,precio_antes,imagen_url,etiqueta,categoria_id,publicado_at')
         .eq('estado', 'publicado')
         .order('publicado_at', { ascending: false, nullsFirst: false }),
-      db.from('categorias').select('id,nombre,slug,descripcion').eq('activo', true).order('orden'),
-      db.from('producto_variantes').select('producto_id,nombre,color_hex').eq('activo', true).order('orden'),
+      db.from('categorias').select('id,nombre,slug,descripcion,imagen_url').eq('activo', true).order('orden'),
+      db.from('producto_variantes').select('id,producto_id,nombre,color_hex,muestra_url,imagen_url').eq('activo', true).order('orden'),
       db.from('v_stock_actual').select('producto_id,stock'),
       leerConfiguracion(),
       db.from('precio_tramos').select('producto_id,min_unidades,max_unidades,precio_unitario').eq('activo', true),
@@ -123,16 +132,27 @@ export async function leerVitrina(): Promise<Vitrina> {
       etiqueta: etiquetaDe(p.etiqueta, unidades),
       agotado: unidades <= 0,
       categoriaId: p.categoria_id,
+      // Solo variantes con algo que pintar: un color o una muestra.
       colores: (variantes ?? [])
-        .filter((v) => v.producto_id === p.id && v.color_hex)
-        .map((v) => ({ nombre: v.nombre, hex: v.color_hex as string })),
+        .filter((v) => v.producto_id === p.id && (v.color_hex || v.muestra_url))
+        .map((v) => ({
+          id: v.id as string,
+          nombre: v.nombre as string,
+          hex: (v.color_hex as string | null) ?? null,
+          muestra: v.muestra_url ? urlPublica(v.muestra_url as string) : null,
+          imagen: v.imagen_url ? urlPublica(v.imagen_url as string) : null,
+        })),
       href: `/producto/${encodeURIComponent(p.slug)}`,
     }
   })
 
   // Solo categorías con algo que mostrar: una franja vacía es una promesa rota.
   const conProductos: CategoriaTienda[] = (categorias ?? [])
-    .map((c) => ({ ...c, productos: vitrina.filter((p) => p.categoriaId === c.id) }))
+    .map(({ imagen_url, ...c }) => ({
+      ...c,
+      imagen: imagen_url ? urlPublica(imagen_url) : null,
+      productos: vitrina.filter((p) => p.categoriaId === c.id),
+    }))
     .filter((c) => c.productos.length > 0)
 
   // El héroe muestra lo que está a la venta: primero lo disponible y con foto.

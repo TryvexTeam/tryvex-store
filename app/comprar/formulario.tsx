@@ -8,7 +8,9 @@ import type { DatosPago } from '@/lib/configuracion'
 import type { LineaCotizada, LineaPedida } from '@/lib/cotizacion'
 import { claveLinea, MAX_UNIDADES_LINEA } from '@/lib/carrito'
 import { useBolsa } from '@/components/tienda/bolsa'
-import { REGIONES } from '@/lib/chile'
+import { REGIONES, esRegion } from '@/lib/chile'
+import { COMUNAS } from '@/lib/comunas'
+import { BANCOS, MediosPago } from '@/components/tienda/medios-pago'
 import { Selector } from '@/components/selector'
 import { clp } from '@/lib/formato'
 import { Estrella } from '@/app/marca'
@@ -59,6 +61,58 @@ function IconoEntrega({ tipo, activo }: { tipo: 'casa' | 'sucursal' | 'mano'; ac
     >
       <path d={trazos[tipo]} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+/**
+ * Una forma de entrega. La principal lleva más aire y su descripción
+ * completa; las alternativas son filas compactas, para que la jerarquía se
+ * lea sin tener que explicarla.
+ */
+function OpcionEntrega({
+  activo,
+  alElegir,
+  icono,
+  titulo,
+  detalle,
+  principal = false,
+}: {
+  activo: boolean
+  alElegir: () => void
+  icono: 'casa' | 'sucursal' | 'mano'
+  titulo: string
+  detalle: string
+  principal?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={activo}
+      onClick={alElegir}
+      className={[
+        'flex w-full items-center gap-3.5 rounded-[16px] text-left transition-all duration-200',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark',
+        principal ? 'p-4 t:p-5' : 'px-4 py-3',
+        activo ? 'bg-papel-alt ring-2 ring-tinta' : 'ring-1 ring-borde hover:ring-tinta/40',
+      ].join(' ')}
+    >
+      <IconoEntrega tipo={icono} activo={activo} />
+      <span className="min-w-0 flex-1">
+        <span className={`block font-semibold ${principal ? 'text-[16px]' : 'text-[14px]'}`}>{titulo}</span>
+        <span className={`mt-0.5 block text-tinta-suave ${principal ? 'text-[14px]' : 'text-[13px]'}`}>{detalle}</span>
+      </span>
+      <span
+        aria-hidden
+        className={[
+          'grid size-[20px] shrink-0 place-items-center rounded-full ring-1 transition-all duration-200',
+          activo ? 'bg-tinta ring-tinta' : 'ring-borde',
+        ].join(' ')}
+      >
+        <svg viewBox="0 0 10 10" className={`size-[8px] text-white transition-opacity duration-200 ${activo ? 'opacity-100' : 'opacity-0'}`} fill="none">
+          <path d="M1.5 5.2 3.8 7.5 8.5 2.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    </button>
   )
 }
 
@@ -122,8 +176,9 @@ export default function Checkout({
     return () => clearTimeout(t)
   }, [pedidas, desdeBolsa, bolsa.lista])
 
-  const [entrega, setEntrega] = useState<'envio' | 'sucursal' | 'retiro'>('envio')
+  const [entrega, setEntrega] = useState<'envio' | 'sucursal' | 'retiro'>('sucursal')
   const [region, setRegion] = useState('')
+  const [comuna, setComuna] = useState('')
   const [metodo, setMetodo] = useState('transferencia')
   const [error, setError] = useState<string | null>(null)
   const [listo, setListo] = useState<Extract<Resultado, { ok: true }> | null>(null)
@@ -178,7 +233,7 @@ export default function Checkout({
     return (
       <div className="py-20 text-center">
         <p className="text-[28px] font-semibold tracking-seccion">Tu bolsa está vacía.</p>
-        <Link href="/tienda" className="tienda-boton mt-6 bg-spark text-white hover:bg-spark-hover">Ver la tienda</Link>
+        <Link href="/tienda" className="tienda-boton mt-6 bg-tinta text-white hover:bg-tinta/85">Ver la tienda</Link>
       </div>
     )
 
@@ -256,97 +311,94 @@ export default function Checkout({
         </Paso>
 
         <Paso n={3} titulo="Entrega">
-          {/* Las tres formas de entrega, y el envío es gratis en todas: se dice
-              en cada tarjeta para que nadie tema un cargo escondido al final. */}
-          <div role="radiogroup" aria-label="Forma de entrega" className="mb-5 grid gap-2.5 t:grid-cols-3">
-            {([
-              ['envio', 'Despacho a domicilio', envio.plazo ?? 'Llega a tu puerta', 'casa'],
-              ['sucursal', 'Retiro en sucursal', 'Lo buscas cuando puedas', 'sucursal'],
-              ...(envio.retiro ? [['retiro', 'Retiro con nosotros', 'Coordinamos contigo', 'mano'] as const] : []),
-            ] as const).map(([v, t, n, icono]) => {
-              const activo = entrega === v
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  role="radio"
-                  aria-checked={activo}
-                  onClick={() => setEntrega(v)}
-                  className={[
-                    'group relative overflow-hidden rounded-[16px] p-4 text-left transition-all duration-200',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark',
-                    activo
-                      ? 'bg-papel-alt ring-2 ring-tinta'
-                      : 'ring-1 ring-borde hover:-translate-y-px hover:ring-tinta/40',
-                  ].join(' ')}
-                >
-                  <span className="flex items-start justify-between gap-2">
-                    <IconoEntrega tipo={icono} activo={activo} />
-                    <span
-                      aria-hidden
-                      className={[
-                        'mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full ring-1 transition-all duration-200',
-                        activo ? 'bg-tinta ring-tinta' : 'ring-borde',
-                      ].join(' ')}
-                    >
-                      <svg viewBox="0 0 10 10" className={`size-[7px] text-white transition-opacity duration-200 ${activo ? 'opacity-100' : 'opacity-0'}`} fill="none">
-                        <path d="M1.5 5.2 3.8 7.5 8.5 2.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </span>
-                  <span className="mt-2.5 block text-[15px] font-semibold">{t}</span>
-                  <span className="mt-0.5 block text-[13px] text-tinta-suave">{n}</span>
-                  <span className="mt-2 inline-block rounded-full bg-spark/10 px-2 py-0.5 text-[12px] font-semibold text-spark">
-                    Gratis
-                  </span>
-                </button>
-              )
-            })}
+          {/* Una sola promesa arriba, en vez de una píldora «Gratis» por opción. */}
+          <p className="mb-4 flex items-center gap-2 text-[14px] text-tinta-suave">
+            <span aria-hidden className="grid size-5 place-items-center rounded-full bg-[#137333]/10 text-[#137333]">
+              <svg viewBox="0 0 10 10" className="size-[9px]" fill="none"><path d="M1.5 5.2 3.8 7.5 8.5 2.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            <span><strong className="font-semibold text-tinta">Envío gratis a todo Chile</strong> con Correos de Chile.</span>
+          </p>
+
+          {/* La sucursal es la forma principal: así despacha la tienda. El
+              domicilio sigue disponible, pero como alternativa y no como
+              primera opción del mismo peso. */}
+          <div role="radiogroup" aria-label="Forma de entrega" className="grid gap-2.5">
+            <OpcionEntrega
+              principal
+              activo={entrega === 'sucursal'}
+              alElegir={() => setEntrega('sucursal')}
+              icono="sucursal"
+              titulo="Retiro en sucursal de Correos de Chile"
+              detalle="La eliges tú. Te avisamos por correo cuando esté lista para retirar."
+            />
+            <div className={`grid gap-2.5 ${envio.retiro ? 't:grid-cols-2' : ''}`}>
+              <OpcionEntrega
+                activo={entrega === 'envio'}
+                alElegir={() => setEntrega('envio')}
+                icono="casa"
+                titulo="Despacho a domicilio"
+                detalle={envio.plazo ?? 'Llega a tu puerta'}
+              />
+              {envio.retiro && (
+                <OpcionEntrega
+                  activo={entrega === 'retiro'}
+                  alElegir={() => setEntrega('retiro')}
+                  icono="mano"
+                  titulo="Retiro con nosotros"
+                  detalle="Coordinamos contigo"
+                />
+              )}
+            </div>
           </div>
 
-          {/* El bloque cambia con la forma de entrega. La transición evita que
-              los campos salten de golpe al cambiar de opción. */}
-          <div key={entrega} className="entrega-panel">
-            {entrega === 'envio' && (
-              <div className="grid gap-3 t:grid-cols-2">
-                <Selector
-                  id="region"
-                  name="region"
-                  etiqueta="Región"
-                  placeholder="Elige tu región"
-                  opciones={REGIONES.map((r) => ({ valor: r, etiqueta: r }))}
-                  valor={region}
-                  alCambiar={setRegion}
-                  required
-                  disabled={enviando}
-                />
-                <Campo id="comuna" name="comuna" etiqueta="Comuna" autoComplete="address-level2" required disabled={enviando} />
-                <div className="t:col-span-2"><Campo id="direccion" name="direccion" etiqueta="Calle, número y depto." autoComplete="street-address" required disabled={enviando} /></div>
+          {/* Región y comuna se piden una sola vez y sobreviven al cambio de
+              opción: antes cada panel tenía los suyos y se borraban. */}
+          {entrega !== 'retiro' && (
+            <div className="mt-5 grid gap-3 t:grid-cols-2">
+              <Selector
+                id="region"
+                name="region"
+                etiqueta="Región"
+                placeholder="Elige tu región"
+                opciones={REGIONES.map((r) => ({ valor: r, etiqueta: r }))}
+                valor={region}
+                alCambiar={(r) => {
+                  setRegion(r)
+                  setComuna('')
+                }}
+                required
+                disabled={enviando}
+              />
+              <Selector
+                id="comuna"
+                name="comuna"
+                etiqueta="Comuna"
+                placeholder={region ? 'Elige tu comuna' : 'Primero elige la región'}
+                opciones={(esRegion(region) ? COMUNAS[region] : []).map((c) => ({ valor: c, etiqueta: c }))}
+                valor={comuna}
+                alCambiar={setComuna}
+                required
+                disabled={enviando || !region}
+              />
+            </div>
+          )}
+
+          <div key={entrega} className="entrega-panel mt-3">
+            {entrega === 'sucursal' && (
+              <div className="grid gap-2">
+                <Campo id="sucursal" name="sucursal" etiqueta="Sucursal donde retiras" required disabled={enviando} />
+                <p className="text-[13px] leading-relaxed text-tinta-suave">
+                  ¿No sabes cuál te queda cerca?{' '}
+                  <a href="https://www.correos.cl/sucursales" target="_blank" rel="noopener noreferrer" className="font-medium text-spark hover:underline">
+                    Busca sucursales de Correos de Chile<span className="sr-only"> (se abre en otra pestaña)</span>
+                  </a>
+                  . Guardan tu pedido varios días.
+                </p>
               </div>
             )}
 
-            {entrega === 'sucursal' && (
-              <div className="grid gap-3 t:grid-cols-2">
-                <Selector
-                  id="region"
-                  name="region"
-                  etiqueta="Región"
-                  placeholder="Elige tu región"
-                  opciones={REGIONES.map((r) => ({ valor: r, etiqueta: r }))}
-                  valor={region}
-                  alCambiar={setRegion}
-                  required
-                  disabled={enviando}
-                />
-                <Campo id="comuna" name="comuna" etiqueta="Comuna" autoComplete="address-level2" required disabled={enviando} />
-                <div className="t:col-span-2">
-                  <Campo id="sucursal" name="sucursal" etiqueta="¿En qué sucursal quieres retirar?" required disabled={enviando} />
-                </div>
-                <p className="t:col-span-2 text-[13px] leading-relaxed text-tinta-suave">
-                  Escribe la sucursal que te quede cómoda. Te avisamos apenas tu pedido esté
-                  disponible para retirar, y lo guardan varios días.
-                </p>
-              </div>
+            {entrega === 'envio' && (
+              <Campo id="direccion" name="direccion" etiqueta="Calle, número y depto." autoComplete="street-address" required disabled={enviando} />
             )}
 
             {entrega === 'retiro' && (
@@ -360,13 +412,18 @@ export default function Checkout({
         <Paso n={4} titulo="Pago">
           <div role="radiogroup" aria-label="Forma de pago" className="grid gap-2.5 t:grid-cols-2">
             {([
-              ['transferencia', 'Transferencia', 'Te mostramos los datos al confirmar'],
-              ['mercadopago', 'Mercado Pago', 'Tarjeta de crédito, débito o cuotas'],
+              ['transferencia', 'Transferencia bancaria', 'Te mostramos los datos al confirmar'],
+              ['mercadopago', 'Tarjeta o Mercado Pago', 'Crédito, débito o prepago, en cuotas si quieres'],
             ] as const).map(([v, t, n]) => (
-              <label key={v} className={`cursor-pointer rounded-[14px] p-4 ring-1 ${metodo === v ? 'ring-2 ring-tinta' : 'ring-borde'}`}>
+              <label key={v} className={`flex cursor-pointer flex-col rounded-[14px] p-4 transition-all duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-spark ${metodo === v ? 'bg-papel-alt ring-2 ring-tinta' : 'ring-1 ring-borde hover:ring-tinta/40'}`}>
                 <input type="radio" name="metodo_pago" value={v} checked={metodo === v} onChange={() => setMetodo(v)} className="sr-only" />
                 <span className="block text-[15px] font-semibold">{t}</span>
-                <span className="mt-0.5 block text-[13px] text-gris">{n}</span>
+                <span className="mt-0.5 block text-[13px] text-tinta-suave">{n}</span>
+                {v === 'mercadopago' ? (
+                  <MediosPago alto={24} className="mt-3" />
+                ) : (
+                  <span className="mt-3 block text-[12px] leading-relaxed text-gris">Desde cualquier banco: {BANCOS.join(', ')} y más.</span>
+                )}
               </label>
             ))}
           </div>
@@ -375,7 +432,7 @@ export default function Checkout({
         {error && <p role="alert" className="rounded-[12px] bg-spark-suave px-4 py-3 text-[14px] text-rojo">{error}</p>}
 
         <div>
-          <button type="submit" disabled={enviando || cotizando || hayProblemas || lineas.length === 0} className="tienda-boton w-full bg-spark !min-h-[56px] !text-[17px] text-white hover:bg-spark-hover disabled:opacity-40">
+          <button type="submit" disabled={enviando || cotizando || hayProblemas || lineas.length === 0} className="tienda-boton w-full bg-tinta !min-h-[56px] !text-[17px] text-white hover:bg-tinta/85 disabled:opacity-40">
             {hayProblemas ? 'Revisa tu pedido' : enviando ? 'Reservando tu pedido…' : `Confirmar pedido · ${clp(total)}`}
           </button>
           <p className="mt-3 text-center text-[13px] leading-relaxed text-gris">No se cobra nada todavía: reservamos tus unidades y te indicamos cómo pagar.</p>
@@ -597,11 +654,11 @@ function Confirmacion({ listo, datosPago, metodo }: { listo: Extract<Resultado, 
       </ol>
 
       {hayWhatsapp ? (
-        <a href={listo.whatsapp} target="_blank" rel="noopener noreferrer" className="tienda-boton mt-8 w-full bg-spark !min-h-[56px] !text-[17px] text-white hover:bg-spark-hover">
+        <a href={listo.whatsapp} target="_blank" rel="noopener noreferrer" className="tienda-boton mt-8 w-full bg-tinta !min-h-[56px] !text-[17px] text-white hover:bg-tinta/85">
           Abrir WhatsApp con mi pedido
         </a>
       ) : (
-        <a href={`mailto:${datosPago.email}?subject=Pedido%20%23${listo.numero}`} className="tienda-boton mt-8 w-full bg-spark !min-h-[56px] !text-[17px] text-white hover:bg-spark-hover">
+        <a href={`mailto:${datosPago.email}?subject=Pedido%20%23${listo.numero}`} className="tienda-boton mt-8 w-full bg-tinta !min-h-[56px] !text-[17px] text-white hover:bg-tinta/85">
           Escribirnos por correo
         </a>
       )}

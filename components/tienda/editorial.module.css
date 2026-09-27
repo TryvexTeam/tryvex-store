@@ -1,4 +1,4 @@
-.seccion { box-sizing: border-box; width: 100%; max-width: 1204px; padding-inline: 22px; margin: 64px auto 0; }
+.seccion { box-sizing: border-box; width: 100%; padding-inline: var(--canal); margin: 64px auto 0; }
 .dobleGrid, .mosaico { display: grid; gap: 16px; }
 .pieza { position: relative; isolation: isolate; overflow: hidden; border-radius: 28px; background: #000; color: #fff; min-width: 0; aspect-ratio: 1122 / 1402; }
 .imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 200ms ease-out; }

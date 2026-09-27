@@ -1,16 +1,22 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
+import Image from 'next/image'
+import { urlPublica, TIPOS_ACEPTADOS } from '@/lib/imagenes'
 import type { Categoria } from '@/lib/catalogo'
 import { useAvisos } from '@/components/avisos'
 import { IconoMas } from '@/components/iconos'
-import { guardarCategoria, borrarCategoria, alternarCategoria } from './acciones-categorias'
+import { guardarCategoria, borrarCategoria, alternarCategoria, subirFotoCategoria, quitarFotoCategoria } from './acciones-categorias'
 
 const campo =
   'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
-  'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
+  'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
 
-/** Gestión de categorías: crear, renombrar, ordenar, ocultar y borrar las vacías. */
+/**
+ * Gestión de categorías: crear, renombrar, ordenar, ocultar, borrar las
+ * vacías y elegir la foto que las representa en la fila de familias de la
+ * tienda. Sin foto propia, la tienda usa la del primer producto.
+ */
 export function Categorias({
   categorias,
   conteo,
@@ -21,6 +27,36 @@ export function Categorias({
   const [editando, setEditando] = useState<string | 'nueva' | null>(categorias.length ? null : 'nueva')
   const [pendiente, empezar] = useTransition()
   const avisos = useAvisos()
+  const entradaFoto = useRef<HTMLInputElement>(null)
+  const [fotoPara, setFotoPara] = useState<string | null>(null)
+  const [subiendoFoto, setSubiendoFoto] = useState<string | null>(null)
+
+  function elegirFoto(id: string) {
+    setFotoPara(id)
+    entradaFoto.current?.click()
+  }
+
+  async function subirFoto(archivo: File | undefined) {
+    const id = fotoPara
+    if (entradaFoto.current) entradaFoto.current.value = ''
+    if (!archivo || !id) return
+    setSubiendoFoto(id)
+    const datos = new FormData()
+    datos.set('id', id)
+    datos.set('archivo', archivo)
+    const r = await subirFotoCategoria(datos)
+    setSubiendoFoto(null)
+    if (r.ok) avisos.ok('Foto de la categoría actualizada.')
+    else avisos.error(r.error)
+  }
+
+  function quitarFoto(c: Categoria) {
+    empezar(async () => {
+      const r = await quitarFotoCategoria(c.id)
+      if (r.ok) avisos.ok('Foto quitada. La tienda usa la del primer producto.')
+      else avisos.error(r.error)
+    })
+  }
 
   function enviar(e: React.FormEvent<HTMLFormElement>, esNueva: boolean) {
     e.preventDefault()
@@ -52,7 +88,7 @@ export function Categorias({
   }
 
   const formulario = (c?: Categoria) => (
-    <form onSubmit={(e) => enviar(e, !c)} className="space-y-2.5 rounded-[14px] bg-papel p-4 ring-2 ring-spark/25">
+    <form onSubmit={(e) => enviar(e, !c)} className="space-y-2.5 rounded-[14px] bg-papel p-4 ring-2 ring-tinta/15">
       {c && <input type="hidden" name="id" value={c.id} />}
       <div className="grid grid-cols-[1fr_5rem] gap-2.5">
         <div>
@@ -74,13 +110,20 @@ export function Categorias({
                disabled={pendiente} className={campo} />
       </div>
       {c && (
-        <p className="text-[11px] text-gris">
-          Dirección en la tienda: <span className="cifra">/tienda/{c.slug}</span>
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-gris">
+            Dirección en la tienda: <span className="cifra">/tienda?cat={c.slug}</span>
+          </p>
+          {c.imagen_url && (
+            <button type="button" onClick={() => quitarFoto(c)} disabled={pendiente} className="rounded-full px-3 py-1.5 text-[12px] text-gris hover:bg-papel-alt hover:text-tinta">
+              Quitar foto
+            </button>
+          )}
+        </div>
       )}
       <div className="flex gap-2">
         <button type="submit" disabled={pendiente}
-                className="presionable rounded-full bg-spark px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
+                className="presionable rounded-full bg-tinta px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
           {pendiente ? 'Guardando…' : c ? 'Guardar' : 'Crear categoría'}
         </button>
         <button type="button" onClick={() => setEditando(null)} className="rounded-full px-4 py-2.5 text-[13px] text-gris">
@@ -92,13 +135,38 @@ export function Categorias({
 
   return (
     <div className="space-y-3">
+      <input
+        ref={entradaFoto}
+        type="file"
+        accept={TIPOS_ACEPTADOS.join(',')}
+        className="sr-only"
+        onChange={(e) => void subirFoto(e.target.files?.[0])}
+      />
+      <p className="text-[12px] text-gris">Toca el cuadro de cada categoría para elegir su foto en la tienda. Sin foto, se usa la del primer producto.</p>
       <ul className="space-y-2">
         {categorias.map((c) =>
           editando === c.id ? (
             <li key={c.id}>{formulario(c)}</li>
           ) : (
             <li key={c.id} className={`flex items-center gap-3 rounded-[12px] bg-papel-alt px-3.5 py-3 ${c.activo ? '' : 'opacity-60'}`}>
-              <span className="cifra w-6 shrink-0 text-center text-[12px] text-gris">{c.orden}</span>
+              <span className="cifra w-5 shrink-0 text-center text-[12px] text-gris">{c.orden}</span>
+              {/* La foto de la fila de familias: tocarla para cambiarla. */}
+              <button
+                type="button"
+                onClick={() => elegirFoto(c.id)}
+                disabled={pendiente || subiendoFoto !== null}
+                aria-label={c.imagen_url ? `Cambiar la foto de ${c.nombre}` : `Elegir una foto para ${c.nombre}`}
+                title={c.imagen_url ? 'Cambiar foto' : 'Elegir foto'}
+                className={`presionable relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-papel ${c.imagen_url ? 'ring-1 ring-borde/70' : 'border border-dashed border-borde text-gris hover:border-gris'}`}
+              >
+                {subiendoFoto === c.id ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-borde border-t-tinta" />
+                ) : c.imagen_url ? (
+                  <Image src={urlPublica(c.imagen_url)} alt="" fill sizes="48px" className="object-contain p-1" />
+                ) : (
+                  <IconoMas size={16} />
+                )}
+              </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[14px] font-medium">
                   {c.nombre}
@@ -113,12 +181,12 @@ export function Categorias({
                 {c.activo ? 'Ocultar' : 'Mostrar'}
               </button>
               <button type="button" onClick={() => setEditando(c.id)} disabled={pendiente}
-                      className="rounded-full px-2.5 py-1.5 text-[12px] font-medium text-spark hover:bg-spark-suave">
+                      className="rounded-full px-2.5 py-1.5 text-[12px] font-medium text-tinta hover:bg-papel">
                 Editar
               </button>
               <button type="button" onClick={() => borrar(c)} disabled={pendiente}
                       aria-label={`Borrar la categoría ${c.nombre}`}
-                      className="rounded-full px-2.5 py-1.5 text-[12px] text-gris hover:bg-spark-suave hover:text-rojo">
+                      className="rounded-full px-2.5 py-1.5 text-[12px] text-gris hover:bg-rojo/10 hover:text-rojo">
                 Borrar
               </button>
             </li>

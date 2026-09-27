@@ -46,6 +46,8 @@ export interface Categoria {
   descripcion: string | null
   orden: number
   activo: boolean
+  /** Foto propia para la fila de familias de la tienda (ruta en el bucket). */
+  imagen_url: string | null
 }
 
 export interface Variante {
@@ -54,6 +56,8 @@ export interface Variante {
   nombre: string
   sku: string
   color_hex: string | null
+  /** Imagen del círculo de la variante (diseño, textura). */
+  muestra_url: string | null
   precio: number | null
   imagen_url: string | null
   orden: number

@@ -39,12 +39,35 @@ type Filtro = 'todos' | EstadoProducto
 
 const campo =
   'w-full min-h-11 rounded-[10px] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
-  'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
+  'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
 
 const ESTILO_ESTADO: Record<EstadoProducto, string> = {
-  publicado: 'bg-verde/12 text-verde',
-  borrador: 'bg-papel/90 text-tinta-suave ring-1 ring-borde',
+  publicado: 'bg-papel/85 text-tinta ring-1 ring-black/5',
+  borrador: 'bg-papel/85 text-tinta-suave ring-1 ring-black/5',
   archivado: 'bg-tinta/80 text-white',
+}
+
+/** Plurales escritos: agregar una «s» daba «Borradors». */
+const PLURAL_ESTADO: Record<EstadoProducto, string> = {
+  borrador: 'Borradores',
+  publicado: 'Publicados',
+  archivado: 'Archivados',
+}
+
+const PUNTO_ESTADO: Record<EstadoProducto, string> = {
+  publicado: 'bg-verde',
+  borrador: 'bg-ambar',
+  archivado: 'bg-white/70',
+}
+
+/** Pocas unidades se avisan antes de que se agoten: con 5 o menos, ámbar. */
+const POCAS_UNIDADES = 5
+
+/** El stock dicho como se lee de un vistazo: color y una frase corta. */
+function semaforoStock(stock: number): { rotulo: string; texto: string; punto: string } {
+  if (stock <= 0) return { rotulo: 'Sin stock', texto: 'text-rojo', punto: 'bg-rojo' }
+  if (stock <= POCAS_UNIDADES) return { rotulo: `Quedan ${stock}`, texto: 'text-ambar', punto: 'bg-ambar' }
+  return { rotulo: `${stock} en stock`, texto: 'text-tinta-suave', punto: 'bg-verde' }
 }
 
 /**
@@ -88,9 +111,9 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
   return (
     <>
       {/* ── Barra de acciones ─────────────────────────────────── */}
-      <div className="mb-3 flex items-center gap-2.5">
-        <div className="relative flex-1">
-          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gris">
+      <div className="mb-3 flex flex-wrap items-center gap-2.5">
+        <div className="relative basis-full sm:min-w-[200px] sm:flex-1 sm:basis-auto">
+          <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-gris">
             <IconoBuscar size={17} />
           </span>
           <input
@@ -99,23 +122,28 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por nombre o SKU"
             aria-label="Buscar en el catálogo"
-            className={`${campo} pl-9`}
+            className="h-11 w-full rounded-full bg-papel pr-4 pl-11 text-[15px] text-tinta ring-1 ring-borde/80 placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none"
           />
         </div>
         <button
           type="button"
+          onClick={() => setViendoCategorias(true)}
+          className="presionable inline-flex h-11 flex-1 items-center justify-center rounded-full bg-papel px-5 text-[14px] font-medium text-tinta ring-1 ring-borde/80 hover:ring-gris sm:flex-none"
+        >
+          Categorías
+        </button>
+        <button
+          type="button"
           onClick={() => setCreando(true)}
-          className="presionable flex min-h-11 shrink-0 items-center gap-1.5 rounded-[10px] bg-spark px-4
-                     text-[14px] font-semibold text-white hover:bg-spark-hover"
+          className="presionable inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-tinta px-4 text-[14px] font-semibold whitespace-nowrap text-white hover:bg-tinta/85 sm:flex-none sm:px-5"
         >
           <IconoMas size={17} />
-          <span className="hidden sm:inline">Nuevo producto</span>
-          <span className="sr-only sm:hidden">Nuevo producto</span>
+          Nuevo producto
         </button>
       </div>
 
       {/* ── Filtros ───────────────────────────────────────────── */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <div role="tablist" aria-label="Filtrar por estado" className="sin-barra flex gap-1.5 overflow-x-auto">
           {(['todos', ...ESTADOS_PRODUCTO] as Filtro[]).map((f) => (
             <button
@@ -124,51 +152,36 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
               role="tab"
               aria-selected={filtro === f}
               onClick={() => setFiltro(f)}
-              className={`presionable inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-[14px] font-medium transition-colors ${
-                filtro === f ? 'bg-tinta text-white' : 'bg-papel text-tinta-suave ring-1 ring-borde/70'
+              className={`presionable inline-flex h-9 shrink-0 items-center rounded-full px-4 text-[14px] font-medium transition-colors ${
+                filtro === f ? 'bg-tinta text-white' : 'bg-papel text-tinta-suave ring-1 ring-borde/80 hover:ring-gris'
               }`}
             >
-              {f === 'todos' ? 'Todos' : `${ROTULO_ESTADO[f]}s`}
-              <span className={`cifra ml-1.5 ${filtro === f ? 'text-white/60' : 'text-gris'}`}>
-                {conteo[f]}
-              </span>
+              {f === 'todos' ? 'Todos' : PLURAL_ESTADO[f]}
+              <span className={`cifra ml-1.5 ${filtro === f ? 'text-white/60' : 'text-gris'}`}>{conteo[f]}</span>
             </button>
           ))}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="min-w-[190px]">
-            <Selector
-              id="filtro-categoria"
-              name="filtro_categoria"
-              etiqueta="Categoría"
-              placeholder="Todas las categorías"
-              opciones={[{ valor: '', etiqueta: 'Todas las categorías' }, ...categorias.map((c) => ({ valor: c.id, etiqueta: c.nombre }))]}
-              valor={categoria}
-              alCambiar={setCategoria}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setViendoCategorias(true)}
-            className="presionable inline-flex min-h-11 items-center rounded-full px-4 text-[14px] font-medium text-spark hover:bg-spark-suave"
-          >
-            Categorías
-          </button>
+        <div className="w-full sm:ml-auto sm:w-auto sm:min-w-[200px]">
+          <Selector
+            id="filtro-categoria"
+            name="filtro_categoria"
+            etiqueta="Categoría"
+            placeholder="Todas las categorías"
+            opciones={[{ valor: '', etiqueta: 'Todas las categorías' }, ...categorias.map((c) => ({ valor: c.id, etiqueta: c.nombre }))]}
+            valor={categoria}
+            alCambiar={setCategoria}
+          />
         </div>
       </div>
 
       {/* ── Grilla ────────────────────────────────────────────── */}
       {filtrados.length === 0 ? (
-        <div className="rounded-[var(--radius-tarjeta)] bg-papel px-6 py-14 text-center ring-1 ring-borde/70">
-          <p className="text-[15px] font-medium">
-            {productos.length === 0
-              ? 'El catálogo está vacío.'
-              : filtro === 'borrador'
-                ? 'No hay borradores pendientes.'
-                : 'Ningún producto coincide.'}
+        <div className="rounded-[22px] bg-papel px-6 py-16 text-center shadow-[0_2px_12px_rgb(0_0_0/5%)] ring-1 ring-borde/60">
+          <p className="text-[19px] font-semibold tracking-[-0.02em]">
+            {productos.length === 0 ? 'El catálogo está vacío.' : filtro === 'borrador' ? 'No hay borradores pendientes.' : 'Ningún producto coincide.'}
           </p>
-          <p className="mx-auto mt-1.5 max-w-xs text-[13px] text-gris">
+          <p className="mx-auto mt-2 max-w-xs text-[14px] text-gris">
             {productos.length === 0
               ? 'Crea el primer producto y súbele fotos: así es como se ve en la tienda.'
               : 'Prueba con otro filtro, otra categoría u otra búsqueda.'}
@@ -177,8 +190,7 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
             <button
               type="button"
               onClick={() => setCreando(true)}
-              className="presionable mt-5 inline-flex items-center gap-1.5 rounded-[10px] bg-spark px-4 py-2.5
-                         text-[14px] font-semibold text-white hover:bg-spark-hover"
+              className="presionable mt-6 inline-flex h-11 items-center gap-1.5 rounded-full bg-tinta px-5 text-[14px] font-semibold text-white hover:bg-tinta/85"
             >
               <IconoMas size={17} />
               Crear producto
@@ -186,73 +198,68 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
           )}
         </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {filtrados.map((p, i) => (
-            <li key={p.id} className="entra" style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}>
-              <button
-                type="button"
-                onClick={() => setAbierto(p.id)}
-                className="presionable group w-full overflow-hidden rounded-[var(--radius-tarjeta)] bg-papel
-                           text-left shadow-[var(--shadow-sutil)] ring-1 ring-borde/60 hover:shadow-[var(--shadow-alzado)]"
-              >
-                <div className="relative bg-papel-alt">
-                  {p.imagen_url ? (
-                    <Image src={urlPublica(p.imagen_url)} alt="" width={400} height={400} className="cuadro w-full" />
-                  ) : (
-                    <div className="cuadro flex w-full flex-col items-center justify-center gap-1.5 text-gris">
-                      <IconoCamara size={22} />
-                      <span className="text-[11px]">Sin foto</span>
-                    </div>
-                  )}
-                  {p.estado !== 'publicado' && (
-                    <span
-                      className={`absolute top-2 left-2 rounded-full px-2 py-0.5 text-[10px] font-semibold
-                                  tracking-[0.02em] backdrop-blur-sm ${ESTILO_ESTADO[p.estado]}`}
-                    >
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+          {filtrados.map((p, i) => {
+            const activas = p.variantes.filter((v) => v.activo)
+            const antes = p.precio_antes !== null && p.precio_antes !== '' ? Number(p.precio_antes) : null
+            const stock = semaforoStock(p.stock)
+            return (
+              <li key={p.id} className="entra" style={{ animationDelay: `${Math.min(i, 8) * 30}ms` }}>
+                <button
+                  type="button"
+                  onClick={() => setAbierto(p.id)}
+                  className="presionable panel-card group flex h-full w-full flex-col overflow-hidden rounded-[18px] bg-papel text-left ring-1 ring-borde/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+                >
+                  <div className="relative aspect-square bg-papel">
+                    {p.imagen_url ? (
+                      <Image
+                        src={urlPublica(p.imagen_url)}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 240px, (min-width: 640px) 30vw, 45vw"
+                        className="panel-card-foto object-contain p-5"
+                      />
+                    ) : (
+                      <div className="flex size-full flex-col items-center justify-center gap-1.5 bg-papel-alt text-gris">
+                        <IconoCamara size={24} />
+                        <span className="text-[12px]">Sin foto</span>
+                      </div>
+                    )}
+                    <span className={`absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold backdrop-blur-md ${ESTILO_ESTADO[p.estado]}`}>
+                      <span aria-hidden className={`size-1.5 rounded-full ${PUNTO_ESTADO[p.estado]}`} />
                       {ROTULO_ESTADO[p.estado]}
                     </span>
-                  )}
-                  {p.etiqueta && (
-                    <span className="absolute top-2 right-2 rounded-full bg-papel/90 px-2 py-0.5 text-[10px] font-semibold text-ambar">
-                      {p.etiqueta}
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-3">
-                  <p className="line-clamp-1 text-[14px] leading-snug font-semibold tracking-[-0.01em]">
-                    {p.nombre}
-                  </p>
-                  <p className="mt-0.5 line-clamp-1 text-[11px] text-gris">
-                    {[p.categoria_id ? nombreCategoria.get(p.categoria_id) : 'Sin categoría', p.sku]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                  <div className="mt-2 flex items-baseline justify-between gap-2">
-                    <span className="cifra text-[15px] font-semibold">{clp(p.precio_base)}</span>
-                    <span className={`text-[11px] font-medium ${p.stock > 0 ? 'text-gris' : 'text-ambar'}`}>
-                      {p.stock > 0 ? `${p.stock} u.` : 'Sin stock'}
-                    </span>
                   </div>
-                  {p.variantes.filter((v) => v.activo).length > 0 && (
-                    <div className="mt-2 flex items-center gap-1" aria-label={`${p.variantes.length} variantes`}>
-                      {p.variantes.filter((v) => v.activo).slice(0, 6).map((v) => (
-                        <span
-                          key={v.id}
-                          title={v.nombre}
-                          className="size-3 rounded-full ring-1 ring-borde"
-                          style={{ background: v.color_hex ?? 'var(--color-papel-alt)' }}
-                        />
-                      ))}
-                      {p.variantes.filter((v) => v.activo).length > 6 && (
-                        <span className="text-[10px] text-gris">+{p.variantes.filter((v) => v.activo).length - 6}</span>
-                      )}
+
+                  <div className="flex flex-1 flex-col px-4 pt-1 pb-4">
+                    {p.etiqueta && <p className="text-[11px] font-semibold text-vino">{p.etiqueta}</p>}
+                    <p className="mt-0.5 line-clamp-2 text-[15px] leading-snug font-semibold tracking-[-0.015em]">{p.nombre}</p>
+                    <p className="mt-1 line-clamp-1 text-[12px] text-gris">
+                      {[p.categoria_id ? nombreCategoria.get(p.categoria_id) : 'Sin categoría', p.sku].filter(Boolean).join(' · ')}
+                    </p>
+                    {activas.length > 0 && (
+                      <div className="mt-2 flex items-center gap-1" aria-label={`${activas.length} variantes`}>
+                        {activas.slice(0, 6).map((v) => (
+                          <span key={v.id} title={v.nombre} className="size-3 rounded-full ring-1 ring-black/10" style={{ background: v.color_hex ?? 'var(--color-papel-alt)' }} />
+                        ))}
+                        {activas.length > 6 && <span className="text-[10px] text-gris">+{activas.length - 6}</span>}
+                      </div>
+                    )}
+                    <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 gap-y-1 pt-3">
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="cifra text-[16px] font-semibold">{clp(p.precio_base)}</span>
+                        {antes !== null && antes > Number(p.precio_base) && <span className="cifra text-[12px] text-gris line-through">{clp(antes)}</span>}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-[12px] font-medium ${stock.texto}`}>
+                        <span aria-hidden className={`size-1.5 rounded-full ${stock.punto}`} />
+                        {stock.rotulo}
+                      </span>
                     </div>
-                  )}
-                </div>
-              </button>
-            </li>
-          ))}
+                  </div>
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -266,22 +273,29 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
             ? `${ROTULO_ESTADO[enDetalle.estado]} · SKU ${enDetalle.sku} · ${enDetalle.stock} en stock`
             : undefined
         }
+        ancho="amplio"
       >
         {enDetalle && (
-          <div className="space-y-8">
-            <Galeria productoId={enDetalle.id} galeria={enDetalle.galeria} portada={enDetalle.imagen_url} />
-            <EditorProducto
-              producto={enDetalle}
-              categorias={categorias}
-              tramos={tramos.filter((t) => t.producto_id === enDetalle.id)}
-              enHoja
-            />
-            <Variantes
-              productoId={enDetalle.id}
-              skuProducto={enDetalle.sku}
-              precioProducto={Number(enDetalle.precio_base)}
-              variantes={enDetalle.variantes}
-            />
+          // Escritorio: fotos a la izquierda, fijas mientras se edita a la
+          // derecha. Teléfono: todo en una columna.
+          <div className="grid gap-8 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] md:gap-10">
+            <div className="md:sticky md:top-0 md:self-start">
+              <Galeria productoId={enDetalle.id} galeria={enDetalle.galeria} portada={enDetalle.imagen_url} />
+            </div>
+            <div className="min-w-0 space-y-8">
+              <EditorProducto
+                producto={enDetalle}
+                categorias={categorias}
+                tramos={tramos.filter((t) => t.producto_id === enDetalle.id)}
+                enHoja
+              />
+              <Variantes
+                productoId={enDetalle.id}
+                skuProducto={enDetalle.sku}
+                precioProducto={Number(enDetalle.precio_base)}
+                variantes={enDetalle.variantes}
+              />
+            </div>
           </div>
         )}
       </Hoja>
@@ -407,8 +421,8 @@ function HojaCrear({
         )}
 
         <button type="submit" disabled={pendiente}
-                className="presionable w-full rounded-[10px] bg-spark py-3 text-[15px] font-semibold text-white
-                           hover:bg-spark-hover disabled:opacity-60">
+                className="presionable w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white
+                           hover:bg-tinta/85 disabled:opacity-60">
           {pendiente ? 'Creando…' : 'Crear y añadir fotos'}
         </button>
       </form>

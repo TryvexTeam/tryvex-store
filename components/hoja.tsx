@@ -12,6 +12,11 @@ type Props = {
   children: React.ReactNode
   /** Barra fija al pie, fuera del área que hace scroll. */
   pie?: React.ReactNode
+  /**
+   * `amplio`: en escritorio ocupa hasta 1100 px para editar a dos columnas
+   * (la ficha de un producto); en teléfono usa toda la altura.
+   */
+  ancho?: 'normal' | 'amplio'
 }
 
 /** A partir de aquí se entiende que el gesto quiso cerrar, no ojear. */
@@ -19,7 +24,7 @@ const UMBRAL_CIERRE = 110
 /** Un gesto rápido cierra aunque haya recorrido poco: lo que importa es la intención. */
 const UMBRAL_VELOCIDAD = 0.55
 
-export function Hoja({ abierta, onCerrar, titulo, bajada, children, pie }: Props) {
+export function Hoja({ abierta, onCerrar, titulo, bajada, children, pie, ancho = 'normal' }: Props) {
   const caja = useRef<HTMLDivElement>(null)
   const cuerpo = useRef<HTMLDivElement>(null)
   const devolverFoco = useRef<HTMLElement | null>(null)
@@ -147,8 +152,9 @@ export function Hoja({ abierta, onCerrar, titulo, bajada, children, pie }: Props
             ? 'transform var(--t-hoja) var(--ease-salida)'
             : undefined,
         }}
-        className="anim-hoja relative flex max-h-[92dvh] w-full flex-col rounded-t-[22px] bg-papel
-                   shadow-[var(--shadow-hoja)] md:max-w-[560px] md:rounded-[22px]"
+        className={`anim-hoja relative flex w-full flex-col rounded-t-[22px] bg-papel shadow-[var(--shadow-hoja)] md:rounded-[22px] ${
+          ancho === 'amplio' ? 'h-[96dvh] max-h-[96dvh] md:h-[min(880px,92dvh)] md:max-w-[1100px]' : 'max-h-[92dvh] md:max-w-[560px]'
+        }`}
       >
         {/* Zona de agarre. `touch-none` evita que el navegador interprete el
             gesto como scroll y se pelee con el arrastre. */}

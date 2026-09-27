@@ -9,7 +9,8 @@ import { CierreCampana, FranjaConfianza, HeroeCampana } from '@/components/tiend
 import { BannerDoble, BannerAncho, MosaicoCampana } from '@/components/tienda/editorial'
 import { ListaProductos } from '@/components/tienda/lista-productos'
 import { FilaCategorias } from '@/components/tienda/fila-categorias'
-import { GaleriaGuiada, ProductoFoco, TituloEco } from '@/components/tienda/escenas-scroll'
+import { ProductoFoco, TituloEco } from '@/components/tienda/escenas-scroll'
+import { ExploraColeccion } from '@/components/tienda/coleccion'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
@@ -57,7 +58,10 @@ export default async function Inicio() {
   return (
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
       <FranjaAnuncio configuracion={configuracion} />
-      <Cabecera destinos={destinosMenu(categorias)} ayuda={whatsapp} sobreHeroe />
+      {/* La cabecera ya no se monta sobre el banner: el banner es una tarjeta
+          despegada del borde, y encima de él van la franja de despachos y la
+          cabecera con su fondo propio, como en Apple. */}
+      <Cabecera destinos={destinosMenu(categorias)} ayuda={whatsapp} />
       <main className="min-w-0 flex-1">
         <HeroeCampana productos={productos} piezas={piezas} />
         <FranjaConfianza />
@@ -73,23 +77,23 @@ export default async function Inicio() {
             vende, después por qué. */}
         <ListaProductos productos={productos} />
         <BannerDoble piezas={piezas} />
-        <ProductoFoco producto={destacado} />
+        <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
         {/* ConfianzaEnMovimiento sale de la home: sus cuatro datos (garantia,
             envio, retracto, pago) ya los muestra <FranjaConfianza /> arriba en
             62 px. Repetirlos costaba 767 px de scroll. El componente queda para
             reutilizarse donde no exista la franja. */}
-        <GaleriaGuiada />
+        <ExploraColeccion piezas={piezas} />
         <TituloEco />
         <BannerAncho piezas={piezas} />
         <MosaicoCampana piezas={piezas} />
-        <section id="beneficios" aria-labelledby="beneficios-titulo" className="mx-auto w-full max-w-[1204px] px-[22px] pt-10 t:pt-16">
+        <section id="beneficios" aria-labelledby="beneficios-titulo" className="w-full px-[var(--canal)] pt-10 t:pt-16">
           <h2 id="beneficios-titulo" className="revela text-[28px] leading-[1.1] font-semibold tracking-seccion t:text-[36px]">Tryvex hace la diferencia.</h2>
           <p className="mt-2 text-[16px] text-tinta-suave t:text-[17px]">Comprar aquí tiene sus ventajas.</p>
           <div className="mt-6"><CardsBeneficio beneficios={beneficiosDe(configuracion)} /></div>
         </section>
         <CierreCampana producto={destacado} />
       </main>
-      <PieTienda nombre={nombre} email={configuracion?.email_contacto ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
+      <PieTienda nombre={nombre} email={configuracion?.email_contacto ?? null} emailVisible={configuracion?.email_visible ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
     </div>
   )
 }

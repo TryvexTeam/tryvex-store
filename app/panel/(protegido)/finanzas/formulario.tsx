@@ -205,8 +205,8 @@ export default function FormularioMovimiento() {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-4 min-h-11 w-full rounded-full bg-spark px-5 text-[15px] font-medium text-white
-                   transition-colors hover:bg-spark-hover disabled:opacity-40"
+        className="mt-4 min-h-11 w-full rounded-full bg-tinta px-5 text-[15px] font-medium text-white
+                   transition-colors hover:bg-tinta/85 disabled:opacity-40"
       >
         {enviando ? 'Guardando…' : 'Guardar'}
       </button>

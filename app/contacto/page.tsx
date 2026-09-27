@@ -17,6 +17,8 @@ export default async function Contacto() {
   const [configuracion, vitrina] = await Promise.all([leerConfiguracion(), leerVitrina()])
   const whatsapp = (configuracion?.whatsapp ?? '').replace(/\D/g, '')
   const email = configuracion?.email_contacto?.trim()
+  // Se muestra el correo de marca; el clic escribe al buzón que el equipo lee.
+  const emailVisible = configuracion?.email_visible?.trim() || email
 
   return (
     <div className="tienda flex min-h-dvh min-w-0 flex-col bg-papel-alt">
@@ -25,14 +27,14 @@ export default async function Contacto() {
       <PaginaServicio etiqueta="Ayuda" titulo="Contacto" descripcion="Use el canal que la tienda tenga disponible para su consulta.">
         {email || whatsapp ? (
           <ul className="space-y-3">
-            {email && <li><a href={`mailto:${email}`} className="block rounded-[18px] bg-papel p-5 ring-1 ring-borde/70 hover:ring-spark"><span className="block text-[14px] font-semibold text-gris">Correo electrónico</span><span className="mt-1 block break-words text-[19px] font-semibold text-tinta">{email}</span></a></li>}
+            {email && <li><a href={`mailto:${email}`} className="block rounded-[18px] bg-papel p-5 ring-1 ring-borde/70 hover:ring-spark"><span className="block text-[14px] font-semibold text-gris">Correo electrónico</span><span className="mt-1 block break-words text-[19px] font-semibold text-tinta">{emailVisible}</span></a></li>}
             {whatsapp && <li><a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" className="block rounded-[18px] bg-papel p-5 ring-1 ring-borde/70 hover:ring-spark"><span className="block text-[14px] font-semibold text-gris">WhatsApp</span><span className="mt-1 block text-[19px] font-semibold text-tinta">Abrir conversación ↗</span></a></li>}
           </ul>
         ) : (
           <p>Los canales de contacto se mostrarán aquí cuando estén configurados.</p>
         )}
       </PaginaServicio>
-      <PieTienda nombre={configuracion?.nombre_tienda ?? 'Tryvex'} email={configuracion?.email_contacto ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
+      <PieTienda nombre={configuracion?.nombre_tienda ?? 'Tryvex'} email={configuracion?.email_contacto ?? null} emailVisible={configuracion?.email_visible ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
     </div>
   )
 }

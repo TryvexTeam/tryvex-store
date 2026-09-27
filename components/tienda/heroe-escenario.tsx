@@ -54,12 +54,36 @@ function CifraPromo({ tipo, promo, tarjeta = false }: { tipo: EscenaHeroe['promo
 function CapsulaCompra({ producto }: { producto: ProductoHeroe }) {
   return (
     // Sin .heroe-linea-contenido: su `display:block` anulaba el flex y pegaba el precio al botón.
-    <div className="heroe-capsula mx-auto mt-6 inline-flex items-center gap-4 rounded-full py-2 pr-2 pl-5 backdrop-blur-xl d:absolute d:right-[max(22px,calc((100vw-1160px)/2))] d:bottom-24 d:mt-0">
+    <div className="heroe-capsula mx-auto mt-6 inline-flex items-center gap-4 rounded-full py-2 pr-2 pl-5 backdrop-blur-xl d:absolute d:right-[calc(var(--margen-heroe)+32px)] d:bottom-24 d:mt-0">
       <span className="text-[15px] font-semibold t:text-[16px]">
         {producto.agotado ? 'Agotado' : <>Desde <span className="cifra">{clp(producto.precio)}</span></>}
       </span>
-      {!producto.agotado && <Link href={producto.href} className="tienda-boton bg-spark text-white hover:bg-spark-hover">Comprar</Link>}
+      {!producto.agotado && <Link href={producto.href} className="tienda-boton bg-tinta text-white hover:bg-tinta/85">Comprar</Link>}
     </div>
+  )
+}
+
+/**
+ * Video de la escena: corre solo, en silencio y en bucle, cubriendo la escena
+ * igual que la foto. La foto de escritorio queda de imagen de espera mientras
+ * carga. Solo la escena activa reproduce; con movimiento reducido, el video
+ * queda quieto en su primer cuadro.
+ */
+function VideoEscena({ escena, activa, reducido }: { escena: EscenaHeroe; activa: boolean; reducido: boolean }) {
+  const poster = escena.fotos ? getImageProps({ src: escena.fotos.escritorio.src, alt: '', width: escena.fotos.escritorio.ancho, height: escena.fotos.escritorio.alto, sizes: '100vw' }).props.src : undefined
+  return (
+    <video
+      key={escena.video}
+      src={escena.video}
+      poster={poster}
+      autoPlay={activa && !reducido}
+      muted
+      loop
+      playsInline
+      preload={activa ? 'auto' : 'metadata'}
+      aria-hidden
+      className="absolute inset-0 size-full object-cover"
+    />
   )
 }
 
@@ -201,7 +225,7 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
       aria-live={reproduciendo && !reducido ? 'off' : 'polite'}
       data-tono={escenas[activa]?.tono ?? 'oscuro'}
       data-direccion={direccion}
-      className="heroe heroe-escenario heroe-banner relative isolate flex min-h-[min(640px,calc(100svh-48px))] flex-col overflow-hidden bg-black text-white d:min-h-[min(760px,calc(100svh-44px))]"
+      className="heroe heroe-escenario heroe-banner relative isolate mt-[var(--margen-heroe)] flex min-h-[min(640px,calc(100svh-96px-var(--margen-heroe)))] flex-col overflow-hidden bg-black text-white d:min-h-[min(760px,calc(100svh-88px-var(--margen-heroe)))]"
       onPointerDown={alBajarPuntero}
       onPointerUp={alSubirPuntero}
       onFocusCapture={alEnfocar}
@@ -232,7 +256,11 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                 className={`absolute inset-x-0 top-[var(--movil-desde)] bottom-0 t:[mask-image:none] ${escena.movilDesde ? '[mask-image:linear-gradient(to_bottom,transparent,#000_16%)]' : ''} ${escena.texto === 'arriba' ? 't:top-[40%]' : 't:top-0'}`}
                 style={{ '--movil-desde': `${escena.movilDesde ?? 0}%` } as CSSProperties}
               >
-                {escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />}
+                {escena.video ? (
+                  <VideoEscena escena={escena} activa={esActiva} reducido={reducido} />
+                ) : (
+                  escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />
+                )}
                 <span aria-hidden className="heroe-velo absolute inset-0" />
               </div>
             </div>

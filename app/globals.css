@@ -181,6 +181,9 @@
   --color-verde: #1d9e4b;
   --color-ambar: #b25000;
   --color-rojo: #d70015;
+  /* Vino: los avisos de las cards (oferta, nuevo). Más sobrio que el spark
+     para no competir con el producto; 9:1 sobre blanco. */
+  --color-vino: #8c1c32;
 
   /* Geist: la tipografia de marca de Tryvex, ya cargada por next/font. */
   --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
@@ -253,6 +256,17 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Estado base del héroe: tarjeta apenas despegada del borde y redondeada.
+   Su margen es propio y fino (12 a 24 px): con el canal de las filas, que
+   llega a 140 px, el banner se veía encajonado. Así se ve igual en
+   navegadores sin timelines de scroll y con movimiento reducido. */
+.tienda {
+  --margen-heroe: clamp(12px, 1.25vw, 24px);
+}
+.heroe-escenario {
+  clip-path: inset(0 var(--margen-heroe) 0 var(--margen-heroe) round 28px);
 }
 
 /* ── Tienda v8: escenario ──────────────────────────────────────
@@ -569,14 +583,17 @@ body {
 }
 
 /* Canal: margen lateral que alinea el título de cada franja con su primera
-   card. Crece con la pantalla para que la fila no se pegue al borde. */
+   card. Medido en apple.com/cl/store (2026-09-26, en px CSS): 22 hasta
+   ~930 de ancho, crece en recta (43,5 a 1000 · 100 a 1182) y se detiene en
+   140 desde 1309. Antes centraba en 1160 px sin techo: a 1586 px dejaba
+   213 px vacíos antes de la primera card. */
 .tienda {
-  --canal: max(22px, calc((100% - 1160px) / 2));
+  --canal: clamp(22px, 31.25vw - 269px, 140px);
 }
-/* Ojo: --canal es un porcentaje del padre. Dentro de una caja con ancho
-   máximo NO se usa como relleno (se aplicaría dos veces en pantallas
-   anchas): ahí va px-[22px] con max-w-[1204px] = 1160 + 2 × 22, que deja
-   el borde izquierdo exactamente en --canal. */
+/* --canal depende del ancho de la ventana (vw), no del padre: toda la
+   portada lo usa como relleno lateral para que títulos, banners y filas
+   partan del mismo borde, como en apple.com/cl/store. No combinarlo con
+   max-w-[1204px]: el contenido ya no se centra en 1160 px. */
 
 .tienda-pista {
   padding-inline: var(--canal);
@@ -832,19 +849,6 @@ body {
   display: none;
 }
 
-/* ── Tienda v5: colección ───────────────────────────────────────
-   La foto de la tile crece apenas al pasar el cursor; nada más. */
-/* Alias del plano del objeto: el tile de colección ya resolvía este gesto
-   antes que las cards. Un solo mecanismo para los dos, con el mismo valor. */
-.tienda-tile-colec-foto {
-  transition: transform 300ms var(--ease-tienda);
-}
-@media (hover: hover) and (pointer: fine) {
-  .tienda-tile-colec:hover .tienda-tile-colec-foto {
-    transform: scale(1.03);
-  }
-}
-
 /* ── Tienda v6: héroe a sangre ──────────────────────────────────
    Velo negro del lado del texto: arriba en teléfono, a la izquierda en
    escritorio, y siempre hacia abajo para fundirse con la franja siguiente.
@@ -982,10 +986,6 @@ body {
 .foco-producto { width: min(70vw, 42svh, 560px); }
 .foco-producto img { filter: drop-shadow(0 40px 50px rgb(0 0 0 / 55%)); }
 
-.galeria-pieza { width: min(72vw, 36svh, 420px); }
-.galeria-ventana { overflow-x: auto; scroll-snap-type: x mandatory; }
-.galeria-fila { width: max-content; }
-.galeria-pieza { scroll-snap-align: center; }
 
 .eco-estela { display: none; }
 
@@ -1017,13 +1017,6 @@ body {
     .confianza-franja-a { animation: confianza-izquierda linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
     .confianza-franja-b { animation: confianza-derecha linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
 
-    /* Galería */
-    /* 180svh = 36svh por foto. A 300svh este tramo media 2.733 px con CERO
-       productos dentro: el segundo bloque mas grande de la home no vendia nada. */
-    .galeria-tramo { height: 130svh; view-timeline-name: --galeria; }
-    .galeria-ventana { overflow: visible; scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); }
-    .galeria-fila { will-change: transform; animation: galeria-desliza both cubic-bezier(0.45, 0, 0.55, 1); animation-timeline: --galeria; animation-range: contain 8% contain 92%; }
-    .galeria-progreso { animation: escena-progreso both linear; animation-timeline: --galeria; animation-range: contain 8% contain 92%; }
 
     /* Eco */
     .eco-estela { display: block; opacity: 0; color: var(--color-tinta); animation: eco-estela linear both; animation-timeline: view(); animation-range: entry 40% cover 60%; }
@@ -1053,9 +1046,14 @@ body {
 .confianza-franja-b { transform: translateX(-30%); }
 @keyframes confianza-izquierda { from { transform: translate3d(4%, 0, 0); } to { transform: translate3d(-38%, 0, 0); } }
 @keyframes confianza-derecha { from { transform: translate3d(-46%, 0, 0); } to { transform: translate3d(-4%, 0, 0); } }
-@keyframes galeria-desliza { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-100% + 100vw), 0, 0); } }
 @keyframes eco-estela { from { opacity: 0; transform: none; } to { opacity: var(--eco-o); transform: translateY(var(--eco-y)); } }
-@keyframes heroe-a-tarjeta { from { clip-path: inset(0 0 0 0 round 0); } to { clip-path: inset(0 2.5% 3% 2.5% round 32px); } }
+/* El héroe ya parte como tarjeta: apenas despegado del borde y redondeado.
+   Al bajar se sigue recogiendo desde ahí. Antes partía de borde a borde y
+   sin esquinas, y solo se volvía tarjeta con el scroll. */
+@keyframes heroe-a-tarjeta {
+  from { clip-path: inset(0 var(--margen-heroe) 0 var(--margen-heroe) round 28px); }
+  to { clip-path: inset(0 calc(var(--margen-heroe) + 2.5%) 3% calc(var(--margen-heroe) + 2.5%) round 32px); }
+}
 
 /* ── Línea de envío ──────────────────────────────────────────────────────────
    Vertical en el teléfono, horizontal desde tablet. La animación cuenta el
@@ -1098,3 +1096,40 @@ body {
 }
 .entrega-panel { animation: entrega-aparece 260ms cubic-bezier(0.16, 1, 0.3, 1); }
 @media (prefers-reduced-motion: reduce) { .entrega-panel { animation: none; } }
+
+/* Aviso de «agregado a tu bolsa»: sube y aparece, sin tapar la página. */
+@keyframes aviso-bolsa-entra {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.aviso-bolsa { animation: aviso-bolsa-entra 260ms var(--ease-tienda) both; }
+@media (prefers-reduced-motion: reduce) {
+  .aviso-bolsa { animation: none; }
+}
+
+/* Card de producto dentro de una grilla: toma el ancho de la columna. */
+.tienda-card.tienda-card-fluida {
+  width: 100%;
+}
+
+/* Card de producto del panel: la misma sombra y respuesta de las de la tienda. */
+.panel-card {
+  box-shadow: 2px 4px 12px rgb(0 0 0 / 6%);
+  transition: transform 300ms var(--ease-tienda), box-shadow 300ms var(--ease-tienda);
+}
+.panel-card-foto { transition: transform 300ms var(--ease-tienda); }
+@media (hover: hover) and (pointer: fine) {
+  .panel-card:hover { transform: translateY(-3px); box-shadow: 0 2px 6px rgb(0 0 0 / 6%), 4px 10px 26px rgb(0 0 0 / 10%); }
+  .panel-card:hover .panel-card-foto { transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-card, .panel-card-foto { transition: none; }
+}
+
+/* Card de producto en la grilla del teléfono (dos por fila): toma el ancho
+   de la columna. Desde tablet vuelve a la medida de la portada. */
+@media (max-width: 734.98px) {
+  .tienda-card.tienda-card-fluida-movil {
+    width: 100%;
+  }
+}

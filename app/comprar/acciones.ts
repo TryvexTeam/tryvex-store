@@ -5,6 +5,7 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { leerConfiguracion, datosDePago } from '@/lib/configuracion'
 import { cotizarLineas, normalizarLineas, type LineaCotizada } from '@/lib/cotizacion'
 import { esRegion } from '@/lib/chile'
+import { esComunaDe } from '@/lib/comunas'
 import { crearOrden } from '@/lib/mercadopago'
 
 export type Resultado =
@@ -81,14 +82,14 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   if (!(METODOS as readonly string[]).includes(metodo)) return { ok: false, error: 'Elige cómo quieres pagar.' }
   if (entrega === 'envio') {
     if (!esRegion(region)) return { ok: false, error: 'Elige tu región.' }
-    if (comuna.length < 2) return { ok: false, error: 'Escribe tu comuna.' }
+    if (!esComunaDe(region, comuna)) return { ok: false, error: 'Elige tu comuna de la lista.' }
     if (direccion.length < 5) return { ok: false, error: 'Escribe la dirección de entrega.' }
   }
   if (entrega === 'sucursal') {
     // Sin región y comuna no se puede saber a qué sucursal despachar, y sin
     // sucursal el paquete no tiene destino.
     if (!esRegion(region)) return { ok: false, error: 'Elige tu región.' }
-    if (comuna.length < 2) return { ok: false, error: 'Escribe tu comuna.' }
+    if (!esComunaDe(region, comuna)) return { ok: false, error: 'Elige tu comuna de la lista.' }
     if (sucursal.length < 3) return { ok: false, error: 'Dinos en qué sucursal quieres retirar.' }
   }
 

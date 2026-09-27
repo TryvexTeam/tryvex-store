@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
 import { UUID, numeroOpcional, textoOpcional } from '@/lib/catalogo'
-import { slugificar } from '@/lib/imagenes'
+import { BUCKET, PESO_MAXIMO, TIPOS_ACEPTADOS, nombreArchivo, slugificar } from '@/lib/imagenes'
 
 function revalidar(): void {
   revalidatePath('/panel/productos')
@@ -78,5 +78,67 @@ export async function alternarCategoria(id: string, activo: boolean): Promise<Re
   const { error } = await sesion.supabase.from('categorias').update({ activo }).eq('id', id)
   if (error) return fallo(error.message)
   revalidar()
+  return { ok: true }
+}
+
+/**
+ * Sube la foto de una categoría para la fila de familias de la tienda.
+ *
+ * Va al bucket `productos`, bajo `categorias/<id>/`, igual que las fotos de
+ * productos (mismas policies de escritura del equipo y mismo dominio ya
+ * permitido para servir imágenes). La anterior se borra después de guardar
+ * la nueva: si algo falla antes, la categoría sigue con una foto que existe.
+ */
+export async function subirFotoCategoria(datos: FormData): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+
+  const id = String(datos.get('id') ?? '')
+  const archivo = datos.get('archivo')
+  if (!UUID.test(id)) return fallo('Categoría no válida.')
+  if (!(archivo instanceof File) || archivo.size === 0) return fallo('No llegó ninguna imagen.')
+  if (!TIPOS_ACEPTADOS.includes(archivo.type as (typeof TIPOS_ACEPTADOS)[number]))
+    return fallo('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
+  if (archivo.size > PESO_MAXIMO)
+    return fallo(`La imagen pesa ${(archivo.size / 1024 / 1024).toFixed(1)} MB y el máximo son 5 MB.`)
+
+  const { data: actual, error: errLectura } = await supabase.from('categorias').select('imagen_url').eq('id', id).maybeSingle()
+  if (errLectura) return fallo(errLectura.message)
+  if (!actual) return fallo('La categoría ya no existe.')
+
+  // El nombre lo decide el servidor: del archivo solo se usa la extensión.
+  const ruta = nombreArchivo(`categorias/${id}`, archivo.name)
+  const { error: errSubida } = await supabase.storage.from(BUCKET).upload(ruta, archivo, { cacheControl: '31536000', upsert: false })
+  if (errSubida) return fallo(`No se pudo subir: ${errSubida.message}`)
+
+  const { error } = await supabase.from('categorias').update({ imagen_url: ruta }).eq('id', id)
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([ruta])
+    return fallo(error.message)
+  }
+  const anterior = actual.imagen_url as string | null
+  if (anterior && anterior.startsWith(`categorias/${id}/`)) await supabase.storage.from(BUCKET).remove([anterior])
+
+  revalidar()
+  revalidatePath('/tienda')
+  return { ok: true }
+}
+
+/** Quita la foto propia: la tienda vuelve a usar la del primer producto. */
+export async function quitarFotoCategoria(id: string): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+  if (!UUID.test(id)) return fallo('Categoría no válida.')
+
+  const { data: actual } = await supabase.from('categorias').select('imagen_url').eq('id', id).maybeSingle()
+  const { error } = await supabase.from('categorias').update({ imagen_url: null }).eq('id', id)
+  if (error) return fallo(error.message)
+  const anterior = (actual?.imagen_url as string | null) ?? null
+  if (anterior && anterior.startsWith(`categorias/${id}/`)) await supabase.storage.from(BUCKET).remove([anterior])
+
+  revalidar()
+  revalidatePath('/tienda')
   return { ok: true }
 }

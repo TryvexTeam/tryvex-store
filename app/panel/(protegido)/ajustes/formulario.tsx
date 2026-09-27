@@ -26,7 +26,8 @@ const SECCIONES: { titulo: string; bajada: string; campos: Campo[] }[] = [
     bajada: 'Cómo se presenta y por dónde la contactan.',
     campos: [
       { nombre: 'nombre_tienda', etiqueta: 'Nombre' },
-      { nombre: 'email_contacto', etiqueta: 'Correo de contacto', tipo: 'email' },
+      { nombre: 'email_visible', etiqueta: 'Correo que se muestra', tipo: 'email', ayuda: 'El que ven los clientes en la tienda, por ejemplo tryvex@tryvex.tech' },
+      { nombre: 'email_contacto', etiqueta: 'Correo que recibe los mensajes', tipo: 'email', ayuda: 'Al tocar el correo en la tienda, se abre un mensaje dirigido aquí' },
       { nombre: 'whatsapp', etiqueta: 'WhatsApp', tipo: 'tel', ayuda: 'Con código de país: 56912345678' },
     ],
   },
@@ -132,8 +133,8 @@ export function FormularioAjustes({
       {puedeEditar && (
         <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] md:bottom-4">
           <button type="submit" disabled={guardando}
-                  className="presionable w-full rounded-[12px] bg-spark py-3.5 text-[15px] font-semibold text-white
-                             shadow-[var(--shadow-alzado)] hover:bg-spark-hover disabled:opacity-60">
+                  className="presionable w-full rounded-[12px] bg-tinta py-3.5 text-[15px] font-semibold text-white
+                             shadow-[var(--shadow-alzado)] hover:bg-tinta/85 disabled:opacity-60">
             {guardando ? 'Guardando…' : 'Guardar ajustes'}
           </button>
         </div>

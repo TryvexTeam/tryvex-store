@@ -39,13 +39,33 @@ export function Estado({ estado }: { estado: string }) {
   )
 }
 
-export function Acciones({ id, estado }: { id: string; estado: string }) {
+/** Qué dice cada botón: la acción, no el estado al que se llega. */
+const VERBO: Record<string, string> = {
+  pagado: 'Marcar pagado',
+  preparando: 'Marcar preparando',
+  enviado: 'Marcar enviado',
+  entregado: 'Marcar entregado',
+  cancelado: 'Cancelar pedido',
+}
+
+/**
+ * Botones para mover un pedido de estado.
+ *
+ * El siguiente paso natural va en negro y lleno; si hay otra opción (por
+ * ejemplo saltarse «preparando»), va contorneada; cancelar va aparte, como
+ * texto, porque es la acción que menos se quiere tocar por error. En el
+ * teléfono los botones ocupan el ancho y quedan en su propia fila: antes se
+ * amontonaban a la derecha y «Cancelado» caía solo en una tercera línea.
+ */
+export function Acciones({ id, estado, className = '' }: { id: string; estado: string; className?: string }) {
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [trabajando, iniciar] = useTransition()
 
   const opciones = SIGUIENTE[estado] ?? []
   if (!opciones.length) return null
+  const avances = opciones.filter((o) => o !== 'cancelado')
+  const cancelable = opciones.includes('cancelado')
 
   function mover(nuevo: string) {
     if (nuevo === 'cancelado' && !confirm('¿Cancelar el pedido? El stock vuelve a bodega.')) return
@@ -58,25 +78,36 @@ export function Acciones({ id, estado }: { id: string; estado: string }) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="flex flex-wrap justify-end gap-1.5">
-        {opciones.map((o) => (
+    <div className={`flex w-full flex-col gap-2 sm:w-auto ${className}`}>
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+        {avances.map((o, i) => (
           <button
             key={o}
+            type="button"
             onClick={() => mover(o)}
             disabled={trabajando}
-            className={`inline-flex min-h-11 items-center rounded-full px-4 text-[13px] font-medium transition-colors disabled:opacity-40 ${
-              o === 'cancelado'
-                ? 'text-gris hover:bg-spark-suave hover:text-rojo'
-                : 'bg-tinta text-white hover:opacity-85'
+            className={`inline-flex min-h-11 w-full items-center justify-center rounded-full px-4 text-[14px] font-medium whitespace-nowrap transition-colors disabled:opacity-40 sm:w-auto ${
+              i === 0 ? 'bg-tinta text-white hover:bg-tinta/85' : 'bg-papel text-tinta ring-1 ring-borde hover:ring-gris'
             }`}
           >
-            {o === 'pagado' ? 'Marcar pagado' : ROTULO[o]}
+            {VERBO[o] ?? ROTULO[o]}
           </button>
         ))}
+        {cancelable && (
+          <button
+            type="button"
+            onClick={() => mover('cancelado')}
+            disabled={trabajando}
+            className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 text-[13px] font-medium text-gris transition-colors hover:bg-rojo/10 hover:text-rojo disabled:opacity-40 ${
+              avances.length ? 'w-full sm:w-auto' : 'w-full ring-1 ring-borde sm:w-auto'
+            }`}
+          >
+            {VERBO.cancelado}
+          </button>
+        )}
       </div>
-      {error && <p role="alert" className="text-right text-[12px] text-rojo">{error}</p>}
-      {aviso && <p role="status" className="max-w-xs text-right text-[12px] text-ambar">{aviso}</p>}
+      {error && <p role="alert" className="text-[12px] text-rojo sm:text-right">{error}</p>}
+      {aviso && <p role="status" className="text-[12px] text-ambar sm:max-w-xs sm:text-right">{aviso}</p>}
     </div>
   )
 }
@@ -140,8 +171,8 @@ export function NuevoPedido({
     return (
       <button
         onClick={() => setAbierto(true)}
-        className="inline-flex min-h-11 items-center rounded-full bg-spark px-5 text-[14px] font-medium text-white
-                   transition-colors hover:bg-spark-hover"
+        className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] font-medium text-white
+                   transition-colors hover:bg-tinta/85"
       >
         Nuevo pedido
       </button>
@@ -273,8 +304,8 @@ export function NuevoPedido({
       )}
 
       <button type="submit" disabled={enviando || stock < 1}
-              className="mt-4 w-full rounded-full bg-spark px-5 py-2.5 text-[14px] font-medium text-white
-                         transition-colors hover:bg-spark-hover disabled:opacity-40">
+              className="mt-4 w-full rounded-full bg-tinta px-5 py-2.5 text-[14px] font-medium text-white
+                         transition-colors hover:bg-tinta/85 disabled:opacity-40">
         {enviando ? 'Creando…' : 'Crear y reservar stock'}
       </button>
       <p className="mt-2 text-center text-[12px] text-gris">

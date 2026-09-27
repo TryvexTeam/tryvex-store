@@ -124,12 +124,15 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
       onPointerEnter={cancelarCierre} onPointerLeave={programarCierre}
       onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) programarCierre() }}
       onKeyDown={(e) => { if (e.key === 'Escape' && (mega || servicio)) { e.preventDefault(); cerrarMega(); devolviendoFoco.current = true; origen.current?.focus(); devolviendoFoco.current = false; } }}>
-      <nav aria-label="Principal" className="grid h-12 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-[22px] n:mx-auto n:flex n:h-11 n:w-full n:max-w-[1024px]">
-        <Link href="/" aria-label="Tryvex, inicio" onClick={cerrar} className="col-start-2 row-start-1 rounded-md p-1 text-[17px] font-semibold tracking-cuerpo n:order-1 n:mr-3">
+      {/* En teléfono, una sola fila: menú y marca a la izquierda, íconos a la
+          derecha. Con la marca centrada en una grilla de tres columnas, los tres
+          íconos (132 px) no cabían en su tercio y la lupa quedaba sobre la marca. */}
+      <nav aria-label="Principal" className="flex h-12 items-center gap-1 px-[12px] n:mx-auto n:h-11 n:w-full n:max-w-[1024px] n:gap-2 n:px-[22px]">
+        <Link href="/" aria-label="Tryvex, inicio" onClick={cerrar} className="order-2 shrink-0 rounded-md p-1 text-[17px] font-semibold tracking-cuerpo n:order-1 n:mr-3">
           <Marca size={18} className="!text-inherit" />
         </Link>
 
-        <ul className="col-start-1 row-start-1 hidden min-w-0 items-center text-[11px] leading-tight n:order-2 n:flex n:flex-1 n:justify-between d:text-[12px]">
+        <ul className="hidden min-w-0 items-center text-[11px] leading-tight n:order-2 n:flex n:flex-1 n:justify-between d:text-[12px]">
           {/* La clave es el nombre: con una sola categoría, su ancla coincide
               con la de «Lo último» y el href se repite. */}
           {destinos.map((d) => (
@@ -143,7 +146,7 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
           ))}
         </ul>
 
-        <div className="col-start-3 row-start-1 flex items-center justify-self-end gap-1 n:order-3 n:ml-auto">
+        <div className="order-3 ml-auto flex shrink-0 items-center gap-0.5 n:ml-auto n:gap-1">
         <Buscador categorias={categorias} alAbrir={() => { cerrar(); cerrarMega() }} />
         <EnlaceCuenta alCerrar={cerrar} />
         <BotonBolsa />
@@ -154,7 +157,7 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
           aria-expanded={abierto}
           aria-controls="menu-tienda"
           aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
-          className="col-start-1 row-start-1 grid size-11 place-items-center n:hidden"
+          className="order-1 grid size-10 shrink-0 place-items-center min-[360px]:size-11 n:hidden"
         >
           <span aria-hidden className="relative block h-3 w-[18px]">
             <span className={`tienda-raya top-0 ${abierto ? 'translate-y-[5px] rotate-45' : ''}`} />

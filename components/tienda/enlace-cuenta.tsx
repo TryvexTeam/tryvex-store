@@ -39,7 +39,7 @@ export function EnlaceCuenta({ alCerrar }: { alCerrar: () => void }) {
         href={estado.conSesion ? '/cuenta' : '/cuenta/ingresar'}
         onClick={alCerrar}
         aria-label={estado.conSesion ? 'Mi cuenta' : 'Ingresar o crear cuenta'}
-        className="relative grid size-11 place-items-center rounded-full"
+        className="relative grid size-10 place-items-center min-[360px]:size-11 rounded-full"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
           <circle cx="12" cy="8" r="4" />
