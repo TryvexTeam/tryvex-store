@@ -45,6 +45,26 @@ function esLinea(x: unknown): x is LineaBolsa {
   )
 }
 
+const MARCA_PUBLICA = '/storage/v1/object/public/'
+
+/**
+ * La foto guardada en la bolsa, apuntando al almacenamiento de hoy.
+ *
+ * La bolsa vive en el navegador y guarda la URL completa de la foto. Cuando
+ * la tienda cambió de Supabase (2026-09-26), las bolsas viejas quedaron con
+ * fotos en un dominio que `next/image` ya no acepta, y la página de la bolsa
+ * se caía entera. La ruta dentro del bucket no cambió: se rearma con la base
+ * actual. Una URL de otro origen que no sea del almacenamiento se descarta.
+ */
+function imagenVigente(imagen: string | null | undefined): string | null {
+  if (!imagen) return null
+  if (imagen.startsWith('/')) return imagen
+  const i = imagen.indexOf(MARCA_PUBLICA)
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (i === -1 || !base) return null
+  return `${base.replace(/\/$/, '')}${imagen.slice(i)}`
+}
+
 export function leerBolsa(): LineaBolsa[] {
   try {
     const crudo = JSON.parse(localStorage.getItem(CLAVE_GUARDADO) ?? '[]')
@@ -52,7 +72,7 @@ export function leerBolsa(): LineaBolsa[] {
     return crudo
       .filter(esLinea)
       .slice(0, MAX_LINEAS)
-      .map((l) => ({ ...l, cantidad: acotar(l.cantidad), variante: l.variante ?? null, imagen: l.imagen ?? null }))
+      .map((l) => ({ ...l, cantidad: acotar(l.cantidad), variante: l.variante ?? null, imagen: imagenVigente(l.imagen) }))
   } catch {
     // Guardado corrupto o almacenamiento bloqueado (modo privado): bolsa vacía.
     return []

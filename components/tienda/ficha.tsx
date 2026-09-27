@@ -221,7 +221,7 @@ export function Ficha({
             </a>
           ) : (
             <div className="mt-6 grid gap-3">
-              <button type="button" onClick={agregarABolsa} className="tienda-boton w-full bg-spark !min-h-[52px] !text-[17px] text-white hover:bg-spark-hover">
+              <button type="button" onClick={agregarABolsa} className="tienda-boton w-full bg-tinta !min-h-[52px] !text-[17px] text-white hover:bg-tinta/85">
                 Agregar a la bolsa · <span className="cifra ml-1">{clp(precio * cantidad)}</span>
               </button>
               <Link href={destino} className="tienda-boton w-full text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
@@ -277,7 +277,7 @@ export function Ficha({
             <p className="truncate text-[19px] font-semibold tracking-cuerpo">{ficha.nombre}</p>
             <div className="flex shrink-0 items-center gap-5">
               <p className="cifra text-[15px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
-              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton min-h-9 bg-spark px-4 py-1.5 text-[14px] text-white hover:bg-spark-hover">
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton min-h-9 bg-tinta px-4 py-1.5 text-[14px] text-white hover:bg-tinta/85">
                 Agregar a la bolsa
               </button>
             </div>
@@ -297,7 +297,7 @@ export function Ficha({
               <p className="truncate text-[14px] font-semibold">{ficha.nombre}</p>
               <p className="cifra text-[13px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
             </div>
-            <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton shrink-0 bg-spark text-white">
+            <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton shrink-0 bg-tinta text-white">
               Agregar
             </button>
           </div>

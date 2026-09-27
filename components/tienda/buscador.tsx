@@ -65,7 +65,7 @@ export function Buscador({ categorias, alAbrir }: { categorias: DestinoMenu[]; a
 
   return (
     <>
-      <Link href="/tienda?buscar=1" onClick={abrir} aria-haspopup="dialog" aria-label="Buscar en la tienda" className="grid size-11 place-items-center rounded-full text-tinta/80 hover:text-tinta">
+      <Link href="/tienda?buscar=1" onClick={abrir} aria-haspopup="dialog" aria-label="Buscar en la tienda" className="grid size-10 place-items-center min-[360px]:size-11 rounded-full text-tinta/80 hover:text-tinta">
         <IconoLupa tamano={17} />
       </Link>
 

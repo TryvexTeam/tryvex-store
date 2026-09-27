@@ -230,7 +230,7 @@ export default function Checkout({
     return (
       <div className="py-20 text-center">
         <p className="text-[28px] font-semibold tracking-seccion">Tu bolsa está vacía.</p>
-        <Link href="/tienda" className="tienda-boton mt-6 bg-spark text-white hover:bg-spark-hover">Ver la tienda</Link>
+        <Link href="/tienda" className="tienda-boton mt-6 bg-tinta text-white hover:bg-tinta/85">Ver la tienda</Link>
       </div>
     )
 
@@ -426,7 +426,7 @@ export default function Checkout({
         {error && <p role="alert" className="rounded-[12px] bg-spark-suave px-4 py-3 text-[14px] text-rojo">{error}</p>}
 
         <div>
-          <button type="submit" disabled={enviando || cotizando || hayProblemas || lineas.length === 0} className="tienda-boton w-full bg-spark !min-h-[56px] !text-[17px] text-white hover:bg-spark-hover disabled:opacity-40">
+          <button type="submit" disabled={enviando || cotizando || hayProblemas || lineas.length === 0} className="tienda-boton w-full bg-tinta !min-h-[56px] !text-[17px] text-white hover:bg-tinta/85 disabled:opacity-40">
             {hayProblemas ? 'Revisa tu pedido' : enviando ? 'Reservando tu pedido…' : `Confirmar pedido · ${clp(total)}`}
           </button>
           <p className="mt-3 text-center text-[13px] leading-relaxed text-gris">No se cobra nada todavía: reservamos tus unidades y te indicamos cómo pagar.</p>
@@ -648,11 +648,11 @@ function Confirmacion({ listo, datosPago, metodo }: { listo: Extract<Resultado, 
       </ol>
 
       {hayWhatsapp ? (
-        <a href={listo.whatsapp} target="_blank" rel="noopener noreferrer" className="tienda-boton mt-8 w-full bg-spark !min-h-[56px] !text-[17px] text-white hover:bg-spark-hover">
+        <a href={listo.whatsapp} target="_blank" rel="noopener noreferrer" className="tienda-boton mt-8 w-full bg-tinta !min-h-[56px] !text-[17px] text-white hover:bg-tinta/85">
           Abrir WhatsApp con mi pedido
         </a>
       ) : (
-        <a href={`mailto:${datosPago.email}?subject=Pedido%20%23${listo.numero}`} className="tienda-boton mt-8 w-full bg-spark !min-h-[56px] !text-[17px] text-white hover:bg-spark-hover">
+        <a href={`mailto:${datosPago.email}?subject=Pedido%20%23${listo.numero}`} className="tienda-boton mt-8 w-full bg-tinta !min-h-[56px] !text-[17px] text-white hover:bg-tinta/85">
           Escribirnos por correo
         </a>
       )}

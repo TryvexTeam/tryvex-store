@@ -3,8 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { clp } from '@/lib/formato'
-import { Hoja } from '@/components/hoja'
 import { Estrella } from '@/app/marca'
 import {
   claveLinea,
@@ -27,6 +27,7 @@ interface ContextoBolsa {
   cambiar: (clave: string, cantidad: number) => void
   quitar: (clave: string) => void
   vaciar: () => void
+  /** Lleva a la página de la bolsa. */
   abrir: () => void
 }
 
@@ -44,12 +45,15 @@ export function useBolsa(): ContextoBolsa {
  * Arranca vacío y carga lo guardado recién en el navegador: así el HTML del
  * servidor y el primer render coinciden (sin errores de hidratación). Se
  * sincroniza entre pestañas con el evento `storage`.
+ *
+ * La bolsa es una página propia (/bolsa), como en Apple, y no una hoja
+ * emergente: se puede enlazar, volver atrás y revisar con calma.
  */
 export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
   const [lineas, setLineas] = useState<LineaBolsa[]>([])
   const [lista, setLista] = useState(false)
-  const [abierta, setAbierta] = useState(false)
   const [agregada, setAgregada] = useState<LineaBolsa | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     setLineas(leerBolsa())
@@ -67,6 +71,8 @@ export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  const cerrarAviso = useCallback(() => setAgregada(null), [])
+
   const valor = useMemo<ContextoBolsa>(
     () => ({
       lineas,
@@ -80,29 +86,27 @@ export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
       cambiar: (clave, cantidad) => actualizar((a) => a.map((l) => (claveLinea(l) === clave ? { ...l, cantidad: acotarUnidades(cantidad) } : l))),
       quitar: (clave) => actualizar((a) => a.filter((l) => claveLinea(l) !== clave)),
       vaciar: () => actualizar(() => []),
-      abrir: () => setAbierta(true),
+      abrir: () => router.push('/bolsa'),
     }),
-    [lineas, lista, actualizar]
+    [lineas, lista, actualizar, router]
   )
 
   return (
     <Contexto.Provider value={valor}>
       {children}
-      <HojaBolsa abierta={abierta} onCerrar={() => setAbierta(false)} />
-      <AvisoAgregado linea={agregada} onCerrar={() => setAgregada(null)} />
+      <AvisoAgregado linea={agregada} onCerrar={cerrarAviso} />
     </Contexto.Provider>
   )
 }
 
-/** Ícono de la bolsa con el número de unidades. */
+/** Ícono de la bolsa con el número de unidades: lleva a la página /bolsa. */
 export function BotonBolsa({ className = '' }: { className?: string }) {
-  const { unidades, abrir, lista } = useBolsa()
+  const { unidades, lista } = useBolsa()
   return (
-    <button
-      type="button"
-      onClick={abrir}
+    <Link
+      href="/bolsa"
       aria-label={unidades ? `Bolsa, ${unidades} ${unidades === 1 ? 'unidad' : 'unidades'}` : 'Bolsa vacía'}
-      className={`relative grid size-11 place-items-center rounded-full text-tinta/80 hover:text-tinta ${className}`}
+      className={`relative grid size-10 place-items-center min-[360px]:size-11 rounded-full text-tinta/80 hover:text-tinta ${className}`}
     >
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M5 8h14l-1 12H6L5 8ZM9 8V6a3 3 0 0 1 6 0v2" />
@@ -112,14 +116,14 @@ export function BotonBolsa({ className = '' }: { className?: string }) {
           {unidades}
         </span>
       )}
-    </button>
+    </Link>
   )
 }
 
-function Miniatura({ src }: { src: string | null }) {
+function Miniatura({ src, grande = false }: { src: string | null; grande?: boolean }) {
   return (
-    <span className="relative size-[72px] shrink-0 overflow-hidden rounded-[14px] bg-papel-alt">
-      {src ? <Image src={src} alt="" fill sizes="72px" className="object-contain p-1.5" /> : <Estrella size={28} className="m-auto mt-5 text-borde" />}
+    <span className={`relative block shrink-0 overflow-hidden bg-papel-alt ${grande ? 'size-24 rounded-[14px] t:size-[140px] t:rounded-[18px]' : 'size-12 rounded-[10px]'}`}>
+      {src ? <Image src={src} alt="" fill sizes={grande ? '140px' : '48px'} className="object-contain p-2" /> : <Estrella size={28} className="m-auto mt-3 text-borde" />}
     </span>
   )
 }
@@ -127,9 +131,9 @@ function Miniatura({ src }: { src: string | null }) {
 function Stepper({ valor, onCambio, etiqueta }: { valor: number; onCambio: (n: number) => void; etiqueta: string }) {
   return (
     <div className="flex items-center rounded-full ring-1 ring-borde" role="group" aria-label={`Cantidad de ${etiqueta}`}>
-      <button type="button" onClick={() => onCambio(valor - 1)} disabled={valor <= 1} aria-label="Quitar una unidad" className="grid size-9 place-items-center text-[18px] disabled:opacity-30">−</button>
-      <output aria-live="polite" className="cifra w-6 text-center text-[15px] font-semibold">{valor}</output>
-      <button type="button" onClick={() => onCambio(valor + 1)} disabled={valor >= MAX_UNIDADES_LINEA} aria-label="Agregar una unidad" className="grid size-9 place-items-center text-[18px] disabled:opacity-30">+</button>
+      <button type="button" onClick={() => onCambio(valor - 1)} disabled={valor <= 1} aria-label="Quitar una unidad" className="grid size-10 place-items-center text-[18px] disabled:opacity-30">−</button>
+      <output aria-live="polite" className="cifra w-7 text-center text-[15px] font-semibold">{valor}</output>
+      <button type="button" onClick={() => onCambio(valor + 1)} disabled={valor >= MAX_UNIDADES_LINEA} aria-label="Agregar una unidad" className="grid size-10 place-items-center text-[18px] disabled:opacity-30">+</button>
     </div>
   )
 }
@@ -138,16 +142,16 @@ function Stepper({ valor, onCambio, etiqueta }: { valor: number; onCambio: (n: n
 const ESPERA_COTIZACION = 350
 
 /**
- * Cotiza la bolsa en el servidor mientras la hoja está abierta: el precio por
- * pack, el stock y el envío que ve el comprador son los mismos que se cobran.
- * Mientras llega, se muestra lo guardado en el navegador.
+ * Cotiza la bolsa en el servidor: el precio por pack, el stock y el envío
+ * que ve el comprador son los mismos que se cobran. Mientras llega, se
+ * muestra lo guardado en el navegador.
  */
-function useCotizacionBolsa(abierta: boolean, lineas: LineaBolsa[]) {
+function useCotizacionBolsa(lineas: LineaBolsa[]) {
   const [cotizacion, setCotizacion] = useState<CotizacionBolsa | null>(null)
   const turno = useRef(0)
   const pedidas = useMemo(() => lineas.map((l) => ({ sku: l.sku, varianteId: l.varianteId, cantidad: l.cantidad })), [lineas])
   useEffect(() => {
-    if (!abierta || pedidas.length === 0) return
+    if (pedidas.length === 0) return
     const mio = ++turno.current
     const t = setTimeout(async () => {
       try {
@@ -158,7 +162,7 @@ function useCotizacionBolsa(abierta: boolean, lineas: LineaBolsa[]) {
       }
     }, ESPERA_COTIZACION)
     return () => clearTimeout(t)
-  }, [abierta, pedidas])
+  }, [pedidas])
   return cotizacion?.ok ? cotizacion : null
 }
 
@@ -178,110 +182,144 @@ function BarraEnvio({ subtotal, gratisDesde }: { subtotal: number; gratisDesde: 
   )
 }
 
-function HojaBolsa({ abierta, onCerrar }: { abierta: boolean; onCerrar: () => void }) {
-  const { lineas, subtotal: subtotalLocal, unidades, cambiar, quitar } = useBolsa()
-  const cotizacion = useCotizacionBolsa(abierta, lineas)
+/**
+ * Página de la bolsa (/bolsa), como la de Apple: título grande, los
+ * productos en lista y el resumen con el total y el botón de pago.
+ */
+export function PaginaBolsa() {
+  const { lineas, subtotal: subtotalLocal, unidades, cambiar, quitar, lista } = useBolsa()
+  const cotizacion = useCotizacionBolsa(lineas)
   const cotizadas = new Map((cotizacion?.lineas ?? []).map((c) => [c.clave, c]))
   // Solo se confía en la cotización si corresponde a la bolsa actual, línea por línea.
   const vigente = cotizacion !== null && lineas.every((l) => cotizadas.get(claveLinea(l))?.cantidad === l.cantidad)
   const subtotal = vigente ? [...cotizadas.values()].reduce((a, c) => a + c.subtotal, 0) : subtotalLocal
   const gratisDesde = vigente ? cotizacion.envio.gratisDesde : null
 
+  // La bolsa vive en el navegador: hasta leerla, no se afirma que está vacía.
+  if (!lista) return <div aria-busy className="min-h-[50svh]" />
+
+  if (lineas.length === 0) {
+    return (
+      <div className="py-16 text-center t:py-24">
+        <h1 className="text-[32px] leading-tight font-semibold tracking-seccion t:text-[40px]">Tu bolsa está vacía.</h1>
+        <p className="mt-3 text-[17px] text-tinta-suave">Lo que agregues aparecerá aquí.</p>
+        <Link href="/tienda" className="tienda-boton mt-8 bg-tinta text-white hover:bg-tinta/85">Ver la tienda</Link>
+      </div>
+    )
+  }
+
   return (
-    <Hoja
-      abierta={abierta}
-      onCerrar={onCerrar}
-      titulo="Tu bolsa"
-      bajada={unidades ? `${unidades} ${unidades === 1 ? 'unidad' : 'unidades'}` : undefined}
-      pie={
-        lineas.length > 0 ? (
-          <div className="pb-2">
-            {gratisDesde !== null && gratisDesde > 0 && <BarraEnvio subtotal={subtotal} gratisDesde={gratisDesde} />}
-            <div className="flex items-baseline justify-between py-2">
-              <span className="text-[15px] text-tinta-suave">Subtotal</span>
-              <span className={`cifra text-[20px] font-semibold transition-opacity ${vigente ? '' : 'opacity-60'}`}>{clp(subtotal)}</span>
-            </div>
-            <Link href="/comprar" onClick={onCerrar} className="tienda-boton w-full bg-spark !min-h-[52px] text-white hover:bg-spark-hover">
-              Pagar
-            </Link>
-            <p className="mt-2 text-center text-[12px] text-gris">
-              {vigente ? 'Precios por pack incluidos. El envío se confirma con tu dirección.' : 'Actualizando precios…'}
-            </p>
-          </div>
-        ) : undefined
-      }
-    >
-      {lineas.length === 0 ? (
-        <div className="py-10 text-center">
-          <p className="text-[19px] font-semibold tracking-cuerpo">Tu bolsa está vacía.</p>
-          <Link href="/tienda" onClick={onCerrar} className="mt-3 inline-block text-[15px] text-spark hover:underline">Ver la tienda</Link>
-        </div>
-      ) : (
-        <ul className="divide-y divide-borde/60">
+    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-14">
+      <div className="min-w-0">
+        <h1 className="text-[32px] leading-tight font-semibold tracking-seccion t:text-[40px]">Revisa tu bolsa.</h1>
+        <p className="mt-2 text-[17px] text-tinta-suave">
+          {unidades} {unidades === 1 ? 'unidad' : 'unidades'} · Envío gratis a todo Chile.
+        </p>
+
+        <ul className="mt-8 divide-y divide-borde/70 border-y border-borde/70">
           {lineas.map((l) => {
             const clave = claveLinea(l)
             const c = vigente ? cotizadas.get(clave) : undefined
             return (
-              <li key={clave} className="flex gap-4 py-4">
-                <Miniatura src={l.imagen} />
+              <li key={clave} className="flex gap-4 py-6 t:gap-7 t:py-8">
+                <Link href={`/producto/${l.slug}`} tabIndex={-1} aria-hidden>
+                  <Miniatura src={l.imagen} grande />
+                </Link>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/producto/${l.slug}`} onClick={onCerrar} className="line-clamp-2 text-[15px] leading-snug font-semibold hover:underline">{l.nombre}</Link>
-                  {l.variante && <p className="text-[13px] text-gris">{l.variante}</p>}
-                  <div className="mt-2.5 flex items-center justify-between gap-3">
-                    <Stepper valor={l.cantidad} onCambio={(n) => cambiar(clave, n)} etiqueta={l.nombre} />
-                    <span className="text-right">
-                      <span className="cifra block text-[15px] font-semibold">{clp(c ? c.subtotal : l.precio * l.cantidad)}</span>
-                      {c?.tramo && <span className="cifra block text-[12px] text-verde">{c.tramo} · {clp(c.precio)} c/u</span>}
+                  <div className="flex flex-col gap-1 t:flex-row t:items-start t:justify-between t:gap-6">
+                    <div className="min-w-0">
+                      <Link href={`/producto/${l.slug}`} className="line-clamp-2 text-[17px] leading-snug font-semibold hover:underline t:text-[21px]">{l.nombre}</Link>
+                      {l.variante && <p className="mt-0.5 text-[14px] text-gris">{l.variante}</p>}
+                    </div>
+                    <span className="t:text-right">
+                      <span className="cifra block text-[17px] font-semibold t:text-[21px]">{clp(c ? c.subtotal : l.precio * l.cantidad)}</span>
+                      {c?.tramo && <span className="cifra block text-[13px] text-verde">{c.tramo} · {clp(c.precio)} c/u</span>}
                     </span>
                   </div>
-                  {c?.error && <p className="mt-2 text-[13px] text-rojo" role="alert">{c.error}</p>}
+                  <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <Stepper valor={l.cantidad} onCambio={(n) => cambiar(clave, n)} etiqueta={l.nombre} />
+                    <button type="button" onClick={() => quitar(clave)} className="text-[14px] text-gris underline-offset-2 hover:text-tinta hover:underline">Eliminar</button>
+                  </div>
+                  {c?.error && <p className="mt-3 text-[14px] text-rojo" role="alert">{c.error}</p>}
                   {c?.siguienteTramo && !c.error && (
-                    <button type="button" onClick={() => cambiar(clave, l.cantidad + c.siguienteTramo!.faltan)}
-                      className="presionable mt-2.5 flex w-full items-center justify-between gap-3 rounded-[12px] bg-verde/10 px-3 py-2 text-left text-[13px] text-verde hover:bg-verde/15">
+                    <button
+                      type="button"
+                      onClick={() => cambiar(clave, l.cantidad + c.siguienteTramo!.faltan)}
+                      className="presionable mt-3 flex w-full max-w-[420px] items-center justify-between gap-3 rounded-[12px] bg-verde/10 px-3.5 py-2.5 text-left text-[14px] text-verde hover:bg-verde/15"
+                    >
                       <span>Lleva {c.siguienteTramo.faltan} más y paga <span className="cifra font-semibold">{clp(c.siguienteTramo.precio)}</span> c/u</span>
                       <span aria-hidden className="font-semibold">+{c.siguienteTramo.faltan}</span>
                     </button>
                   )}
-                  <button type="button" onClick={() => quitar(clave)} className="mt-2 text-[13px] text-gris hover:text-rojo">Quitar</button>
                 </div>
               </li>
             )
           })}
         </ul>
-      )}
-    </Hoja>
+        <Link href="/tienda" className="mt-5 inline-block text-[15px] text-spark hover:underline">Seguir comprando</Link>
+      </div>
+
+      {/* Resumen: fijo al costado en escritorio, al final en teléfono. */}
+      <aside className="lg:sticky lg:top-24 lg:self-start">
+        <div className="rounded-[18px] bg-papel p-6 ring-1 ring-borde/70">
+          <h2 className="text-[19px] font-semibold tracking-cuerpo">Resumen</h2>
+          <dl className="mt-4 space-y-2.5 text-[15px]">
+            <div className="flex justify-between"><dt className="text-tinta-suave">Subtotal</dt><dd className={`cifra transition-opacity ${vigente ? '' : 'opacity-60'}`}>{clp(subtotal)}</dd></div>
+            <div className="flex justify-between"><dt className="text-tinta-suave">Envío</dt><dd>Gratis</dd></div>
+          </dl>
+          {gratisDesde !== null && gratisDesde > 0 && <div className="mt-4"><BarraEnvio subtotal={subtotal} gratisDesde={gratisDesde} /></div>}
+          <div className="mt-4 flex items-baseline justify-between border-t border-borde/70 pt-4">
+            <span className="text-[17px] font-semibold">Total</span>
+            <span className={`cifra text-[24px] font-semibold transition-opacity ${vigente ? '' : 'opacity-60'}`}>{clp(subtotal)}</span>
+          </div>
+          <Link href="/comprar" className="tienda-boton mt-5 w-full bg-tinta !min-h-[52px] !text-[17px] text-white hover:bg-tinta/85">
+            Pagar
+          </Link>
+          <p className="mt-3 text-center text-[12px] text-gris" aria-live="polite">
+            {vigente ? 'Precios por pack incluidos.' : 'Actualizando precios…'}
+          </p>
+        </div>
+      </aside>
+    </div>
   )
 }
 
+/** Cuánto dura el aviso de «agregado» antes de irse solo. */
+const DURACION_AVISO = 5000
+
 /**
- * Confirmación al agregar: «Agregado», el total y dos salidas. Es la
- * diferencia medida contra Dune Dragon, que agrega en silencio.
+ * Aviso al agregar: una tarjeta chica abajo, que no tapa la página ni pide
+ * cerrarse. Dice qué se agregó y lleva a la bolsa. Se va sola a los pocos
+ * segundos, y en la propia página de la bolsa no aparece.
  */
 function AvisoAgregado({ linea, onCerrar }: { linea: LineaBolsa | null; onCerrar: () => void }) {
-  const { subtotal, unidades } = useBolsa()
+  const { unidades } = useBolsa()
+  const ruta = usePathname()
+
+  useEffect(() => {
+    if (!linea) return
+    const t = setTimeout(onCerrar, DURACION_AVISO)
+    return () => clearTimeout(t)
+  }, [linea, onCerrar])
+
+  const visible = linea !== null && ruta !== '/bolsa'
   return (
-    <Hoja abierta={linea !== null} onCerrar={onCerrar} titulo="Agregado a tu bolsa">
-      {linea && (
-        <div className="space-y-5 pb-2">
-          <div className="flex gap-4">
-            <Miniatura src={linea.imagen} />
-            <div className="min-w-0">
-              <p className="text-[16px] leading-snug font-semibold">{linea.nombre}</p>
-              <p className="text-[13px] text-gris">
-                {[linea.variante, `${linea.cantidad} ${linea.cantidad === 1 ? 'unidad' : 'unidades'}`].filter(Boolean).join(' · ')}
-              </p>
-            </div>
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+      {visible && (
+        <div className="aviso-bolsa pointer-events-auto flex w-full max-w-[420px] items-center gap-3 rounded-[18px] bg-papel/95 p-3 pr-2 shadow-[0_10px_40px_rgb(0_0_0/18%)] ring-1 ring-black/5 backdrop-blur-xl">
+          <Miniatura src={linea.imagen} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] text-verde">Agregado a tu bolsa</p>
+            <p className="truncate text-[15px] font-semibold">{linea.nombre}</p>
           </div>
-          <div className="flex items-baseline justify-between rounded-[14px] bg-papel-alt px-4 py-3">
-            <span className="text-[14px] text-tinta-suave">Tu bolsa · {unidades} {unidades === 1 ? 'unidad' : 'unidades'}</span>
-            <span className="cifra text-[18px] font-semibold">{clp(subtotal)}</span>
-          </div>
-          <div className="grid gap-3 t:grid-cols-2">
-            <button type="button" onClick={onCerrar} className="tienda-boton w-full text-tinta ring-1 ring-borde ring-inset hover:ring-gris">Seguir comprando</button>
-            <Link href="/comprar" onClick={onCerrar} className="tienda-boton w-full bg-spark text-white hover:bg-spark-hover">Pagar</Link>
-          </div>
+          <Link href="/bolsa" onClick={onCerrar} className="shrink-0 rounded-full bg-tinta px-4 py-2 text-[14px] font-medium text-white hover:bg-tinta/90">
+            Ver bolsa{unidades > 1 ? ` (${unidades})` : ''}
+          </Link>
+          <button type="button" onClick={onCerrar} aria-label="Cerrar aviso" className="grid size-9 shrink-0 place-items-center rounded-full text-gris hover:text-tinta">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
         </div>
       )}
-    </Hoja>
+    </div>
   )
 }

@@ -92,7 +92,7 @@ export default async function ResultadoPago({
       )}
 
       <div className="mt-10 flex flex-wrap justify-center gap-3">
-        <Link href="/cuenta" className="tienda-boton bg-spark text-white hover:bg-spark-hover">
+        <Link href="/cuenta" className="tienda-boton bg-tinta text-white hover:bg-tinta/85">
           Ver mis pedidos
         </Link>
         <Link href="/tienda" className="tienda-boton border border-black/15 hover:bg-black/5">

@@ -58,7 +58,7 @@ function CapsulaCompra({ producto }: { producto: ProductoHeroe }) {
       <span className="text-[15px] font-semibold t:text-[16px]">
         {producto.agotado ? 'Agotado' : <>Desde <span className="cifra">{clp(producto.precio)}</span></>}
       </span>
-      {!producto.agotado && <Link href={producto.href} className="tienda-boton bg-spark text-white hover:bg-spark-hover">Comprar</Link>}
+      {!producto.agotado && <Link href={producto.href} className="tienda-boton bg-tinta text-white hover:bg-tinta/85">Comprar</Link>}
     </div>
   )
 }

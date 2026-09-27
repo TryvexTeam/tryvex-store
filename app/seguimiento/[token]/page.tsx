@@ -108,7 +108,7 @@ export default async function Seguimiento({ params }: { params: Promise<{ token:
               Si algo no calza con tu pedido, escríbenos y lo resolvemos.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/ayuda" className="tienda-boton bg-spark text-white hover:bg-spark-hover">
+              <Link href="/ayuda" className="tienda-boton bg-tinta text-white hover:bg-tinta/85">
                 Centro de ayuda
               </Link>
               <Link href="/contacto" className="tienda-boton text-tinta ring-1 ring-borde ring-inset hover:bg-papel-alt">
