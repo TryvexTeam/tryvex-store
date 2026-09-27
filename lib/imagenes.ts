@@ -9,7 +9,7 @@
  * En la tabla se guardan DOS cosas distintas y conviene no confundirlas:
  *   · `imagen_url` — la portada, una sola, la que sale en la grilla y en la
  *     tienda. Es siempre una de las de `galeria`.
- *   · `galeria`    — jsonb con el orden completo de las imágenes.
+ *   · `galeria`    — jsonb con el orden completo de las imágenes y videos.
  */
 
 export const BUCKET = 'productos'
@@ -27,6 +27,28 @@ export const TIPOS_ACEPTADOS = [
 export const PESO_MAXIMO = 5 * 1024 * 1024
 
 export const MAX_POR_PRODUCTO = 8
+
+/**
+ * Videos de la galería. Conviven con las fotos en la misma lista `galeria`,
+ * reconocidos por su extensión: así el orden lo decide el equipo igual que
+ * con las fotos, y no hace falta otra columna. Un video nunca es la portada
+ * (`imagen_url`): la grilla y las tarjetas necesitan una imagen.
+ *
+ * Se suben directo del navegador al bucket con una URL firmada, porque
+ * Vercel corta los envíos de más de 4,5 MB: pasar un video por una Server
+ * Action fallaría justo con los videos buenos.
+ */
+export const TIPOS_VIDEO = ['video/mp4', 'video/webm'] as const
+
+/** 30 MB: el `file_size_limit` del bucket. Las fotos siguen topadas en 5 MB. */
+export const PESO_MAXIMO_VIDEO = 30 * 1024 * 1024
+
+const EXTENSION_VIDEO = /\.(mp4|webm)$/i
+
+/** ¿Esta ruta de la galería es un video? */
+export function esVideo(ruta: string | null | undefined): boolean {
+  return Boolean(ruta && EXTENSION_VIDEO.test(ruta.split('?')[0]))
+}
 
 /**
  * URL pública de un objeto del bucket.

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
-import { urlPublica, MAX_POR_PRODUCTO, PESO_MAXIMO, TIPOS_ACEPTADOS } from '@/lib/imagenes'
-import { subirImagen, borrarImagen, fijarPortada, moverImagen } from './acciones-catalogo'
+import { urlPublica, MAX_POR_PRODUCTO, PESO_MAXIMO, PESO_MAXIMO_VIDEO, TIPOS_ACEPTADOS, TIPOS_VIDEO, BUCKET, esVideo } from '@/lib/imagenes'
+import { crearClienteNavegador } from '@/lib/supabase/cliente'
+import { subirImagen, borrarImagen, fijarPortada, moverImagen, pedirSubidaVideo, confirmarVideo } from './acciones-catalogo'
 import { useAvisos } from '@/components/avisos'
 import {
   IconoCamara,
@@ -30,6 +31,10 @@ type Props = {
  *
  * Sube de a una y no en lote: desde el teléfono, con datos móviles, un lote
  * entero se pierde por una sola foto que falla.
+ *
+ * También acepta videos (MP4 o WebM, hasta 30 MB). Esos no pasan por el
+ * servidor de Vercel, que corta a los 4,5 MB: el servidor firma la subida,
+ * el navegador la hace directo al bucket y el servidor la confirma.
  */
 export function Galeria({ productoId, galeria, portada }: Props) {
   const avisos = useAvisos()
@@ -50,6 +55,18 @@ export function Galeria({ productoId, galeria, portada }: Props) {
 
   const actual = galeria[sel] ?? null
   const esPortada = actual !== null && actual === portada
+  const actualEsVideo = esVideo(actual)
+
+  /** Sube un video en tres pasos: firma, subida directa y confirmación. */
+  async function subirVideo(archivo: File): Promise<{ ok: true } | { ok: false; error: string }> {
+    const firma = await pedirSubidaVideo(productoId, archivo.name, archivo.type, archivo.size)
+    if (!firma.ok) return firma
+    const { error } = await crearClienteNavegador()
+      .storage.from(BUCKET)
+      .uploadToSignedUrl(firma.ruta, firma.token, archivo, { contentType: archivo.type, cacheControl: '31536000' })
+    if (error) return { ok: false, error: `No se pudo subir el video: ${error.message}` }
+    return confirmarVideo(productoId, firma.ruta)
+  }
 
   async function procesar(archivos: FileList | File[]) {
     setError(null)
@@ -66,8 +83,24 @@ export function Galeria({ productoId, galeria, portada }: Props) {
     for (const archivo of aSubir) {
       // Se valida antes de subir: mandar 5 MB para que el servidor los
       // rechace es tiempo y datos móviles tirados a la basura.
+      const video = TIPOS_VIDEO.includes(archivo.type as (typeof TIPOS_VIDEO)[number])
+      if (video) {
+        if (archivo.size > PESO_MAXIMO_VIDEO) {
+          setError(`«${archivo.name}» pesa ${(archivo.size / 1024 / 1024).toFixed(1)} MB; el máximo para videos son 30 MB.`)
+          continue
+        }
+        setSubiendo((n) => n + 1)
+        const r = await subirVideo(archivo)
+        setSubiendo((n) => n - 1)
+        if (r.ok) avisos.ok('Video añadido.')
+        else {
+          setError(r.error)
+          avisos.error(r.error)
+        }
+        continue
+      }
       if (!TIPOS_ACEPTADOS.includes(archivo.type as (typeof TIPOS_ACEPTADOS)[number])) {
-        setError(`«${archivo.name}» no es una imagen admitida.`)
+        setError(`«${archivo.name}» no es una imagen ni un video admitido.`)
         continue
       }
       if (archivo.size > PESO_MAXIMO) {
@@ -155,7 +188,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
               <IconoCamara size={30} />
               <span className="text-[15px] font-semibold text-tinta">Añade las fotos</span>
               <span className="max-w-[15rem] text-center text-[12px] leading-snug">
-                Arrastra los archivos o toca aquí. La primera será la portada en la tienda.
+                Arrastra fotos o videos, o toca aquí. La primera foto será la portada en la tienda.
               </span>
             </>
           )}
@@ -170,7 +203,19 @@ export function Galeria({ productoId, galeria, portada }: Props) {
             className={`relative overflow-hidden rounded-[18px] bg-papel-alt ring-1 transition-colors
                         ${encima ? 'ring-2 ring-spark' : 'ring-borde/70'}`}
           >
-            {actual && (
+            {actual && actualEsVideo && (
+              <video
+                key={actual}
+                src={urlPublica(actual)}
+                aria-label={`Video ${sel + 1} de ${galeria.length}`}
+                className="cuadro w-full object-contain"
+                controls
+                muted
+                playsInline
+                preload="metadata"
+              />
+            )}
+            {actual && !actualEsVideo && (
               <Image
                 key={actual}
                 src={urlPublica(actual)}
@@ -224,7 +269,8 @@ export function Galeria({ productoId, galeria, portada }: Props) {
 
             <button
               type="button"
-              disabled={ocupado || esPortada}
+              disabled={ocupado || esPortada || actualEsVideo}
+              title={actualEsVideo ? 'La portada tiene que ser una foto' : undefined}
               onClick={() => actual && accion(() => fijarPortada(productoId, actual), 'Portada actualizada.')}
               className={`presionable flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px]
                           text-[13px] font-semibold transition-colors
@@ -264,13 +310,24 @@ export function Galeria({ productoId, galeria, portada }: Props) {
                                 i === sel ? 'ring-2 ring-spark' : 'ring-borde/70 hover:ring-gris'
                               }`}
                 >
-                  <Image
-                    src={urlPublica(ruta)}
-                    alt=""
-                    width={128}
-                    height={128}
-                    className="cuadro size-full"
-                  />
+                  {esVideo(ruta) ? (
+                    <>
+                      <video src={`${urlPublica(ruta)}#t=0.1`} muted playsInline preload="metadata" className="cuadro size-full object-cover" />
+                      <span aria-hidden className="absolute inset-0 grid place-items-center">
+                        <span className="grid size-6 place-items-center rounded-full bg-tinta/60 text-white">
+                          <svg viewBox="0 0 10 10" className="ml-px size-2.5" fill="currentColor"><path d="M2 1.2v7.6L8.6 5z" /></svg>
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <Image
+                      src={urlPublica(ruta)}
+                      alt=""
+                      width={128}
+                      height={128}
+                      className="cuadro size-full"
+                    />
+                  )}
                   {ruta === portada && (
                     <span className="absolute inset-x-0 bottom-0 bg-spark py-[1px] text-center text-[8px] font-bold text-white">
                       PORTADA
@@ -311,7 +368,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
       <input
         ref={entrada}
         type="file"
-        accept={TIPOS_ACEPTADOS.join(',')}
+        accept={[...TIPOS_ACEPTADOS, ...TIPOS_VIDEO].join(',')}
         multiple
         className="sr-only"
         onChange={(e) => {
@@ -321,7 +378,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
 
       {galeria.length > 0 && (
         <p className="mt-2 text-[12px] text-gris">
-          El orden es el que verá la tienda. JPG, PNG, WebP o HEIC, hasta 5 MB.
+          El orden es el que verá la tienda. Fotos JPG, PNG, WebP o HEIC hasta 5 MB; videos MP4 o WebM hasta 30 MB.
         </p>
       )}
 

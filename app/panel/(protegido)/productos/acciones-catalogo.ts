@@ -7,8 +7,11 @@ import {
   BUCKET,
   MAX_POR_PRODUCTO,
   PESO_MAXIMO,
+  PESO_MAXIMO_VIDEO,
   TIPOS_ACEPTADOS,
+  TIPOS_VIDEO,
   esRutaDelProducto,
+  esVideo,
   nombreArchivo,
   rutasDeGaleria,
   slugificar,
@@ -234,6 +237,78 @@ export async function subirImagen(datos: FormData): Promise<Resultado> {
   return { ok: true }
 }
 
+/**
+ * Primer paso para subir un video: el servidor valida y entrega una URL
+ * firmada de un solo uso para esa ruta exacta. El navegador sube el archivo
+ * directo al bucket (Vercel corta los envíos de más de 4,5 MB) y después
+ * llama a `confirmarVideo`, que recién ahí lo suma a la galería.
+ */
+export async function pedirSubidaVideo(
+  productoId: string,
+  nombre: string,
+  tipo: string,
+  peso: number
+): Promise<Resultado<{ ruta: string; token: string }>> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+
+  if (!TIPOS_VIDEO.includes(tipo as (typeof TIPOS_VIDEO)[number]))
+    return fallo('Formato de video no admitido. Usa MP4 o WebM.')
+  if (!Number.isFinite(peso) || peso <= 0) return fallo('El video llegó vacío.')
+  if (peso > PESO_MAXIMO_VIDEO)
+    return fallo(`El video pesa ${(peso / 1024 / 1024).toFixed(1)} MB y el máximo son 30 MB.`)
+
+  const cargado = await cargarProducto(supabase, productoId)
+  if (!cargado.ok) return cargado
+  const { producto } = cargado
+  if (producto.galeria.length >= MAX_POR_PRODUCTO)
+    return fallo(`Ya hay ${MAX_POR_PRODUCTO} archivos. Borra alguno antes de subir otro.`)
+
+  // La extensión sale del tipo validado, no del nombre que manda el cliente.
+  const extension = tipo === 'video/webm' ? 'webm' : 'mp4'
+  const ruta = nombreArchivo(producto.id, `${String(nombre).replace(/\.[^.]*$/, '')}.${extension}`)
+
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(ruta)
+  if (error || !data) return fallo(`No se pudo preparar la subida: ${error?.message ?? 'sin respuesta'}`)
+  return { ok: true, ruta, token: data.token }
+}
+
+/** Segundo paso: el video ya está en el bucket y se suma a la galería. */
+export async function confirmarVideo(productoId: string, ruta: string): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+
+  const cargado = await cargarProducto(supabase, productoId)
+  if (!cargado.ok) return cargado
+  const { producto } = cargado
+
+  // La ruta vuelve del navegador: se exige carpeta y extensión correctas, y
+  // que el archivo exista de verdad en el bucket.
+  if (!esRutaDelProducto(ruta, producto.id) || !esVideo(ruta)) return fallo('Ese video no es de este producto.')
+  if (producto.galeria.includes(ruta)) return { ok: true }
+
+  const carpeta = ruta.slice(0, ruta.lastIndexOf('/'))
+  const archivo = ruta.slice(ruta.lastIndexOf('/') + 1)
+  const { data: encontrados, error: errLista } = await supabase.storage.from(BUCKET).list(carpeta, { search: archivo })
+  if (errLista) return fallo(errLista.message)
+  if (!encontrados?.some((o) => o.name === archivo)) return fallo('El video no terminó de subirse. Inténtalo de nuevo.')
+
+  const { error } = await supabase
+    .from('productos')
+    .update({ galeria: [...producto.galeria, ruta], updated_at: new Date().toISOString() })
+    .eq('id', producto.id)
+
+  if (error) {
+    await supabase.storage.from(BUCKET).remove([ruta])
+    return fallo(error.message)
+  }
+
+  revalidar()
+  return { ok: true }
+}
+
 /** Quita una imagen de la galería y del bucket. */
 export async function borrarImagen(productoId: string, ruta: string): Promise<Resultado> {
   const sesion = await exigirIntegrante()
@@ -249,7 +324,7 @@ export async function borrarImagen(productoId: string, ruta: string): Promise<Re
   const galeria = producto.galeria.filter((r) => r !== ruta)
   // Si cae la portada, la siguiente ocupa su lugar: dejar el campo apuntando
   // a un archivo que ya no existe deja un hueco en la grilla y en la tienda.
-  const portada = producto.imagen_url === ruta ? (galeria[0] ?? null) : producto.imagen_url
+  const portada = producto.imagen_url === ruta ? (galeria.find((r) => !esVideo(r)) ?? null) : producto.imagen_url
 
   const { error } = await supabase
     .from('productos')
@@ -277,6 +352,8 @@ export async function fijarPortada(productoId: string, ruta: string): Promise<Re
   const { producto } = cargado
 
   if (!rutaLegitima(producto, ruta)) return fallo('Esa imagen no es de este producto.')
+  // La portada sale en la grilla y en las tarjetas, que muestran imágenes.
+  if (esVideo(ruta)) return fallo('Un video no puede ser la portada. Elige una foto.')
 
   const { error } = await sesion.supabase
     .from('productos')

@@ -1,13 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, ViewTransition } from 'react'
-import Image from 'next/image'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { clp } from '@/lib/formato'
-import { Estrella } from '@/app/marca'
 import { precioPara, type FichaProducto } from '@/lib/ficha-precio'
 import { useBolsa } from './bolsa'
-import { BotonFavorito } from './boton-favorito'
+import { GaleriaFicha } from './galeria-ficha'
 import { MediosPago } from './medios-pago'
 
 interface Envio {
@@ -63,37 +61,6 @@ export function Ficha({
     return lista.length ? lista : [null]
   }, [variante, ficha.galeria])
 
-  const [foto, setFoto] = useState(0)
-  const [zoomFoto, setZoomFoto] = useState(0)
-  // La foto ampliada se monta solo con el diálogo abierto: una imagen lazy
-  // dentro de un <dialog> cerrado (display:none) no llegaba a cargarse.
-  const [zoomAbierto, setZoomAbierto] = useState(false)
-  const zoom = useRef<HTMLDialogElement>(null)
-  const origenZoom = useRef<HTMLElement | null>(null)
-  const gestoZoom = useRef<{ x: number; y: number } | null>(null)
-  const overflowPrevio = useRef('')
-  function abrirZoom(i: number) {
-    origenZoom.current = document.activeElement as HTMLElement
-    setZoomFoto(i)
-    setZoomAbierto(true)
-    overflowPrevio.current = document.body.style.overflow
-    zoom.current?.showModal()
-    document.body.style.overflow = 'hidden'
-  }
-  function cerrarZoom() { zoom.current?.close() }
-  function moverZoom(delta: number) { setZoomFoto((i) => (i + delta + fotos.length) % fotos.length) }
-  useEffect(() => () => { if (zoom.current?.open) document.body.style.overflow = overflowPrevio.current }, [])
-  const pista = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    setFoto(0)
-    pista.current?.scrollTo({ left: 0 })
-  }, [fotos])
-
-  function irA(i: number) {
-    const el = pista.current
-    if (!el) return
-    el.scrollTo({ left: i * el.clientWidth, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
-  }
 
   // Barra fija: aparece solo cuando el botón principal ya quedó atrás.
   // Se mira la posición en cada scroll (un cálculo por cuadro) y no con
@@ -158,66 +125,16 @@ export function Ficha({
         </ol>
       </nav>
 
-      <div className="ficha mx-auto grid max-w-[1204px] gap-8 pt-4 pb-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-14 lg:px-[22px] lg:pt-8">
+      {/* Como Dune Dragon: la galería llega al borde izquierdo y ocupa cerca del
+          63 % del ancho; los datos quedan a la derecha, en el canal. */}
+      <div className="ficha grid gap-8 pt-4 pb-12 lg:grid-cols-[minmax(0,63fr)_minmax(0,37fr)] lg:gap-12 lg:pt-0 lg:pr-[var(--canal)]">
         {/* ── Galería ─────────────────────────────────────────────── */}
-        <div className="min-w-0 lg:sticky lg:top-16 lg:self-start">
-          <div className="relative overflow-hidden bg-papel-alt lg:rounded-[28px]">
-            <div className="absolute right-4 top-4 z-10"><BotonFavorito productoId={ficha.id} nombre={ficha.nombre} /></div>
-            <span className="absolute bottom-4 right-4 z-10 rounded-full bg-white px-3 py-1 text-sm text-black lg:hidden" aria-live="polite">{foto + 1} / {fotos.length}</span>
-            <div
-              ref={pista}
-              onScroll={(e) => setFoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
-              className="sin-barra flex aspect-square snap-x snap-mandatory overflow-x-auto"
-              aria-roledescription="carrusel"
-              aria-label={`Fotos de ${ficha.nombre}`}
-            >
-              {fotos.map((src, i) => (
-                <div key={`${src}-${i}`} className="relative w-full shrink-0 snap-center" aria-label={`Foto ${i + 1} de ${fotos.length}`}>
-                  {src && <button type="button" onClick={() => abrirZoom(i)} aria-label={`Ampliar foto ${i + 1} de ${ficha.nombre}`} className="absolute inset-0 z-[1] cursor-zoom-in focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-black" />}
-                  {src ? (
-                    i === 0 ? (
-                      <ViewTransition name={`producto-${ficha.slug}`}>
-                        <Image src={src} alt={ficha.nombre} fill priority sizes="(min-width: 1024px) 680px, 100vw" className="object-contain p-8 t:p-14" />
-                      </ViewTransition>
-                    ) : (
-                      <Image src={src} alt="" fill sizes="(min-width: 1024px) 680px, 100vw" className="object-contain p-8 t:p-14" />
-                    )
-                  ) : (
-                    <span className="grid size-full place-items-center text-borde"><Estrella size={96} /></span>
-                  )}
-                </div>
-              ))}
-            </div>
-            {fotos.length > 1 && (
-              <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2 lg:hidden" aria-hidden>
-                {fotos.map((_, i) => (
-                  <span key={i} className={`size-1.5 rounded-full transition-colors ${i === foto ? 'bg-tinta' : 'bg-tinta/25'}`} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {fotos.length > 1 && (
-            <ul className="mt-4 hidden flex-wrap gap-3 lg:flex" aria-label="Elegir foto">
-              {fotos.map((src, i) => (
-                <li key={`m-${src}-${i}`}>
-                  <button
-                    type="button"
-                    onClick={() => irA(i)}
-                    aria-label={`Ver foto ${i + 1}`}
-                    aria-current={i === foto}
-                    className={`relative block size-20 overflow-hidden rounded-[14px] bg-papel-alt ring-2 transition-shadow ${i === foto ? 'ring-tinta' : 'ring-transparent hover:ring-borde'}`}
-                  >
-                    {src && <Image src={src} alt="" fill sizes="80px" className="object-contain p-2" />}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="min-w-0">
+          <GaleriaFicha medios={fotos} nombre={ficha.nombre} slug={ficha.slug} productoId={ficha.id} />
         </div>
 
         {/* ── Datos y compra ─────────────────────────────────────── */}
-        <div className="min-w-0 px-[var(--canal)] lg:px-0 lg:pt-4">
+        <div className="min-w-0 px-[var(--canal)] lg:sticky lg:top-16 lg:self-start lg:px-0 lg:pt-4">
           {ficha.etiqueta && <p className="text-[14px] font-semibold text-spark">{ficha.etiqueta}</p>}
           <h1 className="mt-1 text-[32px] leading-[1.06] font-semibold tracking-seccion text-balance t:text-[40px] d:text-[48px]">{ficha.nombre}</h1>
           {ficha.marca && <p className="mt-2 text-[14px] text-gris">{ficha.marca}{ficha.condicion !== 'nuevo' ? ` · ${ficha.condicion}` : ''}</p>}
@@ -349,34 +266,6 @@ export function Ficha({
         </div>
       </div>
 
-      <dialog ref={zoom} role="dialog" aria-modal="true" aria-label={`Fotos ampliadas de ${ficha.nombre}`} className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-[#f5f5f7] p-0 text-tinta backdrop:bg-black/80"
-        onClose={() => { setZoomAbierto(false); document.body.style.overflow = overflowPrevio.current; origenZoom.current?.focus() }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') { e.preventDefault(); cerrarZoom() }
-          if (e.key === 'ArrowLeft') { e.preventDefault(); moverZoom(-1) }
-          if (e.key === 'ArrowRight') { e.preventDefault(); moverZoom(1) }
-          if (e.key === 'Tab') {
-            const botones = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
-            const primero = botones[0], ultimo = botones[botones.length - 1]
-            if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo?.focus() }
-            else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero?.focus() }
-          }
-        }}>
-        <button type="button" autoFocus onClick={cerrarZoom} aria-label="Cerrar fotos ampliadas" className="absolute top-4 right-4 z-10 grid size-11 place-items-center rounded-full bg-white text-tinta shadow-sm ring-1 ring-borde hover:bg-papel-alt focus-visible:outline-2">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-        </button>
-        <div className="relative h-full w-full touch-pan-y" onPointerDown={(e) => { gestoZoom.current = { x: e.clientX, y: e.clientY } }} onPointerCancel={() => { gestoZoom.current = null }} onPointerUp={(e) => { const inicio = gestoZoom.current; gestoZoom.current = null; if (inicio && Math.abs(e.clientX - inicio.x) > 50 && Math.abs(e.clientX - inicio.x) > Math.abs(e.clientY - inicio.y)) moverZoom(e.clientX < inicio.x ? 1 : -1) }}>
-          {zoomAbierto && fotos[zoomFoto] && <Image src={fotos[zoomFoto]!} alt={`${ficha.nombre}, foto ${zoomFoto + 1}`} fill sizes="100vw" loading="eager" className="object-contain p-6 t:p-16" />}
-        </div>
-        {/* Con una sola foto no hay nada que recorrer: sin flechas ni contador. */}
-        {fotos.length > 1 && (
-          <div className="absolute inset-x-0 bottom-5 flex items-center justify-center gap-4">
-            <button type="button" onClick={() => moverZoom(-1)} aria-label="Foto anterior" className="grid size-11 place-items-center rounded-full bg-white shadow-sm ring-1 ring-borde hover:bg-papel-alt">←</button>
-            <span aria-live="polite" className="cifra rounded-full bg-white px-3.5 py-1.5 text-[14px] shadow-sm ring-1 ring-borde">{zoomFoto + 1} / {fotos.length}</span>
-            <button type="button" onClick={() => moverZoom(1)} aria-label="Foto siguiente" className="grid size-11 place-items-center rounded-full bg-white shadow-sm ring-1 ring-borde hover:bg-papel-alt">→</button>
-          </div>
-        )}
-      </dialog>
       {/* Barra de compra de escritorio (patrón Apple): bajo la cabecera, con nombre,
           precio y botón siempre a mano cuando el botón principal ya quedó atrás. */}
       {!agotado && (
