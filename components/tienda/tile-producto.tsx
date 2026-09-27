@@ -15,10 +15,16 @@ const MAX_MUESTRAS = 6
  * la esquina (la lección de Dune Dragon: el cliente escanea fotos, no
  * textos). Debajo, nombre, precio con el anterior tachado y los colores,
  * siempre en el mismo orden para que la grilla se lea como una tabla.
+ *
+ * La oferta no lleva píldora roja sobre la foto: el precio tachado ya la
+ * cuenta, y el porcentaje va como texto al pie, a la derecha, donde las
+ * tiendas grandes lo ponen. Una grilla con todo en oferta se veía como un
+ * mar de rojo.
  */
 export function TileProducto({ producto, prioridad = false }: { producto: ProductoTienda; prioridad?: boolean }) {
   const { nombre, slug, imagen, precio, precioAntes, agotado, etiqueta, colores, href } = producto
-  const insignia = agotado ? 'Agotado' : precioAntes ? 'Oferta' : etiqueta
+  const insignia = agotado ? 'Agotado' : etiqueta
+  const descuento = !agotado && precioAntes && precioAntes > precio ? Math.round((1 - precio / precioAntes) * 100) : 0
 
   return (
     <div className="relative min-w-0">
@@ -41,7 +47,7 @@ export function TileProducto({ producto, prioridad = false }: { producto: Produc
         {insignia && (
           <span
             className={`absolute top-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-etiqueta ${
-              agotado ? 'bg-tinta text-white' : precioAntes ? 'bg-spark text-white' : 'bg-papel text-spark'
+              agotado ? 'bg-tinta text-white' : 'bg-papel text-spark'
             }`}
           >
             {insignia}
@@ -51,12 +57,17 @@ export function TileProducto({ producto, prioridad = false }: { producto: Produc
 
       <div className="px-1 pt-3">
         <h3 className="line-clamp-2 text-[15px] leading-snug font-semibold tracking-apoyo t:text-[17px]">{nombre}</h3>
-        <p className="mt-1 text-[14px] t:text-[15px]">
+        <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-[14px] t:text-[15px]">
           <span className={`cifra ${agotado ? 'text-gris' : 'text-tinta'}`}>{clp(precio)}</span>
           {precioAntes && (
-            <span className="cifra ml-2 text-gris line-through">
+            <span className="cifra text-gris line-through">
               <span className="sr-only">antes </span>
               {clp(precioAntes)}
+            </span>
+          )}
+          {descuento > 0 && (
+            <span className="cifra ml-auto text-[12px] font-semibold text-[#137333] t:text-[13px]">
+              {descuento}% menos
             </span>
           )}
         </p>

@@ -187,7 +187,10 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
           <ul className="grid grid-cols-2 gap-x-4 gap-y-9 px-[var(--canal)] pt-8 lg:grid-cols-3 d:grid-cols-4 d:gap-x-5">
             {lista.map((p, i) => (
               <li key={p.id} className="min-w-0">
-                <TileProducto producto={p} prioridad={i < 4} />
+                {/* El mismo marco que la portada: sombra y respuesta al pasar. */}
+                <div className="tienda-marco h-full overflow-hidden rounded-[18px] bg-white p-2 pb-4 t:p-3 t:pb-5">
+                  <TileProducto producto={p} prioridad={i < 4} />
+                </div>
               </li>
             ))}
           </ul>
