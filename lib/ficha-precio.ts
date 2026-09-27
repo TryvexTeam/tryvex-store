@@ -14,6 +14,8 @@ export interface VarianteFicha {
   nombre: string
   sku: string
   colorHex: string | null
+  /** Imagen del círculo (diseño, textura). Manda sobre `colorHex`. */
+  muestra: string | null
   precio: number
   imagen: string | null
   /** Tope MAX_POR_PEDIDO: nunca el número real. */

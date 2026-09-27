@@ -5,7 +5,7 @@ import { leerVitrina, type ProductoTienda } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { CardProducto } from '@/components/tienda/card-producto'
-import { FiltrosColeccion, ORDENES, type Orden } from '@/components/tienda/filtros-coleccion'
+import { FiltrosColeccion, ORDENES, type Orden, type Vista } from '@/components/tienda/filtros-coleccion'
 import { FilaCategorias } from '@/components/tienda/fila-categorias'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
@@ -57,6 +57,7 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
   const soloOfertas = uno(q.ofertas) === '1'
   const ordenQ = uno(q.orden)
   const orden: Orden = ordenQ && ordenQ in ORDENES ? (ordenQ as Orden) : 'recientes'
+  const vista: Vista = uno(q.vista) === 'catalogo' ? 'catalogo' : 'pares'
 
   const categoria = categorias.find((c) => c.slug === cat) ?? null
   const termino = normal(busqueda)
@@ -104,8 +105,8 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
         {/* Hijo directo de <main>: un sticky solo flota dentro de su contenedor,
             y envuelto en un div terminaba apenas empezaba la grilla. */}
         <FiltrosColeccion
-          key={`${categoria?.slug}-${busqueda}-${soloDisponibles}-${soloOfertas}-${min}-${max}-${orden}`}
-          estado={{ cat: categoria?.slug, busqueda, disponibles: soloDisponibles, ofertas: soloOfertas, min, max, orden }}
+          key={`${categoria?.slug}-${busqueda}-${soloDisponibles}-${soloOfertas}-${min}-${max}-${orden}-${vista}`}
+          estado={{ cat: categoria?.slug, busqueda, disponibles: soloDisponibles, ofertas: soloOfertas, min, max, orden, vista }}
           resultados={lista.length}
         />
 
@@ -115,12 +116,18 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
             <Link href="/tienda" className="tienda-boton mt-6 bg-tinta text-white hover:bg-tinta/85">Ver todo el catálogo</Link>
           </div>
         ) : (
-          // Las mismas cards de la portada. La columna manda el ancho (nunca
-          // menos de 290 px, lo que necesita la foto de 230 más sus márgenes).
-          <ul className="grid grid-cols-1 gap-5 px-[var(--canal)] pt-6 t:grid-cols-[repeat(auto-fill,minmax(290px,1fr))]">
+          // Desde tablet, exactamente la card de la portada (309 × 450 y
+          // 313 × 500 desde 1069 px): columnas del ancho de la card, tantas
+          // como quepan. En el teléfono, la vista elegida: de a dos con la
+          // card compacta, o una por fila con la de la portada.
+          <ul
+            className={`grid gap-3 px-[var(--canal)] pt-6 t:grid-cols-[repeat(auto-fill,309px)] t:gap-5 d:grid-cols-[repeat(auto-fill,313px)] ${
+              vista === 'pares' ? 'grid-cols-2' : 'grid-cols-1'
+            }`}
+          >
             {lista.map((p) => (
               <li key={p.id} className="min-w-0">
-                <CardProducto producto={p} fluida />
+                <CardProducto producto={p} fluida={vista === 'pares' ? 'movil' : false} />
               </li>
             ))}
           </ul>

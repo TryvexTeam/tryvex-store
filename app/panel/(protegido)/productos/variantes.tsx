@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
+import Image from 'next/image'
+import { urlPublica, TIPOS_ACEPTADOS } from '@/lib/imagenes'
 import { Casilla } from '@/components/casilla'
 import { clp } from '@/lib/formato'
 import { skuDeVariante, type Variante } from '@/lib/catalogo'
 import { useAvisos } from '@/components/avisos'
 import { IconoMas } from '@/components/iconos'
-import { guardarVariante, quitarVariante, reactivarVariante } from './acciones-variantes'
+import { guardarVariante, quitarVariante, reactivarVariante, subirArchivoVariante, quitarArchivoVariante } from './acciones-variantes'
 
 const campo =
   'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
-  'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
+  'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 
 type Props = {
@@ -26,6 +28,10 @@ type Props = {
  * Opcionales: la mayoría de los productos simples no las necesita. Cuando
  * existen, cada una lleva su propio stock, que se carga desde Stock igual que
  * el de un producto.
+ *
+ * Cada variante tiene su círculo (el color, o una muestra: una imagen chica
+ * para diseños de dos tonos o texturas, como los de dunedragon.cl) y su foto,
+ * que la card de la tienda muestra al tocar ese círculo.
  */
 export function Variantes({ productoId, skuProducto, precioProducto, variantes }: Props) {
   const [editando, setEditando] = useState<string | 'nueva' | null>(null)
@@ -34,6 +40,32 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
 
   const activas = variantes.filter((v) => v.activo)
   const inactivas = variantes.filter((v) => !v.activo)
+
+  // Un solo selector de archivos para todas las filas: se anota para qué
+  // variante y qué imagen se abrió.
+  const entrada = useRef<HTMLInputElement>(null)
+  const [destino, setDestino] = useState<{ id: string; tipo: 'muestra' | 'foto' } | null>(null)
+  const [subiendo, setSubiendo] = useState<string | null>(null)
+
+  function elegir(id: string, tipo: 'muestra' | 'foto') {
+    setDestino({ id, tipo })
+    entrada.current?.click()
+  }
+
+  async function subir(archivo: File | undefined) {
+    const d = destino
+    if (entrada.current) entrada.current.value = ''
+    if (!archivo || !d) return
+    setSubiendo(`${d.id}-${d.tipo}`)
+    const datos = new FormData()
+    datos.set('id', d.id)
+    datos.set('tipo', d.tipo)
+    datos.set('archivo', archivo)
+    const r = await subirArchivoVariante(datos)
+    setSubiendo(null)
+    if (r.ok) avisos.ok(d.tipo === 'muestra' ? 'Círculo actualizado.' : 'Foto de la variante actualizada.')
+    else avisos.error(r.error)
+  }
 
   function quitar(v: Variante) {
     if (!confirm(`¿Quitar la variante «${v.nombre}»?`)) return
@@ -59,6 +91,7 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
 
   return (
     <section aria-labelledby={`variantes-${productoId}`}>
+      <input ref={entrada} type="file" accept={TIPOS_ACEPTADOS.join(',')} className="sr-only" onChange={(e) => void subir(e.target.files?.[0])} />
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <div>
           <h3 id={`variantes-${productoId}`} className="text-[15px] font-semibold tracking-[-0.01em]">
@@ -93,11 +126,39 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
             </li>
           ) : (
             <li key={v.id} className="flex items-center gap-3 rounded-[12px] bg-papel-alt px-3.5 py-3">
-              <span
-                aria-hidden
-                className="size-6 shrink-0 rounded-full ring-1 ring-borde"
-                style={{ background: v.color_hex ?? 'var(--color-papel)' }}
-              />
+              {/* El círculo que ve el cliente: tocarlo para subir una muestra. */}
+              <button
+                type="button"
+                onClick={() => elegir(v.id, 'muestra')}
+                disabled={pendiente || subiendo !== null}
+                aria-label={`Cambiar el círculo de ${v.nombre}`}
+                title="Círculo: toca para subir un diseño"
+                className="presionable relative size-8 shrink-0 rounded-full ring-1 ring-borde hover:ring-gris"
+                style={
+                  v.muestra_url
+                    ? { backgroundImage: `url("${urlPublica(v.muestra_url)}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    : { background: v.color_hex ?? 'var(--color-papel)' }
+                }
+              >
+                {subiendo === `${v.id}-muestra` && <span className="absolute inset-0 m-auto size-4 animate-spin rounded-full border-2 border-borde border-t-tinta" />}
+              </button>
+              {/* La foto de la variante: la que muestra la card al elegir el círculo. */}
+              <button
+                type="button"
+                onClick={() => elegir(v.id, 'foto')}
+                disabled={pendiente || subiendo !== null}
+                aria-label={v.imagen_url ? `Cambiar la foto de ${v.nombre}` : `Subir la foto de ${v.nombre}`}
+                title="Foto de la variante"
+                className={`presionable relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-papel ${v.imagen_url ? 'ring-1 ring-borde/70' : 'border border-dashed border-borde text-gris hover:border-gris'}`}
+              >
+                {subiendo === `${v.id}-foto` ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-borde border-t-tinta" />
+                ) : v.imagen_url ? (
+                  <Image src={urlPublica(v.imagen_url)} alt="" fill sizes="40px" className="object-contain p-0.5" />
+                ) : (
+                  <IconoMas size={14} />
+                )}
+              </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[14px] font-medium">{v.nombre}</p>
                 <p className="truncate text-[11px] text-gris">
@@ -108,12 +169,12 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
                 {v.stock > 0 ? `${v.stock} u.` : 'Sin stock'}
               </span>
               <button type="button" onClick={() => setEditando(v.id)} disabled={pendiente}
-                      className="rounded-full px-2.5 py-1.5 text-[12px] font-medium text-spark hover:bg-spark-suave">
+                      className="rounded-full px-2.5 py-1.5 text-[12px] font-medium text-tinta hover:bg-papel">
                 Editar
               </button>
               <button type="button" onClick={() => quitar(v)} disabled={pendiente}
                       aria-label={`Quitar la variante ${v.nombre}`}
-                      className="rounded-full px-2.5 py-1.5 text-[12px] text-gris hover:bg-spark-suave hover:text-rojo">
+                      className="rounded-full px-2.5 py-1.5 text-[12px] text-gris hover:bg-rojo/10 hover:text-rojo">
                 Quitar
               </button>
             </li>
@@ -149,7 +210,7 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
                 <span className="size-4 rounded-full ring-1 ring-borde" style={{ background: v.color_hex ?? 'transparent' }} />
                 <span className="flex-1 text-[13px]">{v.nombre}</span>
                 <button type="button" onClick={() => reactivar(v)} disabled={pendiente}
-                        className="text-[12px] font-medium text-spark">
+                        className="text-[12px] font-medium text-tinta underline-offset-2 hover:underline">
                   Reactivar
                 </button>
               </li>
@@ -185,6 +246,15 @@ function FormularioVariante({
   // El SKU se propone solo a partir del nombre hasta que alguien lo escribe a
   // mano: después se respeta lo que puso.
   const skuMostrado = tocoSku ? sku : nombre ? skuDeVariante(skuProducto, nombre) : ''
+
+  function quitarImagen(tipo: 'muestra' | 'foto') {
+    if (!variante) return
+    empezar(async () => {
+      const r = await quitarArchivoVariante(variante.id, tipo)
+      if (r.ok) avisos.ok(tipo === 'muestra' ? 'El círculo vuelve a su color.' : 'Foto de la variante quitada.')
+      else avisos.error(r.error)
+    })
+  }
 
   function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -250,6 +320,16 @@ function FormularioVariante({
         <button type="button" onClick={onListo} className="rounded-full px-4 py-2.5 text-[13px] text-gris">
           Cancelar
         </button>
+        {variante?.muestra_url && (
+          <button type="button" disabled={pendiente} onClick={() => quitarImagen('muestra')} className="ml-auto rounded-full px-3 py-2.5 text-[12px] text-gris hover:text-tinta">
+            Quitar diseño del círculo
+          </button>
+        )}
+        {variante?.imagen_url && (
+          <button type="button" disabled={pendiente} onClick={() => quitarImagen('foto')} className={`${variante.muestra_url ? '' : 'ml-auto '}rounded-full px-3 py-2.5 text-[12px] text-gris hover:text-tinta`}>
+            Quitar foto
+          </button>
+        )}
       </div>
     </form>
   )

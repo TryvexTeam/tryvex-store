@@ -33,6 +33,9 @@ export async function generateMetadata(props: PageProps<'/producto/[slug]'>): Pr
 
 export default async function PaginaProducto(props: PageProps<'/producto/[slug]'>) {
   const { slug } = await props.params
+  // Color elegido en la card: solo un id con forma de uuid, lo demás se ignora.
+  const v = (await props.searchParams).v
+  const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
   const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
   if (!ficha) notFound()
 
@@ -59,6 +62,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'}
           retracto={c?.retracto_texto ?? 'Tienes 10 días desde que lo recibes para arrepentirte.'}
           whatsapp={whatsapp}
+          varianteInicial={varianteInicial}
         />
 
         {otros.length > 0 && (

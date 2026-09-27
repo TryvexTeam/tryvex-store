@@ -849,19 +849,6 @@ body {
   display: none;
 }
 
-/* ── Tienda v5: colección ───────────────────────────────────────
-   La foto de la tile crece apenas al pasar el cursor; nada más. */
-/* Alias del plano del objeto: el tile de colección ya resolvía este gesto
-   antes que las cards. Un solo mecanismo para los dos, con el mismo valor. */
-.tienda-tile-colec-foto {
-  transition: transform 300ms var(--ease-tienda);
-}
-@media (hover: hover) and (pointer: fine) {
-  .tienda-tile-colec:hover .tienda-tile-colec-foto {
-    transform: scale(1.03);
-  }
-}
-
 /* ── Tienda v6: héroe a sangre ──────────────────────────────────
    Velo negro del lado del texto: arriba en teléfono, a la izquierda en
    escritorio, y siempre hacia abajo para fundirse con la franja siguiente.
@@ -1137,4 +1124,12 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .panel-card, .panel-card-foto { transition: none; }
+}
+
+/* Card de producto en la grilla del teléfono (dos por fila): toma el ancho
+   de la columna. Desde tablet vuelve a la medida de la portada. */
+@media (max-width: 734.98px) {
+  .tienda-card.tienda-card-fluida-movil {
+    width: 100%;
+  }
 }

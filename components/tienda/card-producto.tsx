@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { ViewTransition } from 'react'
 import { clp } from '@/lib/formato'
 import { Estrella } from '@/app/marca'
 import type { CategoriaTienda, ProductoTienda } from '@/lib/tienda'
-import { AgregarRapido } from './agregar-rapido'
+import { Foto, Precio } from './card-producto-partes'
+
+// La card de producto es interactiva (círculos de color): vive en su propio
+// componente de cliente. Se reexporta para que las páginas no cambien.
+export { CardProducto } from './card-producto-cliente'
 
 /**
  * Las tres cards de la vitrina, medidas en la Tienda de Apple.
@@ -24,34 +27,6 @@ import { AgregarRapido } from './agregar-rapido'
  * lleva dentro (foto, texto sr-only): sin él escaparía del recorte del
  * carrusel y ensancharía la página.
  */
-
-const MAX_MUESTRAS = 6
-
-function Precio({ producto, className = '' }: { producto: ProductoTienda; className?: string }) {
-  if (producto.agotado) return <span className={`font-semibold opacity-60 ${className}`}>Agotado</span>
-  return (
-    <span className={className}>
-      <span className="cifra">{clp(producto.precio)}</span>
-      {producto.precioAntes && (
-        <span className="cifra ml-2 font-normal text-gris line-through">
-          <span className="sr-only">antes </span>
-          {clp(producto.precioAntes)}
-        </span>
-      )}
-    </span>
-  )
-}
-
-function Foto({ src, slug, sizes, prioridad, className, transicion = true }: { src: string | null; slug: string; sizes: string; prioridad?: boolean; className: string; transicion?: boolean }) {
-  if (!src)
-    return (
-      <span aria-hidden className="grid size-full place-items-center opacity-25">
-        <Estrella size={64} />
-      </span>
-    )
-  const imagen = <Image src={src} alt="" fill sizes={sizes} priority={prioridad} className={className} />
-  return transicion ? <ViewTransition name={`producto-${slug}`}>{imagen}</ViewTransition> : imagen
-}
 
 export function CardDestacada({
   producto,
@@ -141,72 +116,3 @@ export function CardEditorial({ categoria, href }: { categoria: CategoriaTienda;
   )
 }
 
-/**
- * Qué se anuncia sobre el nombre. Apple pone ahí «Nuevo»; aquí también va la
- * oferta, con su porcentaje. «Últimas unidades» no: el señor Ignacio la
- * descartó, y la urgencia ya la cuenta la ficha.
- */
-function avisoDe(producto: ProductoTienda): string | null {
-  const { precio, precioAntes, agotado, etiqueta } = producto
-  if (agotado) return 'Agotado'
-  if (precioAntes && precioAntes > precio) return `${Math.floor((1 - precio / precioAntes) * 100)}% de descuento` // hacia abajo: nunca promete de más
-  if (etiqueta && !/últimas unidades/i.test(etiqueta)) return etiqueta
-  return null
-}
-
-/**
- * Card de producto, medida sobre la fila «Accesorios» de apple.com/cl/store
- * (313 × 500, margen de 28 a los lados):
- *
- *   foto 230 × 230 a 69 del borde · colores de 12 px centrados a 324 ·
- *   aviso 12/600 a 360 · nombre 17/600 con dos líneas reservadas a 381 ·
- *   precio 14/400 a 451.
- *
- * El aviso va donde Apple dice «Nuevo», en rojo vino: se distingue sin
- * gritar como el rojo de la marca. «Agotado» va en gris. El + queda arriba a la derecha, fuera del
- * enlace, porque un botón dentro de un enlace no es válido.
- */
-export function CardProducto({
-  producto,
-  transicion = true,
-  fluida = false,
-}: {
-  producto: ProductoTienda
-  transicion?: boolean
-  /** En una grilla, la card toma el ancho de su columna en vez de los 313 px fijos. */
-  fluida?: boolean
-}) {
-  const { nombre, imagen, agotado, colores, href } = producto
-  const aviso = avisoDe(producto)
-
-  return (
-    <div className="relative">
-      <Link href={href} className={`tienda-card tienda-card-producto relative flex h-[450px] flex-col overflow-hidden rounded-[18px] bg-papel px-7 d:h-[500px] ${fluida ? 'tienda-card-fluida' : ''}`}>
-        <div className="relative mx-auto mt-[52px] size-[200px] shrink-0 d:mt-[69px] d:size-[230px]">
-          <Foto src={imagen} slug={producto.slug} sizes="230px" className={`tienda-card-objeto object-contain ${agotado ? 'opacity-60' : ''}`} transicion={transicion} />
-        </div>
-
-        {/* Franja de colores: 58 px aunque no haya, para que el texto de
-            todas las cards de la fila quede a la misma altura. */}
-        <div className="flex h-[48px] shrink-0 items-center justify-center d:h-[58px]">
-          {colores.length > 0 && (
-            <ul aria-label={`${colores.length} ${colores.length === 1 ? 'color' : 'colores'}`} className="flex gap-[7px]">
-              {colores.slice(0, MAX_MUESTRAS).map((c) => (
-                <li key={c.nombre} title={c.nombre} className="size-3 rounded-full ring-1 ring-black/15 ring-inset" style={{ background: c.hex }} />
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <p className={`mt-[3px] h-4 text-[12px] leading-4 font-semibold tracking-[-0.01em] ${agotado ? 'text-tinta-suave' : 'text-vino'}`}>{aviso}</p>
-        <h3 className="mt-[5px] line-clamp-2 h-[42px] text-[17px] leading-[21px] font-semibold tracking-[-0.022em]">{nombre}</h3>
-        <p className="mt-auto pb-[33px] text-[14px] leading-[18px] tracking-[-0.016em] text-tinta">
-          <Precio producto={producto} />
-        </p>
-      </Link>
-      <div className="absolute top-4 right-4">
-        <AgregarRapido producto={producto} />
-      </div>
-    </div>
-  )
-}

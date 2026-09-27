@@ -11,6 +11,14 @@ export const ORDENES = {
 } as const
 export type Orden = keyof typeof ORDENES
 
+/**
+ * Columnas de la grilla en el teléfono, como el selector de dunedragon.cl.
+ * «pares»: dos por fila, con la card compacta (la vista de siempre).
+ * «catalogo»: una por fila, con la card de la portada. Desde tablet la grilla
+ * usa siempre la card de la portada a su tamaño fijo, y el selector se oculta.
+ */
+export type Vista = 'pares' | 'catalogo'
+
 export interface EstadoFiltros {
   cat?: string
   busqueda: string
@@ -19,6 +27,7 @@ export interface EstadoFiltros {
   min?: number
   max?: number
   orden: Orden
+  vista: Vista
 }
 
 /** Tramos de precio listos para tocar: casi nadie escribe un rango a mano. */
@@ -29,7 +38,7 @@ const TRAMOS: { etiqueta: string; min?: number; max?: number }[] = [
 ]
 
 /** Dirección de /tienda con los filtros actuales y un cambio aplicado. */
-function hrefCon(e: EstadoFiltros, cambio: Partial<Record<'cat' | 'q' | 'disponibles' | 'ofertas' | 'orden' | 'min' | 'max', string | null>>): string {
+function hrefCon(e: EstadoFiltros, cambio: Partial<Record<'cat' | 'q' | 'disponibles' | 'ofertas' | 'orden' | 'min' | 'max' | 'vista', string | null>>): string {
   const actual: Record<string, string | undefined> = {
     cat: e.cat,
     q: e.busqueda || undefined,
@@ -38,6 +47,7 @@ function hrefCon(e: EstadoFiltros, cambio: Partial<Record<'cat' | 'q' | 'disponi
     orden: e.orden !== 'recientes' ? e.orden : undefined,
     min: e.min?.toString(),
     max: e.max?.toString(),
+    vista: e.vista !== 'pares' ? e.vista : undefined,
   }
   const u = new URLSearchParams()
   for (const [k, v] of Object.entries({ ...actual, ...cambio })) if (v) u.set(k, v)
@@ -73,6 +83,7 @@ function Conservar({ estado, sin }: { estado: EstadoFiltros; sin: ('q' | 'precio
       {estado.disponibles && <input type="hidden" name="disponibles" value="1" />}
       {estado.ofertas && <input type="hidden" name="ofertas" value="1" />}
       {estado.orden !== 'recientes' && <input type="hidden" name="orden" value={estado.orden} />}
+      {estado.vista !== 'pares' && <input type="hidden" name="vista" value={estado.vista} />}
       {!sin.includes('precio') && estado.min !== undefined && <input type="hidden" name="min" value={estado.min} />}
       {!sin.includes('precio') && estado.max !== undefined && <input type="hidden" name="max" value={estado.max} />}
     </>
@@ -188,6 +199,29 @@ export function FiltrosColeccion({ estado, resultados }: { estado: EstadoFiltros
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
+            {/* Columnas de la grilla: de a dos o en catálogo. */}
+            <div role="radiogroup" aria-label="Vista de la grilla" className="flex items-center rounded-full bg-papel p-1 ring-1 ring-borde t:hidden">
+              {([
+                ['pares', 'Dos por fila', 'M3 4h7.5v16H3zM13.5 4H21v16h-7.5z'],
+                ['catalogo', 'Uno por fila', 'M3 4h18v7H3zM3 13h18v7H3z'],
+              ] as const).map(([v, etiqueta, trazo]) => {
+                const activa = estado.vista === v
+                return (
+                  <Link
+                    key={v}
+                    href={hrefCon(estado, { vista: v === 'pares' ? null : v })}
+                    role="radio"
+                    aria-checked={activa}
+                    aria-label={etiqueta}
+                    title={etiqueta}
+                    scroll={false}
+                    className={`grid size-7 place-items-center rounded-full transition-colors ${activa ? 'bg-tinta text-white' : 'text-gris hover:text-tinta'}`}
+                  >
+                    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d={trazo} /></svg>
+                  </Link>
+                )
+              })}
+            </div>
             <span className="cifra hidden text-[14px] text-gris d:inline" aria-live="polite">
               {resultados} {resultados === 1 ? 'artículo' : 'artículos'}
             </span>

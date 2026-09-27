@@ -30,17 +30,22 @@ export function Ficha({
   garantia,
   retracto,
   whatsapp,
+  varianteInicial = null,
 }: {
   ficha: FichaProducto
   envio: Envio
   garantia: string
   retracto: string
   whatsapp: string | null
+  /** Color elegido en la card (?v=): la ficha abre con ese. */
+  varianteInicial?: string | null
 }) {
   const bolsa = useBolsa()
   const conVariantes = ficha.variantes.length > 0
   const primeraDisponible = ficha.variantes.find((v) => v.disponible > 0) ?? ficha.variantes[0] ?? null
-  const [varianteId, setVarianteId] = useState<string | null>(primeraDisponible?.id ?? null)
+  // Si se llega desde un círculo de la card, manda ese color (si existe).
+  const pedida = ficha.variantes.find((v) => v.id === varianteInicial) ?? null
+  const [varianteId, setVarianteId] = useState<string | null>(pedida?.id ?? primeraDisponible?.id ?? null)
   const variante = ficha.variantes.find((v) => v.id === varianteId) ?? null
   const disponible = conVariantes ? variante?.disponible ?? 0 : ficha.disponible
   const agotado = disponible <= 0
@@ -163,7 +168,7 @@ export function Ficha({
                     } ${v.disponible <= 0 ? 'cursor-not-allowed line-through' : ''}`}
                   >
                     <input type="radio" name="variante" value={v.id} disabled={v.disponible <= 0} checked={v.id === varianteId} onChange={() => setVarianteId(v.id)} className="peer sr-only" />
-                    <span aria-hidden className={`size-7 shrink-0 rounded-full ring-1 ring-black/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${v.id === varianteId ? 'outline-2 outline-offset-2 outline-black' : ''}`} style={{ background: v.colorHex ?? '#ddd' }} />
+                    <span aria-hidden className={`size-7 shrink-0 rounded-full ring-1 ring-black/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${v.id === varianteId ? 'outline-2 outline-offset-2 outline-black' : ''}`} style={v.muestra ? { backgroundImage: `url("${v.muestra}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: v.colorHex ?? '#ddd' }} />
                     {v.nombre}
                     {v.disponible <= 0 && <span className="text-[12px] text-gris">agotado</span>}
                   </label>

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { CardProducto } from '@/components/tienda/card-producto'
 import type { CategoriaTienda, ProductoTienda } from '@/lib/tienda'
 import { beneficiosDe } from '@/app/page'
 import { Cabecera } from '@/components/tienda/cabecera'
@@ -16,6 +17,22 @@ export const metadata: Metadata = {
   robots: { index: false },
 }
 
+/** Muestra de dos tonos, como un diseño subido desde el panel. */
+const dosTonos = (a: string, b: string) =>
+  `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10L0 10z" fill="${a}"/><path d="M10 0v10H0z" fill="${b}"/></svg>`)}`
+
+/** Colores de prueba para los primeros productos: planos, de dos tonos y con foto propia. */
+const coloresDePrueba = (indice: number): ProductoTienda['colores'] =>
+  indice > 5
+    ? []
+    : [
+        { id: `c-${indice}-1`, nombre: 'Medianoche', hex: '#1d2733', muestra: null, imagen: '/tienda/pods-pro.webp' },
+        { id: `c-${indice}-2`, nombre: 'Blanco estelar', hex: '#e8e1d5', muestra: null, imagen: null },
+        { id: `c-${indice}-3`, nombre: 'Azul tormenta', hex: null, muestra: dosTonos('#4f6b7f', '#aeb9c2'), imagen: null },
+        { id: `c-${indice}-4`, nombre: 'Lila', hex: '#c9c4dd', muestra: null, imagen: null },
+        { id: `c-${indice}-5`, nombre: 'Naranja', hex: '#f0a283', muestra: null, imagen: null },
+      ].slice(0, indice % 2 === 0 ? 5 : 2)
+
 const productos: ProductoTienda[] = Array.from({ length: 40 }, (_, indice) => ({
   id: `escala-producto-${indice + 1}`,
   sku: `ESCALA-${String(indice + 1).padStart(3, '0')}`,
@@ -28,7 +45,7 @@ const productos: ProductoTienda[] = Array.from({ length: 40 }, (_, indice) => ({
   etiqueta: indice < 4 ? 'Nuevo' : null,
   agotado: false,
   categoriaId: `escala-categoria-${Math.floor(indice / 5) + 1}`,
-  colores: [],
+  colores: coloresDePrueba(indice),
   href: '/tienda',
 }))
 
@@ -59,6 +76,12 @@ export default function PruebaEscala() {
         <CategoriasDestacadas categorias={categorias} />
         <BannerDoble />
         <ListaProductos productos={productos} />
+        {/* Grilla de a dos, como en /tienda: para revisar las cards angostas. */}
+        <ul id="grilla-pares" className="grid grid-cols-2 gap-3 px-[var(--canal)] pt-10 t:gap-5">
+          {productos.slice(0, 6).map((p) => (
+            <li key={p.id} className="min-w-0"><CardProducto producto={p} fluida transicion={false} /></li>
+          ))}
+        </ul>
         <BannerAncho />
         <MosaicoCampana />
         <section id="beneficios" aria-labelledby="beneficios-titulo" className="mx-auto w-full max-w-[1204px] px-[22px] pt-10 t:pt-16">

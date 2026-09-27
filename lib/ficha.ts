@@ -33,7 +33,7 @@ export async function leerFicha(slug: string): Promise<FichaProducto | null> {
   if (!p) return null
 
   const [{ data: variantes }, { data: stockVar }, { data: stock }, { data: tramos }] = await Promise.all([
-    db.from('producto_variantes').select('id,nombre,sku,color_hex,precio,imagen_url').eq('producto_id', p.id).eq('activo', true).order('orden'),
+    db.from('producto_variantes').select('id,nombre,sku,color_hex,muestra_url,precio,imagen_url').eq('producto_id', p.id).eq('activo', true).order('orden'),
     db.from('v_stock_variante').select('variante_id,stock').eq('producto_id', p.id),
     db.from('v_stock_actual').select('stock').eq('producto_id', p.id).maybeSingle(),
     db.from('precio_tramos').select('min_unidades,max_unidades,precio_unitario,etiqueta').eq('producto_id', p.id).eq('activo', true).order('min_unidades'),
@@ -73,6 +73,7 @@ export async function leerFicha(slug: string): Promise<FichaProducto | null> {
       nombre: v.nombre,
       sku: v.sku,
       colorHex: v.color_hex,
+      muestra: v.muestra_url ? urlPublica(v.muestra_url) : null,
       precio: v.precio === null ? precio : Number(v.precio),
       imagen: v.imagen_url ? urlPublica(v.imagen_url) : null,
       disponible: tope(stockPor.get(v.id) ?? 0),

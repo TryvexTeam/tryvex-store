@@ -39,7 +39,7 @@ export default async function Productos() {
     supabase.from('v_stock_actual').select('producto_id,stock'),
     supabase
       .from('producto_variantes')
-      .select('id,producto_id,nombre,sku,color_hex,precio,imagen_url,orden,activo')
+      .select('id,producto_id,nombre,sku,color_hex,muestra_url,precio,imagen_url,orden,activo')
       .order('orden'),
     supabase.from('v_stock_variante').select('variante_id,stock'),
   ])
