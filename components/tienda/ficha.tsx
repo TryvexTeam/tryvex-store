@@ -8,6 +8,7 @@ import { Estrella } from '@/app/marca'
 import { precioPara, type FichaProducto } from '@/lib/ficha-precio'
 import { useBolsa } from './bolsa'
 import { BotonFavorito } from './boton-favorito'
+import { MediosPago } from './medios-pago'
 
 interface Envio {
   plazo: string | null
@@ -310,6 +311,9 @@ export function Ficha({
                 Comprar ahora
               </Link>
             </div>
+          )}
+          {!agotado && (
+            <MediosPago alto={22} className="mt-3 justify-center" />
           )}
           <div ref={centinela} aria-hidden className="h-px" />
 

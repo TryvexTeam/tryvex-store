@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MediosPago } from './medios-pago'
 import { GRUPOS_PIE } from '@/lib/ayuda'
 
 export function PieTienda({
@@ -79,7 +80,12 @@ export function PieTienda({
           ))}
         </div>
 
-        <div className="mt-8 border-t border-borde/70 pt-5 text-[12px] leading-relaxed text-gris">
+        <div className="mt-8 flex flex-col gap-2.5 border-t border-borde/70 pt-5 t:flex-row t:items-center t:justify-between">
+          <p className="text-[12px] font-semibold text-tinta-suave">Paga con tarjeta, Mercado Pago o transferencia</p>
+          <MediosPago alto={24} />
+        </div>
+
+        <div className="mt-5 text-[12px] leading-relaxed text-gris">
           <p>Precios en pesos chilenos con IVA incluido. Stock sujeto a disponibilidad al confirmar el pedido.</p>
           {garantia?.trim() && <p className="mt-1.5">{garantia}</p>}
           {retracto?.trim() && <p className="mt-1.5">{retracto}</p>}
