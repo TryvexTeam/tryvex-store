@@ -12,6 +12,8 @@ import { FilaCategorias } from '@/components/tienda/fila-categorias'
 import { ProductoFoco, TituloEco } from '@/components/tienda/escenas-scroll'
 import { ExploraColeccion } from '@/components/tienda/coleccion'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
+import { Comentarios } from '@/components/tienda/comentarios'
+import { leerResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
 /** Portada de catálogo: categorías y productos se alimentan exclusivamente de la vitrina. */
@@ -36,11 +38,11 @@ export const dynamic = 'force-dynamic'
  */
 const datosDePortada = unstable_cache(
   async () => {
-    const [vitrina, piezas] = await Promise.all([leerVitrina(), leerPiezas()])
-    return { vitrina, piezas: [...piezas] as [string, PiezaLanding][] }
+    const [vitrina, piezas, resenas] = await Promise.all([leerVitrina(), leerPiezas(), leerResenas()])
+    return { vitrina, piezas: [...piezas] as [string, PiezaLanding][], resenas }
   },
   ['portada'],
-  { revalidate: 300 },
+  { revalidate: 300, tags: ['resenas'] },
 )
 
 const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'
@@ -49,7 +51,7 @@ const LEGAL_RETRACTO = 'Derecho a retracto de 10 días en compras a distancia; r
 export default async function Inicio() {
   // Las franjas editables de la portada. Si la tabla esta vacia, cada franja
   // dibuja lo que trae el codigo: la portada nunca depende de que exista la fila.
-  const { vitrina, piezas: paresDePiezas } = await datosDePortada()
+  const { vitrina, piezas: paresDePiezas, resenas } = await datosDePortada()
   const { productos, categorias, destacado, configuracion } = vitrina
   const piezas = new Map(paresDePiezas)
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
@@ -78,6 +80,7 @@ export default async function Inicio() {
         <ListaProductos productos={productos} />
         <BannerDoble piezas={piezas} />
         <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
+        <Comentarios resenas={resenas} />
         {/* ConfianzaEnMovimiento sale de la home: sus cuatro datos (garantia,
             envio, retracto, pago) ya los muestra <FranjaConfianza /> arriba en
             62 px. Repetirlos costaba 767 px de scroll. El componente queda para

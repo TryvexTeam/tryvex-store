@@ -2,11 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Refresca la sesion en cada request y cierra /panel a quien no sea del equipo.
- * La comprobacion fuerte vive en RLS; esto es para no renderizar el panel a un
- * desconocido y para mandarlo al login con un destino de vuelta.
+ * Refresca la sesión en cada request y cierra /panel a quien no sea del equipo.
+ * La comprobación fuerte vive en RLS; esto evita renderizar el panel a un
+ * desconocido y lo manda al login con un destino de vuelta.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let respuesta = NextResponse.next({ request })
 
   const supabase = createServerClient(
