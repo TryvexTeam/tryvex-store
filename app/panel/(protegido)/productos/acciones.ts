@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
 import { montoDesdeTexto } from '@/lib/monto'
+import { calcularTramosMayoristas, mensajeMargen, respetaMargen } from '@/lib/precios-mayoristas'
 import {
   UUID,
   esCondicion,
@@ -107,6 +108,8 @@ export async function guardarProducto(datos: FormData): Promise<Resultado> {
   if (!Number.isFinite(costo) || costo < 0) return fallo('El costo no puede ser negativo.')
   if (costo >= precio)
     return fallo('El costo no puede ser igual o mayor que el precio: venderías a pérdida.')
+  // Regla del negocio: cada unidad deja al menos $5.000 sobre el costo.
+  if (!respetaMargen(precio, costo)) return fallo(mensajeMargen(precio, costo))
   if (!esEstadoProducto(estado)) return fallo('Estado no válido.')
   if (categoriaId && !UUID.test(categoriaId)) return fallo('Categoría no válida.')
   if (!esCondicion(condicion)) return fallo('Condición no válida.')
@@ -191,8 +194,8 @@ export async function guardarTramo(datos: FormData): Promise<Resultado> {
     .maybeSingle()
 
   const costo = Number(prod?.costo_unitario ?? 0)
-  if (costo > 0 && precio <= costo)
-    return fallo(`A ${precio} vendes bajo el costo de ${costo}. Revisa el tramo.`)
+  // Ningún tramo baja del piso: costo + $5.000 por unidad.
+  if (!respetaMargen(precio, costo)) return fallo(mensajeMargen(precio, costo))
 
   const fila = { producto_id, etiqueta, min_unidades: min, max_unidades: max, precio_unitario: precio }
 
@@ -216,6 +219,55 @@ export async function borrarTramo(id: string): Promise<Resultado> {
 
   const { error } = await sesion.supabase.from('precio_tramos').delete().eq('id', id)
   if (error) return fallo(error.message)
+  revalidar()
+  return { ok: true }
+}
+
+/**
+ * Aplica la calculadora de precios mayoristas al producto: los 6 tramos desde
+ * 3 unidades hasta el piso (costo + $5.000) en 100 o más. Reemplaza los tramos
+ * que tenía: el cálculo sale del precio y el costo guardados, no del formulario.
+ */
+export async function aplicarPreciosMayoristas(producto_id: string): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const { supabase } = sesion
+  if (!UUID.test(producto_id)) return fallo('Falta el producto.')
+
+  const { data: prod, error: errProd } = await supabase
+    .from('productos')
+    .select('precio_base,costo_unitario')
+    .eq('id', producto_id)
+    .maybeSingle()
+  if (errProd || !prod) return fallo('No encontramos el producto.')
+
+  const calculo = calcularTramosMayoristas(Number(prod.precio_base), Number(prod.costo_unitario ?? 0))
+  if (!calculo.ok) return fallo(calculo.error)
+
+  // Primero se escriben los nuevos (upsert por producto + cantidad mínima) y
+  // recién después se borran los que sobran: si algo falla a mitad, el
+  // producto nunca queda sin precios por volumen.
+  const { error } = await supabase.from('precio_tramos').upsert(
+    calculo.tramos.map((t) => ({
+      producto_id,
+      min_unidades: t.min,
+      max_unidades: t.max,
+      precio_unitario: t.precio,
+      etiqueta: t.etiqueta,
+      activo: true,
+    })),
+    { onConflict: 'producto_id,min_unidades' }
+  )
+  if (error) return fallo(`No se pudieron guardar los tramos: ${error.message}`)
+
+  const minimos = calculo.tramos.map((t) => t.min)
+  const { error: errBorrar } = await supabase
+    .from('precio_tramos')
+    .delete()
+    .eq('producto_id', producto_id)
+    .not('min_unidades', 'in', `(${minimos.join(',')})`)
+  if (errBorrar) return fallo(`Los tramos nuevos quedaron, pero no se pudieron quitar los anteriores: ${errBorrar.message}`)
+
   revalidar()
   return { ok: true }
 }
