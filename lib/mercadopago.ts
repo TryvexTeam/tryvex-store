@@ -52,8 +52,14 @@ export async function crearOrden(params: {
   referenciaExterna: string
   claveIdempotencia: string
   urlBase: string
+  /**
+   * Token secreto del pedido. Viaja en la URL de regreso para que la página de
+   * gracias muestre ese pedido y no otro: el número se adivina, el token no.
+   */
+  tokenPedido?: string
 }): Promise<OrdenCreada> {
-  const { total, items, emailComprador, referenciaExterna, claveIdempotencia, urlBase } = params
+  const { total, items, emailComprador, referenciaExterna, claveIdempotencia, urlBase, tokenPedido } = params
+  const pedido = tokenPedido ? `&pedido=${encodeURIComponent(tokenPedido)}` : ''
 
   const suma = items.reduce((a, i) => a + i.precioUnitario * i.cantidad, 0)
   if (Math.round(suma) !== Math.round(total)) {
@@ -84,9 +90,9 @@ export async function crearOrden(params: {
       })),
       config: {
         online: {
-          success_url: `${urlBase}/comprar/resultado?estado=exito`,
-          failure_url: `${urlBase}/comprar/resultado?estado=error`,
-          pending_url: `${urlBase}/comprar/resultado?estado=pendiente`,
+          success_url: `${urlBase}/comprar/resultado?estado=exito${pedido}`,
+          failure_url: `${urlBase}/comprar/resultado?estado=error${pedido}`,
+          pending_url: `${urlBase}/comprar/resultado?estado=pendiente${pedido}`,
           auto_return: 'approved',
         },
       },

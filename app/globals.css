@@ -1167,3 +1167,31 @@ body {
     width: 100%;
   }
 }
+
+/* Sello de «pago confirmado» en la página de gracias: el círculo se dibuja y
+   el visto lo sigue. Con movimiento reducido aparece ya dibujado. */
+.sello-ok {
+  animation: sello-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sello-ok-circulo {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: sello-traza 640ms cubic-bezier(0.65, 0, 0.35, 1) 120ms forwards;
+}
+.sello-ok-visto {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: sello-traza 380ms cubic-bezier(0.65, 0, 0.35, 1) 640ms forwards;
+}
+@keyframes sello-entra {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sello-traza {
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sello-ok { animation: none; }
+  .sello-ok-circulo,
+  .sello-ok-visto { animation: none; stroke-dashoffset: 0; }
+}

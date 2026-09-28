@@ -10,7 +10,8 @@ import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
 import { urlPublica } from '@/lib/imagenes'
 
-export type Resultado = { ok: true; aviso?: string; id?: string } | { ok: false; error: string }
+/** `aviso`: algo que el equipo tiene que atender. `listo`: confirmación de que salió bien. */
+export type Resultado = { ok: true; aviso?: string; listo?: string; id?: string } | { ok: false; error: string }
 
 /**
  * Máquina de estados de un pedido.
@@ -199,7 +200,12 @@ export async function cambiarEstado(pedido_id: string, nuevo: string): Promise<R
     if (!pagado.ok) return { ok: false, error: pagado.error }
 
     revalidar()
-    return { ok: true }
+    // Quien marca tiene que saber si el comprador se enteró: el correo es su
+    // único comprobante, y la dirección visible permite notar un error de tipeo.
+    if (!pagado.aplicado) return { ok: true, aviso: 'Este pedido ya estaba pagado: no se volvió a escribir al cliente.' }
+    if (pagado.correo === 'enviado') return { ok: true, listo: `Pago registrado. Le escribimos a ${pagado.destinatario}.` }
+    if (pagado.correo === 'sin-correo') return { ok: true, aviso: 'Pago registrado. El pedido no tiene correo: avísale por otro medio.' }
+    return { ok: true, aviso: 'Pago registrado, pero el correo al cliente no salió: avísale tú.' }
   }
 
   const { data: items } = await supabase
