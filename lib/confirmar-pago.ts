@@ -3,6 +3,7 @@ import { correoPagoConfirmado } from '@/lib/correo'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
 import { urlPublica } from '@/lib/imagenes'
 import { avisarAlEquipo } from '@/lib/push'
+import { avisarPorTelegram } from '@/lib/telegram'
 
 /**
  * Da un pedido por pagado cuando la pasarela confirmó el cobro.
@@ -124,9 +125,13 @@ async function avisarPagoConfirmado(numero: number): Promise<{ correo: EstadoCor
       }
     })
 
+    const venta = avisoDeVenta(p.numero, p.cliente_nombre, Number(p.total_clp), items)
+    const sitio = (process.env.NEXT_PUBLIC_URL_TIENDA ?? 'https://store.tryvex.tech').replace(/\/$/, '')
     const [correo] = await Promise.all([
       escribirAlComprador(p, items),
-      avisarAlEquipo(avisoDeVenta(p.numero, p.cliente_nombre, Number(p.total_clp), items)),
+      avisarAlEquipo(venta),
+      // Telegram, por el sonido de caja registradora (ver lib/telegram.ts).
+      avisarPorTelegram({ ...venta, url: `${sitio}${venta.url}` }),
     ])
     return { correo, destinatario: p.cliente_email ? enmascarar(p.cliente_email) : undefined }
   } catch (e) {
