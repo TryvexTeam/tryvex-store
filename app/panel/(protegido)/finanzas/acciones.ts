@@ -1,5 +1,6 @@
 'use server'
 
+import { puedeGestionarFinanzas, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { categoriaFinancieraValida, etiquetaCategoria, METODOS_PAGO } from '@/lib/finanzas'
@@ -24,14 +25,14 @@ export async function registrarMovimiento(datos: FormData): Promise<Resultado> {
 
   const { data: yo } = await supabase
     .from('dim_integrantes')
-    .select('id, gestionar_finanzas')
+    .select('id, es_superadmin, gestionar_finanzas')
     .eq('auth_user_id', user.id)
     .eq('activo', true)
     .maybeSingle()
 
   // Se comprueba aquí además del RLS: así el usuario recibe un motivo legible
   // en vez de un error de base de datos.
-  if (!yo?.gestionar_finanzas) {
+  if (!yo || !puedeGestionarFinanzas(yo)) {
     return { ok: false, error: 'No tienes permiso para registrar movimientos.' }
   }
 
@@ -89,6 +90,7 @@ export async function registrarMovimiento(datos: FormData): Promise<Resultado> {
     voucher_path,
     voucher_nombre,
     creado_por: yo.id,
+    negocio: NEGOCIO_TIENDA,
   })
 
   if (error) {
@@ -119,11 +121,11 @@ export async function urlComprobante(ruta: string): Promise<string | null> {
   if (!user) return null
   const { data: yo } = await supabase
     .from('dim_integrantes')
-    .select('id, gestionar_finanzas')
+    .select('id, es_superadmin, gestionar_finanzas')
     .eq('auth_user_id', user.id)
     .eq('activo', true)
     .maybeSingle()
-  if (!yo?.gestionar_finanzas) return null
+  if (!puedeGestionarFinanzas(yo)) return null
 
   const { data } = await supabase.storage
     .from('vouchers')

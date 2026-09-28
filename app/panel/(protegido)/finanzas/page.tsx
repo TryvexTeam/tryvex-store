@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import { integranteActual } from '@/lib/sesion'
+import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
 import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
 import FormularioMovimiento from './formulario'
@@ -35,6 +35,8 @@ export default async function Finanzas() {
     supabase
       .from('movimientos_financieros')
       .select('id,tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte,voucher_path,voucher_nombre')
+      // La tabla es compartida con Tryvex Plataform: aquí solo lo de la tienda.
+      .eq('negocio', NEGOCIO_TIENDA)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(60),

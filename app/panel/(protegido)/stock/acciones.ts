@@ -1,5 +1,6 @@
 'use server'
 
+import { puedeGestionarFinanzas, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { exigirIntegrante } from '@/lib/autorizacion'
@@ -78,7 +79,7 @@ export async function registrarStock(datos: FormData): Promise<Resultado> {
 
   const { data: yo } = await supabase
     .from('dim_integrantes')
-    .select('id, gestionar_finanzas')
+    .select('id, es_superadmin, gestionar_finanzas')
     .eq('auth_user_id', user.id)
     .eq('activo', true)
     .maybeSingle()
@@ -148,7 +149,7 @@ export async function registrarStock(datos: FormData): Promise<Resultado> {
   let aviso: string | undefined
 
   if (total_clp && total_clp > 0) {
-    if (yo.gestionar_finanzas) {
+    if (puedeGestionarFinanzas(yo)) {
       const esIngreso = tipo === 'venta'
       const { data: mov, error: errMov } = await supabase
         .from('movimientos_financieros')
@@ -163,6 +164,7 @@ export async function registrarStock(datos: FormData): Promise<Resultado> {
           fecha: new Date().toISOString().slice(0, 10),
           contraparte: contraparte || null,
           creado_por: yo.id,
+          negocio: NEGOCIO_TIENDA,
         })
         .select('id')
         .maybeSingle()

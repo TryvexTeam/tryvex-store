@@ -8,6 +8,7 @@ import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { FormularioIngreso } from './formulario'
+import { googleHabilitado } from '@/lib/auth-proveedores'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default async function Ingresar(props: PageProps<'/cuenta/ingresar'>) {
   if (await cuentaActual()) redirect(volver)
 
   const motivo = typeof q.motivo === 'string' ? MOTIVOS[q.motivo] : undefined
-  const { categorias, configuracion } = await leerVitrina()
+  const [{ categorias, configuracion }, conGoogle] = await Promise.all([leerVitrina(), googleHabilitado()])
 
   return (
     <div className="tienda flex min-h-dvh min-w-0 flex-col bg-papel-alt">
@@ -37,7 +38,7 @@ export default async function Ingresar(props: PageProps<'/cuenta/ingresar'>) {
           <h1 className="text-center text-[34px] leading-[1.05] font-semibold tracking-titulo t:text-[40px]">Tu cuenta Tryvex.</h1>
           <p className="mt-3 text-center text-[16px] text-tinta-suave">Revisa tus compras, guarda favoritos y compra más rápido.</p>
           {motivo && <p role="alert" className="mt-6 rounded-[14px] bg-papel px-4 py-3 text-[14px] text-rojo ring-1 ring-borde">{motivo}</p>}
-          <FormularioIngreso volver={volver} />
+          <FormularioIngreso volver={volver} conGoogle={conGoogle} />
         </div>
       </main>
       <PieTienda
