@@ -4,6 +4,7 @@ import { integranteActual } from '@/lib/sesion'
 import { clp } from '@/lib/formato'
 import { Tendencia } from '@/components/tendencia'
 import { IconoMas, IconoStock, IconoProductos } from '@/components/iconos'
+import { AvisosTelefono } from '@/components/panel/avisos-telefono'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,6 +123,8 @@ export default async function Resumen() {
           {yo.nombre.split(' ')[0]}.
         </h1>
       </header>
+
+      <AvisosTelefono />
 
       {/* ── Tarjeta principal ──────────────────────────────────────
           Una sola cifra manda: lo vendido. Las demás la acompañan, no

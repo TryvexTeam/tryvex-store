@@ -172,6 +172,7 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   let checkoutUrl: string | undefined
   if (metodo === 'mercadopago') {
     try {
+      const { data: conToken } = await db.from('pedidos').select('token_seguimiento').eq('id', pedido.id).maybeSingle()
       const orden = await crearOrden({
         total,
         items: [
@@ -188,6 +189,7 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
         referenciaExterna: String(pedido.numero),
         // Estable por pedido: si el comprador recarga, no se abre una segunda orden.
         claveIdempotencia: `pedido-${pedido.id}`,
+        tokenPedido: conToken?.token_seguimiento ?? undefined,
         urlBase: (process.env.NEXT_PUBLIC_URL_TIENDA ?? 'https://www.tryvex.tech').replace(/\/$/, ''),
       })
       checkoutUrl = orden.checkoutUrl

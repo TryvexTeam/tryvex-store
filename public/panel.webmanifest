@@ -1,0 +1,22 @@
+{
+  "id": "/panel",
+  "name": "Tryvex Panel",
+  "short_name": "Tryvex",
+  "description": "Pedidos, ventas y stock de Tryvex Store, con aviso de cada venta.",
+  "lang": "es-CL",
+  "start_url": "/panel?origen=app",
+  "scope": "/panel",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f7",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/app-panel/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app-panel/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-panel/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Pedidos", "url": "/panel/pedidos", "icons": [{ "src": "/app-panel/icono-192.png", "sizes": "192x192" }] },
+    { "name": "Vender", "url": "/panel/ventas", "icons": [{ "src": "/app-panel/icono-192.png", "sizes": "192x192" }] }
+  ]
+}

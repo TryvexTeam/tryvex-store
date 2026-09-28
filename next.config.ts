@@ -38,6 +38,15 @@ const nextConfig: NextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
         ],
       },
+      // El service worker del panel no se cachea: una versión vieja seguiría
+      // mostrando avisos con el formato anterior hasta que el navegador la suelte.
+      {
+        source: '/sw-panel.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+        ],
+      },
     ]
   },
   // El indicador flotante de desarrollo se sienta justo sobre la esquina
