@@ -1,7 +1,107 @@
 # Tryvex Store — estado del proyecto
 
-> Última actualización: 2026-09-01 (sesión de paridad UI/UX)
+> Última actualización: 2026-09-28
 > Documento de traspaso. Léelo completo antes de tocar nada.
+>
+> La sección **Estado actual** es la vigente. Todo lo que viene después es la
+> bitácora histórica (01 al 12 de septiembre): varias cosas de ahí ya cambiaron
+> (la app ya no vive en `app/tryvexstore/`, la base ya no es Supabase cloud,
+> `datos-pago.ts` no se usa). Si algo de la bitácora contradice al estado
+> actual, manda el estado actual.
+
+---
+
+## Estado actual (2026-09-28)
+
+### Dónde vive cada cosa
+
+| Pieza | Dónde |
+|---|---|
+| Código | `github.com/TryvexTeam/tryvex-store` (privado). La app Next.js 16 está en la **raíz** del repo |
+| Producción | Vercel, equipo `tryvex1`, proyecto `tryvex-store`. Se publica al mergear a `main` |
+| Base y archivos | **Supabase self-hosted** en el VPS `srv1877698` (179.197.234.5) desde el 2026-09-26, `https://supabase.srv1877698.hstgr.cloud`. Bucket `productos` público, 30 MB, imágenes y video MP4/WebM |
+| Proxy del VPS | Coolify (`coolify-proxy`, Traefik). Uptime Kuma vigila 10 servicios y avisa por correo |
+| Respaldo | Diario a las 07:00 UTC, 14 días, en `/root/respaldos/diarios` del VPS |
+| Cambios de base | `supabase/migraciones-tienda/*.sql`, aplicados a mano por SSH (`docker exec supabase-db psql`) + `notify pgrst, 'reload schema'` |
+| Correos | Resend, dominio `tryvex.tech` verificado |
+| Cobro | Mercado Pago Checkout Pro sobre la Orders API, sin SDK |
+
+**Ojo:** el servidor local (`npx next dev -p 3100`) usa la **misma base de
+producción**. Probar el panel en local escribe en producción: todo dato de
+prueba se borra al terminar y se comprueba en la base que quedó limpio.
+
+### Lo que funciona hoy
+
+- **Cobra de verdad.** El pedido #34 (2026-09-26) se pagó con dinero real y se
+  confirmó solo: el webhook valida la firma, reconsulta la order y marca pagado
+  de forma atómica (`select … for update`). Los pedidos abandonados sueltan su
+  reserva solos.
+- **Tienda:** portada con banner de escenas (foto o video por escena), escena en
+  foco con video, carruseles de cards como las de Apple, `/tienda` con fila de
+  categorías con foto, filtros en píldoras que quedan fijos al bajar, y dos
+  vistas de grilla (**más por fila**: 2/3/hasta 6; **tarjetas grandes**: la card
+  de la portada, 313 × 500). Círculos de color o diseño por variante en la card
+  y en la ficha; la card lleva a la ficha con el color elegido (`?v=`).
+- **Compra:** bolsa como página (`/bolsa`), checkout con retiro en sucursal
+  como opción principal y despacho a domicilio como secundaria, envío gratis a
+  todo Chile, medios de pago a la vista (Mercado Pago, Visa, Mastercard…).
+- **Cliente:** «Mis compras» y `/seguimiento/<token>` para quien compró sin
+  cuenta, con línea de tiempo y botón al courier.
+- **Panel:** productos con métricas, lista con estado y semáforo de stock,
+  detalle en hoja ancha, galería que se ordena arrastrando (dnd-kit), variantes
+  con foto y diseño del círculo, categorías con foto, portada editable (fotos y
+  video de cada escena del banner, escena en foco), pedidos legibles en el
+  teléfono, stock con mínimo de reposición, finanzas, clientes, cobranza,
+  reportes, reseñas verificadas (solo de pedidos entregados) y ajustes (incluye
+  el correo que se muestra y el que recibe los mensajes).
+- **Pedidos atómicos:** el pedido, sus líneas y la reserva de stock se crean en
+  una sola transacción de PostgreSQL con candados por producto; dos compradores
+  no pueden llevarse la misma última unidad.
+
+### Lo último que entró a `main`
+
+| PR | Qué trajo | Cuándo (hora de Chile) |
+|---|---|---|
+| **#12** | El correo de pago confirmado ya no se pierde en silencio | 27-09, 02:38 |
+| **#13** | Cards como las de Apple, medios de pago, bolsa como página, panel de productos, colores por variante, 6 por fila, video en el banner. 5 migraciones | 27-09, 02:38 |
+| **#14** | (otro integrante) Rescata el #10: reseñas verificadas, stock mínimo y reposición, finanzas, clientes, cobranza, reportes y **checkout transaccional** (`crear_pedido_con_reserva_stock`) | 27-09, 08:09 |
+
+El #10 quedó cerrado: su contenido entró por el #14.
+
+**Incidente del #14 (27 al 28-09).** El PR decía tener sus migraciones
+aplicadas «en producción», pero se habían aplicado en la base **antigua de la
+nube**, no en la del VPS. Desde el deploy (27-09, 08:09) el checkout no podía
+crear pedidos: el código llamaba a una función que no existía. No se perdió
+ninguna venta: el gateway no registró intentos de compra en ese lapso. El 28-09
+se aplicaron en el VPS `resenas-verificadas`,
+`crear-pedido-reserva-transaccional` y `reposicion-y-operacion-omnicanal`. Se
+verificó con la clave del servidor (valida stock y rechaza sin escribir) y que
+el público no puede llamarla.
+
+**Regla desde ahora:** después de mergear un PR con migraciones, comprobar en
+la base del VPS que los objetos existen (tabla, función, columna). Que el PR
+diga «aplicada» no basta: todavía hay `.env.local` que apuntan a la nube.
+
+### Pendientes
+
+- [ ] Compra de prueba real con el checkout nuevo del #14 (el pedido #35 se pagó con el checkout anterior).
+- [ ] Decidir si se reenvía el correo de confirmación del pedido #34.
+- [ ] Migración `2026-09-22-finanzas-operacion.sql` **sin aplicar a propósito**: reclasifica movimientos existentes. Respaldar la base antes de correrla.
+- [ ] Revisar que el colega que trabaja en el repo apunte su `.env.local` al Supabase del VPS.
+- [ ] Desde el #14, el feed `/api/feed/productos` exige `FEED_TOKEN`; sin esa variable en Vercel responde 503.
+- [ ] Probar con archivos reales la subida de foto y diseño de círculo de las variantes (el código está, no hay variantes reales en la base todavía).
+- [ ] WhatsApp sin configurar en Ajustes: sin él no aparece el botón de contacto.
+- [ ] No se emite boleta todavía (bloquea Webpay y el IVA crédito).
+- [ ] Limpiar la raíz del repo local: capturas `.png` y material del mirror de Apple sueltos (están fuera de git, pero estorban).
+
+### Migraciones aplicadas en la base del VPS
+
+- 27-09 (PR #13): `videos-en-productos`, `escena-foco`, `foto-de-categoria`
+  (con reglas de Storage para `categorias/<id>`), `correo-visible` y
+  `muestra-de-variante`.
+- 28-09 (PR #14): `resenas-verificadas` (con bucket `resenas`),
+  `crear-pedido-reserva-transaccional` y `reposicion-y-operacion-omnicanal`.
+- Pendiente: `finanzas-operacion` (ver arriba).
 
 ---
 
