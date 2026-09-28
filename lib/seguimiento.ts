@@ -2,7 +2,7 @@ import 'server-only'
 
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { urlPublica } from '@/lib/imagenes'
-import type { PedidoCuenta } from '@/lib/cuenta'
+import { tipoDeEntrega, type PedidoCuenta } from '@/lib/cuenta'
 
 /**
  * Seguimiento por enlace, para quien compró sin crear cuenta.
@@ -32,7 +32,7 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
     .from('pedidos')
     .select(
       'id,numero,created_at,estado,total_clp,envio_url_seguimiento,envio_seguimiento,envio_courier,' +
-        'pagado_at,enviado_at,entregado_at,cliente_nombre,' +
+        'pagado_at,enviado_at,entregado_at,cliente_nombre,direccion,' +
         'pedido_items(cantidad,subtotal_clp,variante_id,productos(nombre,slug,imagen_url,sku))'
     )
     .eq('token_seguimiento', token)
@@ -52,6 +52,7 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
     pagado_at: string | null
     enviado_at: string | null
     entregado_at: string | null
+    direccion: { entrega?: string } | null
     cliente_nombre: string | null
     pedido_items:
       | {
@@ -85,6 +86,8 @@ export async function leerSeguimientoPorToken(token: string): Promise<Seguimient
       // quiera esos datos entra a su cuenta.
       metodoPago: null,
       entrega: null,
+      // Solo el tipo: la dirección misma no viaja en un enlace que se reenvía.
+      tipoEntrega: tipoDeEntrega(p.direccion),
       courier: p.envio_courier ?? null,
       pagadoEn: p.pagado_at ?? null,
       enviadoEn: p.enviado_at ?? null,
