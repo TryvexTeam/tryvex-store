@@ -1,6 +1,24 @@
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { redirect } from 'next/navigation'
 
+/**
+ * Acceso a finanzas: la misma regla que `tengo_permiso()` en la base, que es
+ * la que usa Tryvex Plataform. Quien tiene finanzas autorizadas en el CRM las
+ * tiene también en la tienda, sin configurar nada aparte.
+ */
+type MarcasFinanzas = { es_superadmin?: boolean | null; ver_finanzas?: boolean | null; gestionar_finanzas?: boolean | null }
+
+export function puedeGestionarFinanzas(i: MarcasFinanzas | null | undefined): boolean {
+  return Boolean(i && (i.es_superadmin || i.gestionar_finanzas))
+}
+
+export function puedeVerFinanzas(i: MarcasFinanzas | null | undefined): boolean {
+  return Boolean(i && (i.es_superadmin || i.ver_finanzas || i.gestionar_finanzas))
+}
+
+/** Negocio con que la tienda marca sus movimientos en la tabla compartida. */
+export const NEGOCIO_TIENDA = 'Tryvex Store'
+
 export type Integrante = {
   id: string
   nombre: string
@@ -33,5 +51,8 @@ export async function integranteActual(): Promise<Integrante> {
   // Sesion valida pero sin ficha de integrante activo: no es del equipo.
   if (error || !data) redirect('/panel/login?motivo=sin-acceso')
 
-  return data as Integrante
+  // Las marcas quedan resueltas con la regla de la base: así cada pantalla
+  // que pregunta por `ver_finanzas` o `gestionar_finanzas` decide igual que el RLS.
+  const i = data as Integrante
+  return { ...i, ver_finanzas: puedeVerFinanzas(i), gestionar_finanzas: puedeGestionarFinanzas(i) }
 }

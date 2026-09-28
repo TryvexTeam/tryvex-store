@@ -8,7 +8,8 @@ import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import Checkout from './formulario'
+import Checkout, { type PerfilCompra } from './formulario'
+import { puntoStarken } from '@/lib/sucursales-starken'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -48,6 +49,14 @@ export default async function Comprar(props: PageProps<'/comprar'>) {
     leerVitrina(),
     crearClienteServidor().then((db) => db.auth.getUser()),
   ])
+  const usuario = sesion.data.user
+  // Sin compras previas, el nombre sale de la cuenta (Google lo trae completo).
+  const nombreCuenta = (usuario?.user_metadata?.full_name ?? usuario?.user_metadata?.nombre ?? usuario?.user_metadata?.name) as string | undefined
+  const perfil =
+    (await leerPerfil(usuario?.id ?? null)) ??
+    (usuario && nombreCuenta
+      ? { nombre: nombreCuenta.slice(0, 90), telefono: null, region: null, comuna: null, direccion: null, entrega: null, punto: null }
+      : null)
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
 
   return (
@@ -69,6 +78,7 @@ export default async function Comprar(props: PageProps<'/comprar'>) {
           }}
           datosPago={datosDePago(configuracion)}
           emailCuenta={sesion.data.user?.email ?? null}
+          perfil={perfil}
         />
       </main>
       <PieTienda
@@ -80,4 +90,28 @@ export default async function Comprar(props: PageProps<'/comprar'>) {
       />
     </div>
   )
+}
+
+/**
+ * Lo que quien tiene sesión dejó guardado en su compra anterior: el checkout
+ * viene llenado. Se lee con su propia sesión (RLS: solo su fila).
+ */
+async function leerPerfil(usuario: string | null): Promise<PerfilCompra | null> {
+  if (!usuario) return null
+  const { data } = await (await crearClienteServidor())
+    .from('clientes_tienda')
+    .select('nombre,telefono,region,comuna,direccion,sucursal,entrega_preferida')
+    .eq('auth_user_id', usuario)
+    .maybeSingle()
+  if (!data) return null
+  const entrega = data.entrega_preferida
+  return {
+    nombre: data.nombre ?? null,
+    telefono: data.telefono ?? null,
+    region: data.region ?? null,
+    comuna: data.comuna ?? null,
+    direccion: data.direccion ?? null,
+    entrega: entrega === 'envio' || entrega === 'sucursal' || entrega === 'retiro' ? entrega : null,
+    punto: data.sucursal ? puntoStarken(Number(data.sucursal)) : null,
+  }
 }

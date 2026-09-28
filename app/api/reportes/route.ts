@@ -1,3 +1,4 @@
+import { puedeVerFinanzas, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { NextRequest, NextResponse } from 'next/server'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 
@@ -24,9 +25,9 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado.' }, { status: 401 })
   const { data: integrante } = await supabase
-    .from('dim_integrantes').select('ver_finanzas').eq('auth_user_id', user.id).eq('activo', true).maybeSingle()
+    .from('dim_integrantes').select('es_superadmin,ver_finanzas,gestionar_finanzas').eq('auth_user_id', user.id).eq('activo', true).maybeSingle()
   if (!integrante) return NextResponse.json({ error: 'No autorizado.' }, { status: 403 })
-  if (tipo === 'finanzas' && !integrante.ver_finanzas) return NextResponse.json({ error: 'Sin permiso.' }, { status: 403 })
+  if (tipo === 'finanzas' && !puedeVerFinanzas(integrante)) return NextResponse.json({ error: 'Sin permiso.' }, { status: 403 })
 
   let salida: string
   if (tipo === 'inventario') {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
       return [s.sku, s.nombre, s.stock, minimo, Number(s.stock) <= minimo ? 'Sí' : 'No']
     }))
   } else if (tipo === 'finanzas') {
-    const { data } = await supabase.from('movimientos_financieros').select('tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte').order('fecha', { ascending: false }).limit(5000)
+    const { data } = await supabase.from('movimientos_financieros').select('tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte').eq('negocio', NEGOCIO_TIENDA).order('fecha', { ascending: false }).limit(5000)
     salida = archivo('finanzas', ['Tipo', 'Categoría', 'Descripción', 'Monto CLP', 'Fecha', 'Método', 'Contraparte'], (data ?? []).map((m) => [m.tipo, m.categoria, m.descripcion, m.monto_clp, m.fecha, m.metodo_pago, m.contraparte]))
   } else {
     const { data } = await supabase.from('pedidos').select('numero,cliente_nombre,cliente_email,cliente_fono,canal,estado,metodo_pago,total_clp,created_at,pagado_at,envio_courier,envio_seguimiento').order('created_at', { ascending: false }).limit(5000)

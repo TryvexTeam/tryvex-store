@@ -14,6 +14,19 @@ import { BANCOS, MediosPago } from '@/components/tienda/medios-pago'
 import { Selector } from '@/components/selector'
 import { clp } from '@/lib/formato'
 import { Estrella } from '@/app/marca'
+import { SelectorPuntoStarken } from '@/components/tienda/punto-starken'
+import type { PuntoStarken } from '@/lib/sucursales-starken'
+
+/** Lo que quien tiene sesión dejó en su compra anterior: llega llenado. */
+export interface PerfilCompra {
+  nombre: string | null
+  telefono: string | null
+  region: string | null
+  comuna: string | null
+  direccion: string | null
+  entrega: 'envio' | 'sucursal' | 'retiro' | null
+  punto: PuntoStarken | null
+}
 
 export interface EnvioCompra {
   tarifa: number
@@ -135,11 +148,49 @@ function Paso({ n, titulo, children }: { n: number; titulo: string; children: Re
  * llega con una sola línea en la URL. En ambos casos cada cambio se vuelve a
  * cotizar en el servidor, y lo que se muestra es exactamente lo que se cobra.
  */
+/**
+ * Retiro en un punto Starken. Lleva el verde y el logotipo de Starken para
+ * que se reconozca de un vistazo quién guarda el paquete.
+ */
+function OpcionStarken({ activo, alElegir }: { activo: boolean; alElegir: () => void }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={activo}
+      onClick={alElegir}
+      className={[
+        'flex w-full items-center gap-3.5 rounded-[16px] px-4 py-3 text-left transition-all duration-200',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#009d4e]',
+        activo ? 'bg-[#009d4e]/[0.06] ring-2 ring-[#009d4e]' : 'ring-[1.5px] ring-[#009d4e]/45 hover:ring-[#009d4e]',
+      ].join(' ')}
+    >
+      <span className="grid h-10 w-[72px] shrink-0 place-items-center rounded-[10px] bg-white ring-1 ring-[#009d4e]/20">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/couriers/starken.png" alt="Starken" width={480} height={120} className="h-auto w-[58px]" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-semibold">Retiro en punto Starken</span>
+        <span className="mt-0.5 block text-[13px] text-tinta-suave">Sucursales, OXXO y lockers cerca de ti</span>
+      </span>
+      <span
+        aria-hidden
+        className={['grid size-[20px] shrink-0 place-items-center rounded-full ring-1 transition-all duration-200', activo ? 'bg-[#009d4e] ring-[#009d4e]' : 'ring-borde'].join(' ')}
+      >
+        <svg viewBox="0 0 10 10" className={`size-[8px] text-white transition-opacity duration-200 ${activo ? 'opacity-100' : 'opacity-0'}`} fill="none">
+          <path d="M1.5 5.2 3.8 7.5 8.5 2.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+    </button>
+  )
+}
+
 export default function Checkout({
   lineaDirecta,
   envio,
   datosPago,
   emailCuenta,
+  perfil = null,
 }: {
   /** «Comprar ahora»: una línea que no pasa por la bolsa. */
   lineaDirecta: LineaPedida | null
@@ -147,6 +198,8 @@ export default function Checkout({
   datosPago: DatosPago
   /** Correo de la sesión, para no pedirle a quien ya tiene cuenta que lo escriba. */
   emailCuenta: string | null
+  /** Datos guardados de la compra anterior, si hay sesión. */
+  perfil?: PerfilCompra | null
 }) {
   const bolsa = useBolsa()
   const desdeBolsa = lineaDirecta === null
@@ -176,10 +229,14 @@ export default function Checkout({
     return () => clearTimeout(t)
   }, [pedidas, desdeBolsa, bolsa.lista])
 
-  const [entrega, setEntrega] = useState<'envio' | 'sucursal' | 'retiro'>('sucursal')
-  const [region, setRegion] = useState('')
-  const [comuna, setComuna] = useState('')
-  const [metodo, setMetodo] = useState('transferencia')
+  // Domicilio y Mercado Pago vienen elegidos: es lo que más se usa. Si la
+  // cuenta guardó otra forma de entrega, manda esa.
+  const [entrega, setEntrega] = useState<'envio' | 'sucursal' | 'retiro'>(
+    perfil?.entrega === 'sucursal' || (perfil?.entrega === 'retiro' && envio.retiro) ? perfil.entrega : 'envio'
+  )
+  const [region, setRegion] = useState(perfil?.region && esRegion(perfil.region) ? perfil.region : '')
+  const [comuna, setComuna] = useState(perfil?.region && esRegion(perfil.region) && perfil.comuna ? perfil.comuna : '')
+  const [metodo, setMetodo] = useState('mercadopago')
   const [error, setError] = useState<string | null>(null)
   const [listo, setListo] = useState<Extract<Resultado, { ok: true }> | null>(null)
   const [enviando, iniciar] = useTransition()
@@ -301,12 +358,25 @@ export default function Checkout({
 
         <Paso n={2} titulo="Tus datos">
           <div className="grid gap-3 t:grid-cols-2">
-            <div className="t:col-span-2"><Campo id="nombre" name="nombre" etiqueta="Nombre y apellido" autoComplete="name" required disabled={enviando} /></div>
-            <Campo id="fono" name="fono" etiqueta="Teléfono" inputMode="tel" autoComplete="tel" required disabled={enviando} />
+            <div className="t:col-span-2"><Campo id="nombre" name="nombre" etiqueta="Nombre y apellido" autoComplete="name" required defaultValue={perfil?.nombre ?? undefined} disabled={enviando} /></div>
+            <Campo id="fono" name="fono" etiqueta="Teléfono" inputMode="tel" autoComplete="tel" required defaultValue={perfil?.telefono ?? undefined} disabled={enviando} />
             <Campo id="email" name="email" etiqueta="Correo" type="email" autoComplete="email" required defaultValue={emailCuenta ?? undefined} disabled={enviando} />
             {/* Obligatorio: es el único canal por el que llega la confirmación
                 del pago y el enlace de seguimiento a quien compra sin cuenta. */}
-            <p className="text-[13px] text-tinta-suave t:col-span-2">Te enviaremos la confirmación y el enlace para seguir tu pedido.</p>
+            <p className="text-[13px] text-tinta-suave t:col-span-2">
+              {perfil?.telefono
+                ? 'Traemos los datos de tu última compra. Si cambias algo, lo guardamos para la próxima.'
+                : 'Te enviaremos la confirmación y el enlace para seguir tu pedido.'}
+              {!emailCuenta && (
+                <>
+                  {' '}
+                  <Link href="/cuenta/ingresar?volver=/comprar" className="font-medium text-tinta underline underline-offset-2">
+                    Ingresa a tu cuenta
+                  </Link>{' '}
+                  y guardamos tus datos para la próxima compra.
+                </>
+              )}
+            </p>
           </div>
         </Paso>
 
@@ -316,29 +386,23 @@ export default function Checkout({
             <span aria-hidden className="grid size-5 place-items-center rounded-full bg-[#137333]/10 text-[#137333]">
               <svg viewBox="0 0 10 10" className="size-[9px]" fill="none"><path d="M1.5 5.2 3.8 7.5 8.5 2.8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </span>
-            <span><strong className="font-semibold text-tinta">Envío gratis a todo Chile</strong> con Correos de Chile.</span>
+            <span><strong className="font-semibold text-tinta">Envío gratis a todo Chile</strong>, a tu casa o a un punto Starken.</span>
           </p>
 
-          {/* La sucursal es la forma principal: así despacha la tienda. El
-              domicilio sigue disponible, pero como alternativa y no como
-              primera opción del mismo peso. */}
+          {/* El domicilio es la forma principal y viene elegida. Retirar en un
+              punto Starken es la alternativa, con la marca de Starken para que
+              se reconozca. */}
           <div role="radiogroup" aria-label="Forma de entrega" className="grid gap-2.5">
             <OpcionEntrega
               principal
-              activo={entrega === 'sucursal'}
-              alElegir={() => setEntrega('sucursal')}
-              icono="sucursal"
-              titulo="Retiro en sucursal de Correos de Chile"
-              detalle="La eliges tú. Te avisamos por correo cuando esté lista para retirar."
+              activo={entrega === 'envio'}
+              alElegir={() => setEntrega('envio')}
+              icono="casa"
+              titulo="Despacho a domicilio"
+              detalle={envio.plazo ?? 'Llega a tu puerta. Te avisamos por correo cuando salga.'}
             />
             <div className={`grid gap-2.5 ${envio.retiro ? 't:grid-cols-2' : ''}`}>
-              <OpcionEntrega
-                activo={entrega === 'envio'}
-                alElegir={() => setEntrega('envio')}
-                icono="casa"
-                titulo="Despacho a domicilio"
-                detalle={envio.plazo ?? 'Llega a tu puerta'}
-              />
+              <OpcionStarken activo={entrega === 'sucursal'} alElegir={() => setEntrega('sucursal')} />
               {envio.retiro && (
                 <OpcionEntrega
                   activo={entrega === 'retiro'}
@@ -384,21 +448,10 @@ export default function Checkout({
           )}
 
           <div key={entrega} className="entrega-panel mt-3">
-            {entrega === 'sucursal' && (
-              <div className="grid gap-2">
-                <Campo id="sucursal" name="sucursal" etiqueta="Sucursal donde retiras" required disabled={enviando} />
-                <p className="text-[13px] leading-relaxed text-tinta-suave">
-                  ¿No sabes cuál te queda cerca?{' '}
-                  <a href="https://www.correos.cl/sucursales" target="_blank" rel="noopener noreferrer" className="font-medium text-spark hover:underline">
-                    Busca sucursales de Correos de Chile<span className="sr-only"> (se abre en otra pestaña)</span>
-                  </a>
-                  . Guardan tu pedido varios días.
-                </p>
-              </div>
-            )}
+            {entrega === 'sucursal' && <SelectorPuntoStarken region={region} comuna={comuna} inicial={perfil?.punto ?? null} disabled={enviando} />}
 
             {entrega === 'envio' && (
-              <Campo id="direccion" name="direccion" etiqueta="Calle, número y depto." autoComplete="street-address" required disabled={enviando} />
+              <Campo id="direccion" name="direccion" etiqueta="Calle, número y depto." autoComplete="street-address" required defaultValue={perfil?.direccion ?? undefined} disabled={enviando} />
             )}
 
             {entrega === 'retiro' && (
@@ -412,11 +465,28 @@ export default function Checkout({
         <Paso n={4} titulo="Pago">
           <div role="radiogroup" aria-label="Forma de pago" className="grid gap-2.5 t:grid-cols-2">
             {([
-              ['transferencia', 'Transferencia bancaria', 'Te mostramos los datos al confirmar'],
               ['mercadopago', 'Tarjeta o Mercado Pago', 'Crédito, débito o prepago, en cuotas si quieres'],
+              ['transferencia', 'Transferencia bancaria', 'Te mostramos los datos al confirmar'],
             ] as const).map(([v, t, n]) => (
-              <label key={v} className={`flex cursor-pointer flex-col rounded-[14px] p-4 transition-all duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-spark ${metodo === v ? 'bg-papel-alt ring-2 ring-tinta' : 'ring-1 ring-borde hover:ring-tinta/40'}`}>
+              <label
+                key={v}
+                className={`flex cursor-pointer flex-col rounded-[14px] p-4 transition-all duration-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-spark ${
+                  v === 'mercadopago'
+                    ? metodo === v
+                      ? 'bg-[#FFE600]/[0.12] ring-2 ring-[#F2C200]'
+                      : 'ring-[1.5px] ring-[#FFE600] hover:ring-[#F2C200]'
+                    : metodo === v
+                      ? 'bg-papel-alt ring-2 ring-tinta'
+                      : 'ring-1 ring-borde hover:ring-tinta/40'
+                }`}
+              >
                 <input type="radio" name="metodo_pago" value={v} checked={metodo === v} onChange={() => setMetodo(v)} className="sr-only" />
+                {v === 'mercadopago' && (
+                  <span className="mb-2.5 grid size-11 place-items-center rounded-[12px] bg-[#FFE600]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/pagos/mercadopago.svg" alt="Mercado Pago" width={64} height={64} className="size-8" />
+                  </span>
+                )}
                 <span className="block text-[15px] font-semibold">{t}</span>
                 <span className="mt-0.5 block text-[13px] text-tinta-suave">{n}</span>
                 {v === 'mercadopago' ? (

@@ -8,6 +8,7 @@ import { cotizarLineas, normalizarLineas, type LineaCotizada } from '@/lib/cotiz
 import { esRegion } from '@/lib/chile'
 import { esComunaDe } from '@/lib/comunas'
 import { crearOrden } from '@/lib/mercadopago'
+import { puntoStarken, puntosPara, textoDelPunto, type PuntoStarken } from '@/lib/sucursales-starken'
 
 export type Resultado =
   | {
@@ -73,7 +74,9 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   const region = texto('region', 60)
   const comuna = texto('comuna', 60)
   const direccion = texto('direccion', 160)
-  const sucursal = texto('sucursal', 120)
+  // El punto Starken llega como id y se busca en la lista: el texto que queda
+  // en el pedido lo arma el servidor, nadie puede inventar una sucursal.
+  const punto = puntoStarken(Number(texto('sucursal_id', 12)))
   const metodo = texto('metodo_pago', 20)
 
   if (nombre.length < 3) return { ok: false, error: 'Escribe tu nombre y apellido.' }
@@ -91,7 +94,7 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
     // sucursal el paquete no tiene destino.
     if (!esRegion(region)) return { ok: false, error: 'Elige tu región.' }
     if (!esComunaDe(region, comuna)) return { ok: false, error: 'Elige tu comuna de la lista.' }
-    if (sucursal.length < 3) return { ok: false, error: 'Dinos en qué sucursal quieres retirar.' }
+    if (!punto) return { ok: false, error: 'Elige el punto Starken donde quieres retirar.' }
   }
 
   let entrada: unknown
@@ -142,7 +145,8 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
       direccion: {
         entrega,
         direccion: entrega === 'envio' ? direccion : null,
-        sucursal: entrega === 'sucursal' ? sucursal : null,
+        sucursal: entrega === 'sucursal' && punto ? textoDelPunto(punto) : null,
+        sucursal_id: entrega === 'sucursal' && punto ? punto.id : null,
       },
       notas: lineas.some((l) => l.tramo) ? `Tramos: ${lineas.filter((l) => l.tramo).map((l) => `${l.nombre} ${l.tramo}`).join('; ')}` : null,
     },
@@ -161,6 +165,23 @@ export async function crearPedidoPublico(datos: FormData): Promise<Resultado> {
   }
   const pedido = creado
   const db = crearClienteAdministrador()
+
+  // Con sesión, lo que escribió queda guardado en su cuenta: la próxima compra
+  // viene llenada. Se escribe con su propia sesión (RLS: solo su fila), y si
+  // falla no importa: el pedido ya quedó tomado.
+  if (user) {
+    const { error: errPerfil } = await (await crearClienteServidor()).from('clientes_tienda').upsert({
+      auth_user_id: user.id,
+      nombre,
+      telefono: fono,
+      entrega_preferida: entrega,
+      ...(entrega === 'retiro' ? {} : { region, comuna }),
+      ...(entrega === 'envio' ? { direccion } : {}),
+      ...(entrega === 'sucursal' && punto ? { sucursal: String(punto.id) } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    if (errPerfil) console.error('[comprar] no se guardaron los datos de envío en la cuenta', { error: errPerfil.message })
+  }
 
   const detalle = lineas.map((l) => `${l.cantidad} × ${l.nombre}${l.variante ? ` (${l.variante})` : ''}`).join(', ')
   const mensaje = `Hola, soy ${nombre}. Hice el pedido #${pedido.numero} en Tryvex Store: ${detalle}. Total $${total.toLocaleString('es-CL')}.`
@@ -260,4 +281,12 @@ export async function declararPago(datos: FormData): Promise<ResultadoDeclaracio
 
   if (error) return { ok: false, error: 'No pudimos registrar tu aviso. Escríbenos y lo resolvemos.' }
   return { ok: true }
+}
+
+export type PuntosStarken = { enComuna: PuntoStarken[]; enRegion: PuntoStarken[] }
+
+/** Los puntos Starken para la región y comuna elegidas en el checkout. */
+export async function buscarPuntosStarken(region: string, comuna: string): Promise<PuntosStarken> {
+  if (!esRegion(region) || !esComunaDe(region, comuna)) return { enComuna: [], enRegion: [] }
+  return puntosPara(region, comuna)
 }
