@@ -21,6 +21,11 @@ export interface AvisoEquipo {
   url: string
   /** Avisos con la misma etiqueta se reemplazan en vez de apilarse. */
   etiqueta: string
+  /**
+   * Foto grande dentro del aviso (la del producto vendido). Android la muestra
+   * al expandir la notificación; iPhone la ignora.
+   */
+  imagen?: string | null
 }
 
 interface Suscripcion {

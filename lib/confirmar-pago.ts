@@ -174,5 +174,6 @@ function avisoDeVenta(numero: number, cliente: string | null, total: number, ite
     cuerpo: [`#${numero}`, cliente?.trim() || 'Cliente', detalle].filter(Boolean).join(' · '),
     url: `/panel/pedidos#pedido-${numero}`,
     etiqueta: `pedido-${numero}`,
+    imagen: primero?.imagen ?? null,
   }
 }

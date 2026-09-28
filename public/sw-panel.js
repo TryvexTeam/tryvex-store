@@ -26,6 +26,11 @@ self.addEventListener('push', (evento) => {
       body: aviso.cuerpo || '',
       icon: '/app-panel/icono-192.png',
       badge: '/app-panel/insignia-96.png',
+      // Foto del producto vendido: Android la muestra al expandir el aviso.
+      // Solo https, para que un aviso no pueda apuntar a cualquier cosa.
+      image: typeof aviso.imagen === 'string' && aviso.imagen.startsWith('https://') ? aviso.imagen : undefined,
+      // Botón directo al pedido (Android y escritorio; iPhone no muestra botones).
+      actions: [{ action: 'ver', title: 'Ver pedido' }],
       tag: aviso.etiqueta || undefined,
       // Una venta nueva con la misma etiqueta vuelve a sonar en vez de
       // reemplazarse en silencio.
@@ -37,6 +42,7 @@ self.addEventListener('push', (evento) => {
   )
 })
 
+// Tocar el aviso o su botón «Ver pedido» lleva al mismo lugar: el pedido.
 self.addEventListener('notificationclick', (evento) => {
   evento.notification.close()
   // Solo rutas del propio panel: el aviso no puede mandar a otro sitio.

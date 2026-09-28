@@ -3,6 +3,7 @@
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { avisarAlEquipo, pushDisponible } from '@/lib/push'
+import { urlPublica } from '@/lib/imagenes'
 
 /**
  * Suscripciones de avisos push del equipo.
@@ -103,12 +104,22 @@ export async function desactivarAvisos(endpoint: string): Promise<Resultado> {
 export async function probarAvisos(): Promise<Resultado> {
   const id = await integranteId()
   if (!id) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
+  // La prueba lleva la foto de un producto real, para ver el aviso tal cual
+  // llega con una venta.
+  const { data: producto } = await crearClienteAdministrador()
+    .from('productos')
+    .select('imagen_url')
+    .eq('estado', 'publicado')
+    .not('imagen_url', 'is', null)
+    .limit(1)
+    .maybeSingle()
   const r = await avisarAlEquipo(
     {
       titulo: 'Nuevo pedido pagado · $45.000',
       cuerpo: 'Así se ve cada venta. Este es un aviso de prueba.',
       url: '/panel/pedidos',
       etiqueta: 'prueba',
+      imagen: producto?.imagen_url ? urlPublica(producto.imagen_url) : null,
     },
     id
   )
