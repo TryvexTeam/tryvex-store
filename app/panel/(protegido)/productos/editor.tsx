@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
-import { guardarProducto, guardarTramo, borrarTramo, cambiarEstadoProducto } from './acciones'
+import { guardarProducto, guardarTramo, borrarTramo, cambiarEstadoProducto, aplicarPreciosMayoristas } from './acciones'
+import { calcularTramosMayoristas, MARGEN_MINIMO_CLP } from '@/lib/precios-mayoristas'
 import { clp } from '@/lib/formato'
 import { useAvisos } from '@/components/avisos'
 import {
@@ -82,6 +83,26 @@ export default function EditorProducto({
   const [estado, setEstado] = useState<EstadoProducto>(producto.estado)
   const [precio, setPrecio] = useState(n(producto.precio_base))
   const [costo, setCosto] = useState(n(producto.costo_unitario))
+  const [vistaMayorista, setVistaMayorista] = useState(false)
+
+  // La vista previa usa lo GUARDADO, igual que el servidor al aplicar: así lo
+  // que se ve es exactamente lo que queda en la tienda.
+  const precioGuardado = n(producto.precio_base)
+  const costoGuardado = n(producto.costo_unitario)
+  const calculo = calcularTramosMayoristas(precioGuardado, costoGuardado)
+  const sinGuardar = precio !== precioGuardado || costo !== costoGuardado
+
+  function aplicarMayoristas() {
+    iniciar(async () => {
+      const r = await aplicarPreciosMayoristas(producto.id)
+      if (r.ok) {
+        avisos.ok('Precios mayoristas aplicados: 6 tramos desde 3 unidades.')
+        setVistaMayorista(false)
+      } else {
+        avisos.error(r.error)
+      }
+    })
+  }
 
   function enviar(accion: (d: FormData) => Promise<{ ok: boolean; error?: string }>, exito: string) {
     return (e: React.FormEvent<HTMLFormElement>) => {
@@ -295,18 +316,81 @@ export default function EditorProducto({
 
       {/* ── Tramos por volumen ─────────────────────────────────── */}
       <section className={bloque}>
-        <div className="mb-4 flex items-baseline justify-between gap-3">
-          <div>
+        {/* En el teléfono el título va arriba y los botones debajo: en una fila
+            el título quedaba en una columna angosta y los botones se salían. */}
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
+          <div className="min-w-0">
             <h3 className={titulo}>Precio por volumen</h3>
             <p className="mt-0.5 text-[12px] text-gris">Lo que ve el cliente al comprar varias unidades.</p>
           </div>
-          {!nuevo && (
-            <button onClick={() => setNuevo(true)}
-                    className="presionable shrink-0 rounded-full bg-papel-alt px-4 py-2 text-[13px] font-medium text-tinta">
-              Agregar tramo
+          <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+            <button onClick={() => setVistaMayorista((v) => !v)} aria-expanded={vistaMayorista}
+                    className="presionable rounded-full bg-tinta px-4 py-2 text-[13px] font-medium text-white hover:bg-tinta/85">
+              Calcular mayoristas
             </button>
-          )}
+            {!nuevo && (
+              <button onClick={() => setNuevo(true)}
+                      className="presionable rounded-full bg-papel-alt px-4 py-2 text-[13px] font-medium text-tinta">
+                Agregar tramo
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Calculadora: 6 tramos desde 3 unidades hasta el piso en 100+. */}
+        {vistaMayorista && (
+          <div className="mb-4 rounded-[14px] bg-papel-alt p-4 ring-1 ring-borde/70">
+            <p className="text-[13px] font-semibold text-tinta">Precios mayoristas</p>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-gris">
+              Desde 3 unidades, en escalones parejos hasta 100. Desde 100 el precio se mantiene en el piso: costo
+              + {clp(MARGEN_MINIMO_CLP)}.
+            </p>
+
+            {sinGuardar ? (
+              <p role="alert" className="mt-3 text-[13px] text-ambar">
+                Cambiaste el precio o el costo: guarda el producto primero y la calculadora usará los valores nuevos.
+              </p>
+            ) : !calculo.ok ? (
+              <p role="alert" className="mt-3 text-[13px] text-rojo">{calculo.error}</p>
+            ) : (
+              <>
+                <table className="mt-3 w-full text-[13px]">
+                  <thead className="text-left text-[11px] tracking-etiqueta text-gris uppercase">
+                    <tr>
+                      <th className="pb-1.5 font-semibold">Cantidad</th>
+                      <th className="pb-1.5 text-right font-semibold">Precio c/u</th>
+                      <th className="pb-1.5 text-right font-semibold">Ganancia c/u</th>
+                    </tr>
+                  </thead>
+                  <tbody className="cifra">
+                    <tr className="border-t border-borde/60 text-gris">
+                      <td className="py-1.5">1 a 2 unidades</td>
+                      <td className="py-1.5 text-right">{clp(precioGuardado)}</td>
+                      <td className="py-1.5 text-right">{clp(precioGuardado - costoGuardado)}</td>
+                    </tr>
+                    {calculo.tramos.map((t) => (
+                      <tr key={t.min} className="border-t border-borde/60">
+                        <td className="py-1.5 text-tinta">{t.etiqueta}</td>
+                        <td className="py-1.5 text-right font-semibold text-tinta">{clp(t.precio)}</td>
+                        <td className="py-1.5 text-right text-verde">{clp(t.precio - costoGuardado)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button onClick={aplicarMayoristas} disabled={guardando}
+                          className="presionable rounded-full bg-tinta px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
+                    {guardando ? 'Aplicando…' : 'Aplicar estos precios'}
+                  </button>
+                  <button onClick={() => setVistaMayorista(false)} className="rounded-full px-3 py-2.5 text-[13px] text-gris">
+                    Cancelar
+                  </button>
+                  {tramos.length > 0 && <span className="text-[12px] text-gris">Reemplaza los {tramos.length} tramos actuales.</span>}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         <ul className="space-y-2.5">
           {tramos.map((t) => (
