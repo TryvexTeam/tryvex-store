@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual } from '@/lib/sesion'
 import { rutasDeGaleria } from '@/lib/imagenes'
@@ -95,7 +96,18 @@ export default async function Productos() {
   return (
     <>
       <header className="mb-8">
-        <h1 className="text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] sm:text-[48px]">Productos.</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-[34px] leading-[1.05] font-semibold tracking-[-0.03em] sm:text-[48px]">Productos.</h1>
+          <Link
+            href="/panel/productos/orden"
+            className="presionable inline-flex min-h-11 items-center gap-2 rounded-full bg-papel px-4 text-[14px] font-semibold text-tinta ring-1 ring-borde/70 hover:ring-gris"
+          >
+            <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 1.5v11M1.5 10 4 12.5 6.5 10M10 12.5v-11M7.5 4 10 1.5 12.5 4" />
+            </svg>
+            Ordenar vitrina
+          </Link>
+        </div>
         <p className="mt-2 text-[15px] text-tinta-suave sm:text-[17px]">
           {catalogo.length === 0 ? 'Lo que publiques acá es lo que se ve en la tienda.' : 'Lo que publiques acá es lo que ve el cliente en la tienda.'}
         </p>

@@ -5,7 +5,8 @@ import { leerVitrina, type ProductoTienda } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { CardProducto } from '@/components/tienda/card-producto'
-import { FiltrosColeccion, ORDENES, type Orden, type Vista } from '@/components/tienda/filtros-coleccion'
+import { FiltrosColeccion, type Vista } from '@/components/tienda/filtros-coleccion'
+import { ORDENES, ORDEN_POR_DEFECTO, type Orden } from '@/lib/orden-coleccion'
 import { FilaCategorias } from '@/components/tienda/fila-categorias'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
@@ -56,7 +57,7 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
   const soloDisponibles = uno(q.disponibles) === '1'
   const soloOfertas = uno(q.ofertas) === '1'
   const ordenQ = uno(q.orden)
-  const orden: Orden = ordenQ && ordenQ in ORDENES ? (ordenQ as Orden) : 'recientes'
+  const orden: Orden = ordenQ && ordenQ in ORDENES ? (ordenQ as Orden) : ORDEN_POR_DEFECTO
   const vista: Vista = uno(q.vista) === 'amplia' ? 'amplia' : 'pares'
 
   const categoria = categorias.find((c) => c.slug === cat) ?? null
@@ -71,9 +72,13 @@ export default async function Tienda(props: PageProps<'/tienda'>) {
       (max === undefined || p.precio <= max) &&
       (!termino || normal(`${p.nombre} ${p.frase ?? ''}`).includes(termino))
   )
+  if (orden === 'recientes') lista = [...lista].sort((a, b) => (b.publicado ?? '').localeCompare(a.publicado ?? ''))
   if (orden === 'menor-precio') lista = [...lista].sort((a, b) => a.precio - b.precio)
   if (orden === 'mayor-precio') lista = [...lista].sort((a, b) => b.precio - a.precio)
-  lista = [...lista.filter((p) => !p.agotado), ...lista.filter((p) => p.agotado)]
+  // «Destacados» respeta al pie de la letra el orden del panel, agotados
+  // incluidos: si el equipo puso algo arriba, es a propósito. En los demás
+  // órdenes lo que no se puede comprar baja al final.
+  if (orden !== 'destacados') lista = [...lista.filter((p) => !p.agotado), ...lista.filter((p) => p.agotado)]
 
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
 

@@ -4,12 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { clp } from '@/lib/formato'
 
-export const ORDENES = {
-  recientes: 'Más recientes',
-  'menor-precio': 'Menor precio',
-  'mayor-precio': 'Mayor precio',
-} as const
-export type Orden = keyof typeof ORDENES
+import { ORDENES, ORDEN_POR_DEFECTO, type Orden } from '@/lib/orden-coleccion'
 
 /**
  * Columnas de la grilla, como el selector de dunedragon.cl.
@@ -45,7 +40,7 @@ function hrefCon(e: EstadoFiltros, cambio: Partial<Record<'cat' | 'q' | 'disponi
     q: e.busqueda || undefined,
     disponibles: e.disponibles ? '1' : undefined,
     ofertas: e.ofertas ? '1' : undefined,
-    orden: e.orden !== 'recientes' ? e.orden : undefined,
+    orden: e.orden !== ORDEN_POR_DEFECTO ? e.orden : undefined,
     min: e.min?.toString(),
     max: e.max?.toString(),
     vista: e.vista !== 'pares' ? e.vista : undefined,
@@ -83,7 +78,7 @@ function Conservar({ estado, sin }: { estado: EstadoFiltros; sin: ('q' | 'precio
       {!sin.includes('q') && estado.busqueda && <input type="hidden" name="q" value={estado.busqueda} />}
       {estado.disponibles && <input type="hidden" name="disponibles" value="1" />}
       {estado.ofertas && <input type="hidden" name="ofertas" value="1" />}
-      {estado.orden !== 'recientes' && <input type="hidden" name="orden" value={estado.orden} />}
+      {estado.orden !== ORDEN_POR_DEFECTO && <input type="hidden" name="orden" value={estado.orden} />}
       {estado.vista !== 'pares' && <input type="hidden" name="vista" value={estado.vista} />}
       {!sin.includes('precio') && estado.min !== undefined && <input type="hidden" name="min" value={estado.min} />}
       {!sin.includes('precio') && estado.max !== undefined && <input type="hidden" name="max" value={estado.max} />}
@@ -284,7 +279,7 @@ export function FiltrosColeccion({ estado, resultados }: { estado: EstadoFiltros
             <ul className={`${panel} right-0 w-[240px]`}>
               {(Object.keys(ORDENES) as Orden[]).map((o) => (
                 <li key={o}>
-                  <Link href={hrefCon(estado, { orden: o === 'recientes' ? null : o })} onClick={cerrar} className={opcion(estado.orden === o)}>
+                  <Link href={hrefCon(estado, { orden: o === ORDEN_POR_DEFECTO ? null : o })} onClick={cerrar} className={opcion(estado.orden === o)}>
                     {ORDENES[o]}
                     {estado.orden === o && <span aria-hidden>✓</span>}
                   </Link>

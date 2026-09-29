@@ -75,7 +75,7 @@ export default function PruebaEscala() {
         <FranjaConfianza />
         <CategoriasDestacadas categorias={categorias} />
         <BannerDoble />
-        <ListaProductos productos={productos} />
+        <ListaProductos productos={productos.slice(0, 8)} total={productos.length} />
         {/* Grilla de a dos, como en /tienda: para revisar las cards angostas. */}
         <ul id="grilla-pares" className="grid grid-cols-2 gap-3 px-[var(--canal)] pt-10 t:gap-5">
           {productos.slice(0, 6).map((p) => (
