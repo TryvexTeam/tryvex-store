@@ -2,12 +2,14 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { IconoEstrella } from '@/components/iconos'
 import type { ResenaPublica } from '@/lib/resenas'
 
 type Props = {
   resenas: ResenaPublica[]
   titulo?: string
   bajada?: string
+  resumen?: { promedio: number; total: number }
 }
 
 const TONOS = ['#dff3ea', '#dbeafe', '#fce7f3', '#fef3c7']
@@ -16,8 +18,9 @@ const INTERVALO = 4200
 
 export function Comentarios({
   resenas,
-  titulo = 'Lo que cuentan quienes compraron.',
-  bajada = 'Reseñas de clientes con compras entregadas en Tryvex.',
+  titulo = 'Lo que dicen de Tryvex.',
+  bajada = 'Opiniones de nuestra comunidad.',
+  resumen,
 }: Props) {
   const pista = useRef<HTMLUListElement>(null)
   const [pausado, setPausado] = useState(false)
@@ -52,6 +55,12 @@ export function Comentarios({
           <div>
             <p className="text-[14px] font-semibold tracking-[0.12em] text-tinta-suave uppercase">Comunidad Tryvex</p>
             <h2 id="comentarios-titulo" className="mt-2 text-[32px] leading-[1.05] font-semibold tracking-seccion text-tinta t:text-[48px]">{titulo}</h2>
+            {resumen && resumen.total > 0 && (
+              <p className="mt-2 flex items-center gap-1.5 text-[15px] font-medium text-tinta">
+                <Estrellas calificacion={Math.round(resumen.promedio)} />
+                <span>{resumen.promedio.toFixed(1)} · {resumen.total} {resumen.total === 1 ? 'reseña' : 'reseñas'}</span>
+              </p>
+            )}
             <p className="mt-3 max-w-[56ch] text-[16px] leading-relaxed text-tinta-suave t:text-[17px]">{bajada}</p>
           </div>
           <div className="flex gap-2">
@@ -71,6 +80,7 @@ export function Comentarios({
               </div>
             )}
             <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">Compra verificada</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
+            <div className="relative mt-3"><Estrellas calificacion={resena.calificacion} /></div>
             <blockquote className="relative mt-5 text-[22px] leading-[1.18] font-medium tracking-cuerpo text-tinta t:text-[25px]">“{resena.texto}”</blockquote>
             <footer className="relative mt-auto pt-7"><p className="font-semibold text-tinta">{resena.cliente}</p><p className="mt-0.5 text-[14px] text-tinta-suave">{resena.producto}</p></footer>
           </li>
@@ -82,4 +92,12 @@ export function Comentarios({
 
 function Flecha({ direccion }: { direccion: 'izquierda' | 'derecha' }) {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d={direccion === 'izquierda' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'} /></svg>
+}
+
+function Estrellas({ calificacion }: { calificacion: number }) {
+  return (
+    <span role="img" aria-label={`${calificacion} de 5 estrellas`} className="inline-flex items-center gap-0.5 text-tinta">
+      {Array.from({ length: 5 }, (_, i) => <IconoEstrella key={i} size={15} activo={i < calificacion} />)}
+    </span>
+  )
 }
