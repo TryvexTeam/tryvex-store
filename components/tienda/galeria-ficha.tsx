@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Estrella } from '@/app/marca'
 import { esVideo } from '@/lib/imagenes'
 import { BotonFavorito } from './boton-favorito'
+import { FotoSuave } from './foto-suave'
 
 interface Props {
   /** URLs públicas de fotos y videos, en el orden del panel. `null` = sin foto. */
@@ -126,7 +127,9 @@ export function GaleriaFicha({ medios, nombre, slug, productoId }: Props) {
           aria-label={`Fotos de ${nombre}`}
         >
           {medios.map((src, i) => (
-            <div key={`m-${src}-${i}`} className="relative w-full shrink-0 snap-center" aria-label={`Foto ${i + 1} de ${medios.length}`}>
+            // Clave por posición: al cambiar de color la casilla se queda y su
+            // foto se funde con la nueva, en vez de rearmarse la galería.
+            <div key={`m-${i}`} className="relative w-full shrink-0 snap-center" aria-label={`Foto ${i + 1} de ${medios.length}`}>
               <Casilla src={src} indice={i} nombre={nombre} slug={escritorio ? null : slug} total={medios.length} alAbrir={abrir} sizes="100vw" relleno="p-8 t:p-14" />
             </div>
           ))}
@@ -138,7 +141,7 @@ export function GaleriaFicha({ medios, nombre, slug, productoId }: Props) {
         <div className="absolute top-4 right-4 z-10"><BotonFavorito productoId={productoId} nombre={nombre} /></div>
         <ul className={`grid bg-papel-alt ${hayVarios ? 'grid-cols-2' : 'grid-cols-1'}`} aria-label={`Fotos de ${nombre}`}>
           {medios.map((src, i) => (
-            <li key={`g-${src}-${i}`} className={`relative ${hayVarios ? 'aspect-[4/5]' : 'aspect-square'}`}>
+            <li key={`g-${i}`} className={`relative ${hayVarios ? 'aspect-[4/5]' : 'aspect-square'}`}>
               <Casilla src={src} indice={i} nombre={nombre} slug={escritorio ? slug : null} total={medios.length} alAbrir={abrir} sizes="(min-width: 1024px) 34vw, 50vw" relleno="p-10" />
             </li>
           ))}
@@ -238,7 +241,9 @@ function Casilla({
   const medio = esVideo(src) ? (
     <video src={src} autoPlay muted loop playsInline preload="metadata" aria-hidden className="absolute inset-0 size-full object-cover" />
   ) : (
-    <Image src={src} alt={indice === 0 ? nombre : ''} fill priority={indice === 0} sizes={sizes} className={`object-contain ${relleno}`} />
+    <span className="absolute inset-0">
+      <FotoSuave src={src} alt={indice === 0 ? nombre : ''} priority={indice === 0} sizes={sizes} className={`object-contain ${relleno}`} />
+    </span>
   )
 
   return (

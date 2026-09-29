@@ -63,6 +63,14 @@ export interface ItemPedidoCuenta {
   varianteId: string | null
 }
 
+export type TipoEntrega = 'envio' | 'sucursal' | 'retiro'
+
+/** El tipo de entrega guardado en el jsonb `direccion` del pedido. */
+export function tipoDeEntrega(direccion: { entrega?: string } | null | undefined): TipoEntrega | null {
+  const e = direccion?.entrega
+  return e === 'envio' || e === 'sucursal' || e === 'retiro' ? e : null
+}
+
 export interface PedidoCuenta {
   id: string
   numero: number
@@ -78,6 +86,8 @@ export interface PedidoCuenta {
   metodoPago: string | null
   /** A dónde va, ya armado en una línea. `null` si fue retiro en persona. */
   entrega: string | null
+  /** Cómo se entrega: cambia los últimos pasos del recorrido. */
+  tipoEntrega: TipoEntrega | null
   courier: string | null
   pagadoEn: string | null
   enviadoEn: string | null
@@ -93,7 +103,7 @@ interface FilaPedidoBruta {
   numero: number | string
   token_seguimiento: string
   metodo_pago: string | null
-  direccion: { entrega?: string; direccion?: string | null } | null
+  direccion: { entrega?: string; direccion?: string | null; sucursal?: string | null } | null
   region: string | null
   comuna: string | null
   created_at: string
@@ -126,6 +136,7 @@ interface FilaPedidoBruta {
  */
 function describirEntrega(p: FilaPedidoBruta): string | null {
   if (p.direccion?.entrega === 'retiro') return 'Retiro en persona'
+  if (p.direccion?.entrega === 'sucursal' && p.direccion.sucursal) return p.direccion.sucursal
   const partes = [p.direccion?.direccion, p.comuna, p.region].filter((x): x is string => Boolean(x?.trim()))
   return partes.length > 0 ? partes.join(', ') : null
 }
@@ -190,6 +201,7 @@ export async function leerMisPedidos(): Promise<PedidoCuenta[]> {
     token: p.token_seguimiento,
     metodoPago: p.metodo_pago ?? null,
     entrega: describirEntrega(p),
+    tipoEntrega: tipoDeEntrega(p.direccion),
     courier: p.envio_courier ?? null,
     pagadoEn: p.pagado_at ?? null,
     enviadoEn: p.enviado_at ?? null,

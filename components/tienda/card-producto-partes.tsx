@@ -1,8 +1,8 @@
-import Image from 'next/image'
 import { ViewTransition } from 'react'
 import { clp } from '@/lib/formato'
 import { Estrella } from '@/app/marca'
 import type { ProductoTienda } from '@/lib/tienda'
+import { FotoSuave } from './foto-suave'
 
 /** Piezas compartidas por las cards de la vitrina (servidor y cliente). */
 
@@ -30,7 +30,13 @@ export function Foto({ src, slug, sizes, prioridad, className, transicion = true
         <Estrella size={64} />
       </span>
     )
-  const imagen = <Image src={src} alt="" fill sizes={sizes} priority={prioridad} className={className} />
+  // Un solo contenedor para la transición: mientras cambia de color hay dos
+  // fotos superpuestas, y cada una no puede llevar su propio nombre.
+  const imagen = (
+    <span className="absolute inset-0">
+      <FotoSuave src={src} alt="" sizes={sizes} priority={prioridad} className={className} />
+    </span>
+  )
   return transicion ? <ViewTransition name={`producto-${slug}`}>{imagen}</ViewTransition> : imagen
 }
 

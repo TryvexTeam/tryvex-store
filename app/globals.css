@@ -1118,8 +1118,27 @@ body {
   .envio-trazo-lleno { transform-origin: left; animation-name: envio-trazo-h; }
 }
 
+/* Paso en curso: el arco rojo gira sobre su riel. */
+@keyframes envio-giro { to { transform: rotate(360deg); } }
+.envio-giro { animation: envio-giro 1s linear infinite; }
+
+/* En preparación: el trazo avanza hasta la mitad, sin prisa, y su punta late
+   para decir «va en camino al siguiente paso, todavía no llega». */
+.envio-trazo-mitad {
+  transform-origin: top;
+  animation: envio-trazo-v 1100ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@keyframes envio-punta {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(29, 158, 75, 0.45); }
+  50%      { box-shadow: 0 0 0 6px rgba(29, 158, 75, 0); }
+}
+.envio-punta { animation: envio-punta 1.8s ease-in-out 1.1s infinite; }
+@media (min-width: 735px) {
+  .envio-trazo-mitad { transform-origin: left; animation-name: envio-trazo-h; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .envio-hito, .envio-texto, .envio-trazo-lleno { animation: none; }
+  .envio-hito, .envio-texto, .envio-trazo-lleno, .envio-trazo-mitad, .envio-punta, .envio-giro { animation: none; }
 }
 
 /* Cambio de forma de entrega en el checkout: los campos aparecen en vez de
@@ -1166,4 +1185,32 @@ body {
   .tienda-card.tienda-card-fluida-movil {
     width: 100%;
   }
+}
+
+/* Sello de «pago confirmado» en la página de gracias: el círculo se dibuja y
+   el visto lo sigue. Con movimiento reducido aparece ya dibujado. */
+.sello-ok {
+  animation: sello-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sello-ok-circulo {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: sello-traza 640ms cubic-bezier(0.65, 0, 0.35, 1) 120ms forwards;
+}
+.sello-ok-visto {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: sello-traza 380ms cubic-bezier(0.65, 0, 0.35, 1) 640ms forwards;
+}
+@keyframes sello-entra {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sello-traza {
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sello-ok { animation: none; }
+  .sello-ok-circulo,
+  .sello-ok-visto { animation: none; stroke-dashoffset: 0; }
 }

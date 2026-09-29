@@ -57,7 +57,7 @@ export default async function Inicio() {
   // Las franjas editables de la portada. Si la tabla esta vacia, cada franja
   // dibuja lo que trae el codigo: la portada nunca depende de que exista la fila.
   const { vitrina, piezas: paresDePiezas, resenas, resumenResenas } = await datosDePortada()
-  const { productos, categorias, destacado, configuracion } = vitrina
+  const { productos, loNuevo, categorias, destacado, configuracion } = vitrina
   const piezas = new Map(paresDePiezas)
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
   const nombre = configuracion?.nombre_tienda ?? 'Tryvex'
@@ -82,7 +82,7 @@ export default async function Inicio() {
             y Dune Dragon apenas pasado el hero; nuestra home hacía scrollear
             ~5.000 px de narrativa antes del primer producto. Primero qué se
             vende, después por qué. */}
-        <ListaProductos productos={productos} />
+        <ListaProductos productos={loNuevo} total={productos.length} />
         <BannerDoble piezas={piezas} />
         <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
         <Comentarios resenas={resenas} resumen={resumenResenas} />

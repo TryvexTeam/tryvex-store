@@ -22,7 +22,7 @@ export default async function Pedidos() {
       .select(
         'id,numero,cliente_nombre,cliente_email,cliente_fono,canal,estado,metodo_pago,subtotal_clp,envio_clp,total_clp,notas,created_at,' +
           'pagado_at,enviado_at,entregado_at,region,comuna,envio_courier,envio_seguimiento,envio_url_seguimiento,' +
-          'pago_referencia,boleta_folio,boleta_url,pedido_items(cantidad,precio_unitario,productos(nombre),producto_variantes(nombre))'
+          'pago_referencia,boleta_folio,boleta_url,direccion,pedido_items(cantidad,precio_unitario,productos(nombre),producto_variantes(nombre))'
       )
       .order('created_at', { ascending: false })
       .limit(80),
@@ -116,7 +116,13 @@ export default async function Pedidos() {
           {lista.map((p) => {
             const unidades = p.items.reduce((a, i) => a + i.cantidad, 0)
             return (
-              <li key={p.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+              // El ancla es donde aterriza el aviso push de una venta: el pedido
+              // queda a la vista y resaltado, sin buscarlo en la lista.
+              <li
+                key={p.id}
+                id={`pedido-${p.numero}`}
+                className="flex scroll-mt-20 flex-wrap items-center gap-4 px-5 py-4 transition-colors duration-700 target:bg-verde/10"
+              >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2.5">
                     <span className="cifra text-[13px] text-gris">#{p.numero}</span>

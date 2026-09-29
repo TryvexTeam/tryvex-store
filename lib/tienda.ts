@@ -43,6 +43,8 @@ export interface ProductoTienda {
   categoriaId: string | null
   colores: ColorTienda[]
   href: string
+  /** Cuándo se publicó: ordena «Más recientes» en /tienda. */
+  publicado?: string | null
 }
 
 export interface CategoriaTienda {
@@ -56,7 +58,10 @@ export interface CategoriaTienda {
 }
 
 export interface Vitrina {
+  /** En el orden que eligió el equipo en el panel (Productos → Orden). */
   productos: ProductoTienda[]
+  /** «Todo lo nuevo» de la portada, en su propio orden. */
+  loNuevo: ProductoTienda[]
   categorias: CategoriaTienda[]
   destacado: ProductoTienda | null
   configuracion: ConfiguracionTienda | null
@@ -87,8 +92,11 @@ export async function leerVitrina(): Promise<Vitrina> {
     await Promise.all([
       db
         .from('productos')
-        .select('id,sku,slug,nombre,descripcion,precio_base,precio_antes,imagen_url,etiqueta,categoria_id,publicado_at')
+        .select('id,sku,slug,nombre,descripcion,precio_base,precio_antes,imagen_url,etiqueta,categoria_id,publicado_at,orden,nuevo_orden')
         .eq('estado', 'publicado')
+        // El orden lo elige el equipo arrastrando en el panel; lo que aún no
+        // tiene lugar (recién creado) va al final, lo más nuevo primero.
+        .order('orden', { ascending: true, nullsFirst: false })
         .order('publicado_at', { ascending: false, nullsFirst: false }),
       db.from('categorias').select('id,nombre,slug,descripcion,imagen_url').eq('activo', true).order('orden'),
       db.from('producto_variantes').select('id,producto_id,nombre,color_hex,muestra_url,imagen_url').eq('activo', true).order('orden'),
@@ -143,8 +151,19 @@ export async function leerVitrina(): Promise<Vitrina> {
           imagen: v.imagen_url ? urlPublica(v.imagen_url as string) : null,
         })),
       href: `/producto/${encodeURIComponent(p.slug)}`,
+      publicado: p.publicado_at,
     }
   })
+
+  // «Todo lo nuevo»: los que el equipo eligió, en su orden. Si todavía no
+  // eligió ninguno, los ocho publicados más recientes.
+  const posicionNueva = new Map(
+    (productos ?? []).filter((p) => p.nuevo_orden !== null).map((p) => [p.id as string, Number(p.nuevo_orden)])
+  )
+  const loNuevo =
+    posicionNueva.size > 0
+      ? vitrina.filter((p) => posicionNueva.has(p.id)).sort((a, b) => posicionNueva.get(a.id)! - posicionNueva.get(b.id)!)
+      : [...vitrina].sort((a, b) => (b.publicado ?? '').localeCompare(a.publicado ?? '')).slice(0, 8)
 
   // Solo categorías con algo que mostrar: una franja vacía es una promesa rota.
   const conProductos: CategoriaTienda[] = (categorias ?? [])
@@ -159,7 +178,7 @@ export async function leerVitrina(): Promise<Vitrina> {
   const destacado =
     vitrina.find((p) => !p.agotado && p.imagen) ?? vitrina.find((p) => !p.agotado) ?? vitrina[0] ?? null
 
-  return { productos: vitrina, categorias: conProductos, destacado, configuracion }
+  return { productos: vitrina, loNuevo, categorias: conProductos, destacado, configuracion }
 }
 
 /** Cifras de las escenas de promoción del héroe, siempre derivadas de la base. */

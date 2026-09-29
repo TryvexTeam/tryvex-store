@@ -5,12 +5,13 @@ import { Carrusel } from './carrusel'
 import { CardProducto } from './card-producto'
 
 /**
- * Novedades del catálogo, en la misma fila deslizable que usa Apple para
+ * «Todo lo nuevo», en la misma fila deslizable que usa Apple para
  * «Accesorios»: cards de 313 × 500 que no se estiran, y la siguiente siempre
- * asomándose por el borde. Con límite deliberado para una portada ágil.
+ * asomándose por el borde. Qué productos van y en qué orden lo elige el
+ * equipo en el panel (Productos → Orden); `total` es el catálogo completo.
  */
-export function ListaProductos({ productos }: { productos: ProductoTienda[] }) {
-  const recientes = productos.slice(0, 8)
+export function ListaProductos({ productos, total }: { productos: ProductoTienda[]; total: number }) {
+  const recientes = productos
   if (recientes.length === 0) return null
 
   return (
@@ -20,7 +21,7 @@ export function ListaProductos({ productos }: { productos: ProductoTienda[] }) {
           <h2 id="lo-nuevo-titulo" className="revela text-[28px] leading-[1.1] font-semibold tracking-seccion t:text-[36px]">Todo lo nuevo.</h2>
           <p className="mt-2 text-[16px] text-tinta-suave t:text-[17px]">Lo más reciente que llegó a la tienda.</p>
         </div>
-        <Link href="/tienda" className="shrink-0 text-[14px] font-medium text-spark hover:underline">Ver todo ({productos.length}) →</Link>
+        <Link href="/tienda" className="shrink-0 text-[14px] font-medium text-spark hover:underline">Ver todo ({total}) →</Link>
       </div>
       {/* Sin margen propio: la pista ya se alinea con el título y así la fila
           corre hasta el borde de la pantalla, como en Apple. */}

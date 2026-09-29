@@ -4,6 +4,7 @@ import BotonSalir from './salir'
 import { Marca } from '@/app/marca'
 import { BarraInferior, type Destino } from '@/components/barra-inferior'
 import { ProveedorAvisos } from '@/components/avisos'
+import { CampanaVentas } from '@/components/panel/campana-ventas'
 
 export const metadata = {
   title: { default: 'Panel', template: '%s — Panel Tryvex' },
@@ -39,6 +40,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
 
   return (
     <ProveedorAvisos>
+      {/* Con el panel abierto, cada venta nueva suena a caja registradora. */}
+      <CampanaVentas />
       <div className="min-h-dvh bg-papel-alt">
         <header className="sticky top-0 z-40 border-b border-borde/60 bg-papel/80 backdrop-blur-xl">
           <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-6 px-4 sm:px-5">

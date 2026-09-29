@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
+import { useAvisos } from '@/components/avisos'
 import { cambiarEstado, crearPedido, crearVentaRapida } from './acciones'
 import { precioParaCantidad } from '../stock/acciones'
 import { clp } from '@/lib/formato'
@@ -61,6 +62,7 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [trabajando, iniciar] = useTransition()
+  const avisos = useAvisos()
 
   const opciones = SIGUIENTE[estado] ?? []
   if (!opciones.length) return null
@@ -73,7 +75,10 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
     iniciar(async () => {
       const r = await cambiarEstado(id, nuevo)
       if (!r.ok) setError(r.error)
-      else if (r.aviso) setAviso(r.aviso)
+      else {
+        if (r.aviso) setAviso(r.aviso)
+        if (r.listo) avisos.ok(r.listo)
+      }
     })
   }
 

@@ -42,6 +42,9 @@ export function Ficha({
 }) {
   const bolsa = useBolsa()
   const conVariantes = ficha.variantes.length > 0
+  // Variantes sin color ni muestra son modelos (iPhone 15 Pro, 16 Pro…): se
+  // eligen por nombre, sin círculo de color.
+  const sonColores = ficha.variantes.some((v) => v.colorHex || v.muestra)
   const primeraDisponible = ficha.variantes.find((v) => v.disponible > 0) ?? ficha.variantes[0] ?? null
   // Si se llega desde un círculo de la card, manda ese color (si existe).
   const pedida = ficha.variantes.find((v) => v.id === varianteInicial) ?? null
@@ -157,7 +160,7 @@ export function Ficha({
           {conVariantes && (
             <fieldset className="mt-7">
               <legend className="mb-3 text-[15px] font-semibold">
-                Color · <span className="font-normal text-tinta-suave">{variante?.nombre}</span>
+                {sonColores ? 'Color' : 'Modelo'} · <span className="font-normal text-tinta-suave">{variante?.nombre}</span>
               </legend>
               <div className="flex flex-wrap gap-2.5">
                 {ficha.variantes.map((v) => (
@@ -165,10 +168,14 @@ export function Ficha({
                     key={v.id}
                     className={`ficha-opcion relative flex cursor-pointer items-center gap-2.5 rounded-[14px] px-4 py-3 text-[14px] ring-1 transition-shadow ${
                       v.id === varianteId ? 'ring-2 ring-tinta' : 'ring-borde hover:ring-gris'
-                    } ${v.disponible <= 0 ? 'cursor-not-allowed line-through' : ''}`}
+                    } ${v.disponible <= 0 ? 'text-tinta-suave' : ''}`}
                   >
-                    <input type="radio" name="variante" value={v.id} disabled={v.disponible <= 0} checked={v.id === varianteId} onChange={() => setVarianteId(v.id)} className="peer sr-only" />
-                    <span aria-hidden className={`size-7 shrink-0 rounded-full ring-1 ring-black/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${v.id === varianteId ? 'outline-2 outline-offset-2 outline-black' : ''}`} style={v.muestra ? { backgroundImage: `url("${v.muestra}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: v.colorHex ?? '#ddd' }} />
+                    {/* Un color agotado se puede elegir para verlo: la compra ya se
+                        bloquea sola con el stock del color elegido. */}
+                    <input type="radio" name="variante" value={v.id} checked={v.id === varianteId} onChange={() => setVarianteId(v.id)} className="peer sr-only" />
+                    {sonColores && (
+                      <span aria-hidden className={`size-7 shrink-0 rounded-full ring-1 ring-black/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${v.id === varianteId ? 'outline-2 outline-offset-2 outline-black' : ''}`} style={v.muestra ? { backgroundImage: `url("${v.muestra}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: v.colorHex ?? '#ddd' }} />
+                    )}
                     {v.nombre}
                     {v.disponible <= 0 && <span className="text-[12px] text-gris">agotado</span>}
                   </label>
