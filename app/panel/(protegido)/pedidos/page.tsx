@@ -22,7 +22,7 @@ export default async function Pedidos() {
       .select(
         'id,numero,cliente_nombre,cliente_email,cliente_fono,canal,estado,metodo_pago,subtotal_clp,envio_clp,total_clp,notas,created_at,' +
           'pagado_at,enviado_at,entregado_at,region,comuna,envio_courier,envio_seguimiento,envio_url_seguimiento,' +
-          'pago_referencia,boleta_folio,boleta_url,pedido_items(cantidad,precio_unitario,productos(nombre),producto_variantes(nombre))'
+          'pago_referencia,boleta_folio,boleta_url,direccion,pedido_items(cantidad,precio_unitario,productos(nombre),producto_variantes(nombre))'
       )
       .order('created_at', { ascending: false })
       .limit(80),

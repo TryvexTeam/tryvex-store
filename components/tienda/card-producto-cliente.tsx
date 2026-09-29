@@ -70,14 +70,13 @@ export function CardProducto({
         }`}
       >
         <Foto
-          key={foto ?? 'sin-foto'}
           src={foto}
-          // La transición hacia la ficha solo con la foto principal: la de
-          // una variante no es la que la ficha abre primero.
-          slug={elegido?.imagen ? `${producto.slug}-${elegido.id}` : producto.slug}
+          // La foto no se vuelve a crear al cambiar de color: se funde con la
+          // anterior (FotoSuave). Por eso la transición a la ficha es fija.
+          slug={producto.slug}
           sizes="(min-width: 1069px) 230px, 45vw"
           className={`tienda-card-objeto object-contain ${agotado ? 'opacity-60' : ''}`}
-          transicion={transicion && !elegido?.imagen}
+          transicion={transicion}
         />
       </div>
 
