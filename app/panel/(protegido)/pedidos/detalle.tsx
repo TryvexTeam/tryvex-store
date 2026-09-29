@@ -32,6 +32,8 @@ export interface PedidoDetalle {
   pago_referencia: string | null
   boleta_folio: string | null
   boleta_url: string | null
+  /** Tipo de entrega y a dónde: dirección del domicilio o punto de retiro. */
+  direccion: { entrega?: string; direccion?: string | null; sucursal?: string | null } | null
   items: { nombre: string; variante: string | null; cantidad: number; precio_unitario: number }[]
 }
 
@@ -122,6 +124,35 @@ export function DetallePedido({ pedido }: { pedido: PedidoDetalle }) {
                 <span>Total</span><span className="cifra">{clp(pedido.total_clp)}</span>
               </li>
             </ul>
+          </section>
+
+          <a
+            href={`/panel/pedidos/${pedido.id}/boleta`}
+            target="_blank"
+            rel="noopener"
+            className="presionable flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-papel-alt text-[14px] font-medium text-tinta ring-1 ring-borde hover:bg-borde/40"
+          >
+            <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2h9l5 5v15H6z" />
+              <path d="M14 2v6h6M9 13h6M9 17h6" />
+            </svg>
+            Ver boleta
+          </a>
+
+          <section aria-label="Entrega" className="grid gap-0.5 text-[14px]">
+            <p className="mb-1 text-[12px] font-medium tracking-wide text-gris uppercase">Entrega</p>
+            <p className="font-medium">
+              {pedido.direccion?.entrega === 'sucursal'
+                ? 'Retiro en punto Starken'
+                : pedido.direccion?.entrega === 'retiro'
+                  ? 'Retiro en persona'
+                  : 'Despacho a domicilio'}
+            </p>
+            {pedido.direccion?.entrega === 'sucursal' && pedido.direccion.sucursal && <p className="text-tinta-suave">{pedido.direccion.sucursal}</p>}
+            {pedido.direccion?.entrega !== 'sucursal' && pedido.direccion?.direccion && <p className="text-tinta-suave">{pedido.direccion.direccion}</p>}
+            {pedido.direccion?.entrega !== 'retiro' && (pedido.comuna || pedido.region) && (
+              <p className="text-tinta-suave">{[pedido.comuna, pedido.region].filter(Boolean).join(', ')}</p>
+            )}
           </section>
 
           <section aria-label="Cliente" className="grid gap-1 text-[14px]">

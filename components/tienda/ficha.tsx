@@ -165,9 +165,11 @@ export function Ficha({
                     key={v.id}
                     className={`ficha-opcion relative flex cursor-pointer items-center gap-2.5 rounded-[14px] px-4 py-3 text-[14px] ring-1 transition-shadow ${
                       v.id === varianteId ? 'ring-2 ring-tinta' : 'ring-borde hover:ring-gris'
-                    } ${v.disponible <= 0 ? 'cursor-not-allowed line-through' : ''}`}
+                    } ${v.disponible <= 0 ? 'text-tinta-suave' : ''}`}
                   >
-                    <input type="radio" name="variante" value={v.id} disabled={v.disponible <= 0} checked={v.id === varianteId} onChange={() => setVarianteId(v.id)} className="peer sr-only" />
+                    {/* Un color agotado se puede elegir para verlo: la compra ya se
+                        bloquea sola con el stock del color elegido. */}
+                    <input type="radio" name="variante" value={v.id} checked={v.id === varianteId} onChange={() => setVarianteId(v.id)} className="peer sr-only" />
                     <span aria-hidden className={`size-7 shrink-0 rounded-full ring-1 ring-black/30 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 ${v.id === varianteId ? 'outline-2 outline-offset-2 outline-black' : ''}`} style={v.muestra ? { backgroundImage: `url("${v.muestra}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: v.colorHex ?? '#ddd' }} />
                     {v.nombre}
                     {v.disponible <= 0 && <span className="text-[12px] text-gris">agotado</span>}
