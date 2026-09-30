@@ -82,7 +82,7 @@ export function Comentarios({
             <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">Compra verificada</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
             <div className="relative mt-3"><Estrellas calificacion={resena.calificacion} /></div>
             <blockquote className="relative mt-5 text-[22px] leading-[1.18] font-medium tracking-cuerpo text-tinta t:text-[25px]">“{resena.texto}”</blockquote>
-            <footer className="relative mt-auto pt-7"><p className="font-semibold text-tinta">{resena.cliente}</p><p className="mt-0.5 text-[14px] text-tinta-suave">{resena.producto}</p></footer>
+            <footer className="relative mt-auto pt-7"><p className="font-semibold text-tinta">{resena.cliente}</p>{resena.producto && <p className="mt-0.5 text-[14px] text-tinta-suave">{resena.producto}</p>}</footer>
           </li>
         ))}
       </ul>

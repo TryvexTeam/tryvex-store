@@ -29,7 +29,7 @@ export default async function PaginaResenas() {
   const lista: ResenaPanel[] = ((resenas ?? []) as unknown as ResenaCruda[]).map((r) => ({
     ...r,
     pedidoNumero: r.pedidos?.numero ?? null,
-    producto: r.productos?.nombre ?? 'Producto',
+    producto: r.productos?.nombre ?? null,
     foto: urlPublicaResena(r.foto_path),
   }))
 

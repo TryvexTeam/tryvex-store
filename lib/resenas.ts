@@ -14,7 +14,9 @@ export const PESO_MAXIMO_FOTO_RESENA = 5 * 1024 * 1024
 
 export type ResenaPublica = {
   id: string
+  /** Vacío = reseña de la portada, sin producto. */
   productoId: string
+  /** Vacío = reseña de la portada, sin producto. */
   producto: string
   cliente: string
   texto: string
@@ -46,8 +48,8 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
 
   return (data ?? []).map((r) => ({
     id: r.id,
-    productoId: r.producto_id,
-    producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? 'Producto Tryvex',
+    productoId: r.producto_id ?? '',
+    producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? '',
     cliente: r.cliente_nombre,
     texto: r.texto,
     calificacion: r.calificacion,
