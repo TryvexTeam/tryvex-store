@@ -2,9 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { Casilla } from '@/components/casilla'
-import { Selector } from '@/components/selector'
 import { guardarPieza, subirImagenPieza } from './acciones'
 import { CampoVideo } from './campo-video'
+import { CampoDestino, type OpcionesDestino } from './campo-destino'
+import { CampoZonas } from './campo-zonas'
+import { CampoColores } from './campo-colores'
+import { CampoCapsulas } from './campo-capsulas'
+import { ESCENAS_BANNER } from '@/lib/campana'
 
 export interface PiezaEditable {
   clave: string
@@ -17,15 +21,6 @@ export interface PiezaEditable {
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 const campo =
   'w-full min-h-[44px] rounded-[10px] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
-
-/** Qué significa cada destino, dicho en los términos de quien edita. */
-const DESTINOS = [
-  { valor: 'ninguno', etiqueta: 'No lleva a ninguna parte', ayuda: null },
-  { valor: 'categoria', etiqueta: 'Una familia del catálogo', ayuda: 'Escribe el identificador de la familia, por ejemplo: audifonos' },
-  { valor: 'producto', etiqueta: 'Un producto', ayuda: 'Escribe el identificador del producto, por ejemplo: audifonos-pods-pro' },
-  { valor: 'seccion', etiqueta: 'Una sección de la portada', ayuda: 'Escribe el ancla de la sección, por ejemplo: lo-nuevo' },
-  { valor: 'url', etiqueta: 'Una dirección', ayuda: 'Empieza con / para este sitio, o con https:// para otro' },
-] as const
 
 const txt = (c: Record<string, unknown>, k: string): string => (typeof c[k] === 'string' ? (c[k] as string) : '')
 
@@ -139,17 +134,39 @@ function CampoImagen({ id, clave, nombre, etiqueta, valor, alCambiar, proporcion
   )
 }
 
-export function EditorPieza({ pieza }: { pieza: PiezaEditable }) {
+/** Un campo de texto de la pieza. Vacío = el texto que trae el código, que se muestra de ejemplo. */
+function CampoTexto({ id, nombre, etiqueta, valor, porDefecto, ayuda, max = 240 }: {
+  id: string
+  nombre: string
+  etiqueta: string
+  valor: string
+  porDefecto?: string
+  ayuda?: string
+  max?: number
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className={rotulo}>{etiqueta}</label>
+      <input id={id} name={nombre} defaultValue={valor} placeholder={porDefecto} maxLength={max} className={campo} />
+      {ayuda && <p className="mt-1 text-[12px] text-gris">{ayuda}</p>}
+    </div>
+  )
+}
+
+export function EditorPieza({ pieza, opciones }: { pieza: PiezaEditable; opciones: OpcionesDestino }) {
   const c = pieza.contenido
-  const destinoActual = (c.destino ?? {}) as { tipo?: string; valor?: string }
-  const [tipo, setTipo] = useState<string>(destinoActual.tipo ?? 'ninguno')
+  const k = pieza.clave
   const [fotoMovil, setFotoMovil] = useState(txt(c, 'foto_movil'))
   const [fotoEscritorio, setFotoEscritorio] = useState(txt(c, 'foto_escritorio'))
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null)
   const [guardando, empezar] = useTransition()
 
-  const esFoto = txt(c, 'foto_movil') !== '' || c.estilo !== 'tarjeta'
-  const ayuda = DESTINOS.find((d) => d.valor === tipo)?.ayuda ?? null
+  // Las escenas del banner tienen su propio juego de textos (antetítulo,
+  // titular en dos líneas, botón). Antes este editor guardaba «título» y
+  // «bajada» genéricos que el banner no leía: se editaba y nada cambiaba.
+  const esEscena = k.startsWith('heroe-')
+  const escenaCodigo = esEscena ? ESCENAS_BANNER.find((e) => `heroe-${e.id}` === k) : undefined
+  const esTarjeta = escenaCodigo?.estilo === 'tarjeta'
 
   return (
     <form
@@ -161,12 +178,12 @@ export function EditorPieza({ pieza }: { pieza: PiezaEditable }) {
       }
       className="rounded-[18px] bg-papel p-4 ring-1 ring-borde md:p-5"
     >
-      <input type="hidden" name="clave" value={pieza.clave} />
+      <input type="hidden" name="clave" value={k} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[17px] font-semibold tracking-cuerpo text-tinta">{pieza.titulo ?? pieza.clave}</h2>
-          <p className="mt-0.5 text-[12px] text-gris">{pieza.clave}</p>
+          <h2 className="text-[17px] font-semibold tracking-cuerpo text-tinta">{pieza.titulo ?? k}</h2>
+          <p className="mt-0.5 text-[12px] text-gris">{k}</p>
         </div>
         <Casilla name="visible" defaultChecked={pieza.visible} className="!text-[14px] text-tinta-suave">
           Mostrar en la portada
@@ -174,68 +191,77 @@ export function EditorPieza({ pieza }: { pieza: PiezaEditable }) {
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <div>
-          <label htmlFor={`t-${pieza.clave}`} className={rotulo}>Título</label>
-          <input id={`t-${pieza.clave}`} name="titulo" defaultValue={txt(c, 'titulo')} maxLength={240} className={campo} />
-        </div>
-        <div>
-          <label htmlFor={`b-${pieza.clave}`} className={rotulo}>Bajada</label>
-          <input id={`b-${pieza.clave}`} name="bajada" defaultValue={txt(c, 'bajada')} maxLength={240} className={campo} />
-        </div>
-
-        {esFoto && (
+        {esEscena ? (
           <>
-            <CampoImagen
-              id={`fm-${pieza.clave}`}
-              clave={pieza.clave}
-              nombre="foto_movil"
-              etiqueta="Imagen para teléfono"
-              pista="vertical"
-              valor={fotoMovil}
-              alCambiar={setFotoMovil}
-              proporcion="aspect-[4/5] max-w-[168px]"
-            />
-            <CampoImagen
-              id={`fe-${pieza.clave}`}
-              clave={pieza.clave}
-              nombre="foto_escritorio"
-              etiqueta="Imagen para escritorio"
-              pista="panorámica"
-              valor={fotoEscritorio}
-              alCambiar={setFotoEscritorio}
-              proporcion="aspect-[21/9] max-w-[320px]"
-            />
-            <div className="md:col-span-2">
-              <label htmlFor={`a-${pieza.clave}`} className={rotulo}>Descripción de la imagen</label>
-              <input id={`a-${pieza.clave}`} name="alt" defaultValue={txt(c, 'alt')} maxLength={240} className={campo} />
-              {/* Quien no ve la imagen depende de este texto, y Google también lo lee. */}
-              <p className="mt-1 text-[12px] text-gris">Describe qué se ve. Si la imagen es solo decorativa, déjalo vacío.</p>
-            </div>
+            <CampoTexto id={`an-${k}`} nombre="antetitulo" etiqueta="Texto chico de arriba" valor={txt(c, 'antetitulo')} porDefecto={escenaCodigo?.antetitulo} />
+            <CampoTexto id={`et-${k}`} nombre="etiqueta" etiqueta="Nombre de la escena" valor={txt(c, 'etiqueta')} porDefecto={escenaCodigo?.etiqueta} max={40} ayuda="Se anuncia en los puntos de abajo del banner." />
+            <CampoTexto id={`t1-${k}`} nombre="titulo_1" etiqueta="Titular, primera línea" valor={txt(c, 'titulo_1')} porDefecto={escenaCodigo?.titulo[0]} max={80} />
+            <CampoTexto id={`t2-${k}`} nombre="titulo_2" etiqueta="Titular, segunda línea" valor={txt(c, 'titulo_2')} porDefecto={escenaCodigo?.titulo[1]} max={80} ayuda="Va resaltada en color." />
+            <CampoTexto id={`b-${k}`} nombre="bajada" etiqueta="Bajada" valor={txt(c, 'bajada')} porDefecto={escenaCodigo?.bajada} />
+            <CampoTexto id={`bt-${k}`} nombre="boton" etiqueta="Texto del botón" valor={txt(c, 'boton')} porDefecto={escenaCodigo?.promo === 'volumen' ? 'Ver ofertas' : 'Ver la tienda'} max={40} />
+          </>
+        ) : (
+          <>
+            <CampoTexto id={`t-${k}`} nombre="titulo" etiqueta="Título" valor={txt(c, 'titulo')} />
+            <CampoTexto id={`b-${k}`} nombre="bajada" etiqueta="Bajada" valor={txt(c, 'bajada')} />
           </>
         )}
 
-        {/* Solo las escenas del banner llevan video; las franjas usan fotos. */}
-        {pieza.clave.startsWith('heroe-') && <CampoVideo clave={pieza.clave} valor={txt(c, 'video') || null} />}
-
-        <Selector
-          id={`dt-${pieza.clave}`}
-          name="destino_tipo"
-          etiqueta="Al tocarla, lleva a"
-          opciones={DESTINOS.map((d) => ({ valor: d.valor, etiqueta: d.etiqueta }))}
-          valor={tipo}
-          alCambiar={setTipo}
+        <CampoImagen
+          id={`fm-${k}`}
+          clave={k}
+          nombre="foto_movil"
+          etiqueta="Imagen para teléfono"
+          pista="vertical"
+          valor={fotoMovil}
+          alCambiar={setFotoMovil}
+          proporcion="aspect-[4/5] max-w-[168px]"
         />
-        <div>
-          <label htmlFor={`dv-${pieza.clave}`} className={rotulo}>Destino</label>
-          <input
-            id={`dv-${pieza.clave}`}
-            name="destino_valor"
-            defaultValue={destinoActual.valor ?? ''}
-            disabled={tipo === 'ninguno'}
-            className={`${campo} disabled:opacity-50`}
-          />
-          {ayuda && <p className="mt-1 text-[12px] text-gris">{ayuda}</p>}
+        <CampoImagen
+          id={`fe-${k}`}
+          clave={k}
+          nombre="foto_escritorio"
+          etiqueta="Imagen para escritorio"
+          pista="panorámica"
+          valor={fotoEscritorio}
+          alCambiar={setFotoEscritorio}
+          proporcion="aspect-[21/9] max-w-[320px]"
+        />
+        {esTarjeta && (
+          <p className="md:col-span-2 -mt-2 text-[12px] text-gris">
+            Esta escena hoy es una tarjeta de color. Si le subes una imagen o un video, la tarjeta se reemplaza por lo que subas. Con una sola imagen, se usa para teléfono y escritorio.
+          </p>
+        )}
+        <div className="md:col-span-2">
+          <label htmlFor={`a-${k}`} className={rotulo}>Descripción de la imagen</label>
+          <input id={`a-${k}`} name="alt" defaultValue={txt(c, 'alt')} maxLength={240} className={campo} />
+          {/* Quien no ve la imagen depende de este texto, y Google también lo lee. */}
+          <p className="mt-1 text-[12px] text-gris">Describe qué se ve. Si la imagen es solo decorativa, déjalo vacío.</p>
         </div>
+
+        {/* Solo las escenas del banner llevan video; las franjas usan fotos. */}
+        {esEscena && <CampoVideo clave={k} valor={txt(c, 'video') || null} />}
+
+        {esEscena && <CampoColores clave={k} tema={c.tema_texto} acento={c.acento} libre={c.acento_libre} />}
+
+        {esEscena && (
+          <div className="md:col-span-2">
+            <Casilla name="sin_texto" defaultChecked={c.sin_texto === true} className="!text-[14px] text-tinta-suave">
+              La imagen ya trae su propio texto: no mostrar titular ni botón encima
+            </Casilla>
+            <p className="mt-1 text-[12px] text-gris">Para afiches diseñados. La imagen ocupa la escena completa; usa las zonas de abajo para que se pueda tocar.</p>
+          </div>
+        )}
+
+        <div className="md:col-span-2">
+          <CampoDestino prefijo="destino" etiqueta={esEscena ? 'El botón (y la imagen) lleva a' : 'Al tocarla, lleva a'} inicial={(c.destino ?? {}) as { tipo?: string; valor?: string }} opciones={opciones} />
+        </div>
+
+        {esEscena && (
+          <CampoZonas clave={k} divisionInicial={c.division} zonasIniciales={c.zonas} foto={fotoEscritorio || fotoMovil} opciones={opciones} />
+        )}
+
+        {esEscena && <CampoCapsulas iniciales={c.capsulas} opciones={opciones} />}
       </div>
 
       <div className="mt-5 flex items-center gap-3">

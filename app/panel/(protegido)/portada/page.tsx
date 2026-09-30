@@ -18,9 +18,10 @@ export const metadata: Metadata = { title: 'Portada' }
  */
 export default async function PortadaPanel() {
   const db = crearClienteAdministrador()
-  const [{ data }, { data: listaProductos }] = await Promise.all([
+  const [{ data }, { data: listaProductos }, { data: listaCategorias }] = await Promise.all([
     db.from('secciones_landing').select('clave,titulo,visible,orden,contenido').order('orden'),
     db.from('productos').select('slug,nombre').eq('activo', true).order('nombre'),
+    db.from('categorias').select('slug,nombre').eq('activo', true).order('orden'),
   ])
 
   const piezas: PiezaEditable[] = (data ?? []).map((f) => ({
@@ -36,6 +37,11 @@ export default async function PortadaPanel() {
   const foco = piezas.find((p) => p.clave === CLAVE_FOCO)
   const productos = (listaProductos ?? [])
     .filter((p): p is { slug: string; nombre: string } => Boolean(p.slug && p.nombre))
+  const conNombre = (f: { slug: string | null; nombre: string | null }): f is { slug: string; nombre: string } => Boolean(f.slug && f.nombre)
+  const opciones = {
+    categorias: (listaCategorias ?? []).filter(conNombre).map((f) => ({ valor: f.slug, etiqueta: f.nombre })),
+    productos: productos.map((f) => ({ valor: f.slug, etiqueta: f.nombre })),
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1204px] px-[22px] py-8">
@@ -61,7 +67,7 @@ export default async function PortadaPanel() {
               Las escenas que se turnan arriba de todo. {heroe.length} en total.
             </p>
             <div className="mt-4 grid gap-4">
-              {heroe.map((p) => <EditorPieza key={p.clave} pieza={p} />)}
+              {heroe.map((p) => <EditorPieza key={p.clave} pieza={p} opciones={opciones} />)}
             </div>
           </section>
 
@@ -87,7 +93,7 @@ export default async function PortadaPanel() {
               Los bloques con foto que aparecen al bajar. {editoriales.length} en total.
             </p>
             <div className="mt-4 grid gap-4">
-              {editoriales.map((p) => <EditorPieza key={p.clave} pieza={p} />)}
+              {editoriales.map((p) => <EditorPieza key={p.clave} pieza={p} opciones={opciones} />)}
             </div>
           </section>
         </>
