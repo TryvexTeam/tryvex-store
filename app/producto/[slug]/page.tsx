@@ -10,6 +10,9 @@ import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { Comentarios } from '@/components/tienda/comentarios'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
+import { leerLanding } from '@/lib/landing-lectura'
+import { leerPruebaSocial } from '@/lib/prueba-social'
+import { LandingProducto } from '@/components/tienda/landing-producto'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
 /**
@@ -40,7 +43,12 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
   const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
   if (!ficha) notFound()
-  const [resenas, resumenResenas] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id)])
+  const [resenas, resumenResenas, landing, pruebaSocial] = await Promise.all([
+    leerResenas(ficha.id),
+    leerResumenResenas(ficha.id),
+    leerLanding(ficha.id),
+    leerPruebaSocial(ficha.id),
+  ])
 
   const c = vitrina.configuracion
   const whatsapp = c?.whatsapp ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}` : null
@@ -66,7 +74,10 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           retracto={c?.retracto_texto ?? 'Tienes 10 días desde que lo recibes para arrepentirte.'}
           whatsapp={whatsapp}
           varianteInicial={varianteInicial}
+          pruebaSocial={pruebaSocial}
         />
+
+        <LandingProducto bloques={landing} />
 
         <Comentarios
           resenas={resenas}

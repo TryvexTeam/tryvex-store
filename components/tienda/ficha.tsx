@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { clp } from '@/lib/formato'
-import { IconoBolsa } from '@/components/iconos'
+import { IconoBolsa, IconoPersonas } from '@/components/iconos'
+import type { PruebaSocial } from '@/lib/prueba-social'
 import { precioPara, type FichaProducto } from '@/lib/ficha-precio'
 import { useBolsa } from './bolsa'
 import { GaleriaFicha } from './galeria-ficha'
@@ -32,6 +33,7 @@ export function Ficha({
   retracto,
   whatsapp,
   varianteInicial = null,
+  pruebaSocial = null,
 }: {
   ficha: FichaProducto
   envio: Envio
@@ -40,6 +42,8 @@ export function Ficha({
   whatsapp: string | null
   /** Color elegido en la card (?v=): la ficha abre con ese. */
   varianteInicial?: string | null
+  /** Compradores reales del producto (conteo de pedidos pagados); null si aún son pocos. */
+  pruebaSocial?: PruebaSocial | null
 }) {
   const bolsa = useBolsa()
   const conVariantes = ficha.variantes.length > 0
@@ -222,6 +226,13 @@ export function Ficha({
               {agotado ? 'Agotado' : disponible <= 5 ? 'Últimas unidades' : 'En stock'}
             </p>
           </div>
+
+          {!agotado && pruebaSocial && (
+            <p className="mt-4 flex items-center gap-2 text-[13px] text-tinta-suave">
+              <IconoPersonas size={16} className="shrink-0" />
+              <span><strong className="font-semibold text-tinta">{pruebaSocial.personas} personas</strong> compraron esto {pruebaSocial.periodo}</span>
+            </p>
+          )}
 
           {agotado ? (
             <a
