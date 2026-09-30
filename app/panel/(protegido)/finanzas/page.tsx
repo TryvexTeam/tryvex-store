@@ -1,26 +1,13 @@
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
-import { clp, fecha as fmtFecha } from '@/lib/formato'
-import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
+import { clp } from '@/lib/formato'
+import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
 import FormularioMovimiento from './formulario'
 import Comprobante from './comprobante'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Finanzas' }
-
-type Movimiento = {
-  id: string
-  tipo: string
-  categoria: string
-  descripcion: string
-  monto_clp: string | number
-  fecha: string
-  metodo_pago: string | null
-  contraparte: string | null
-  voucher_path: string | null
-  voucher_nombre: string | null
-}
 
 export default async function Finanzas() {
   const yo = await integranteActual()
@@ -85,41 +72,7 @@ export default async function Finanzas() {
         únicamente por el color deja fuera a quien no lo percibe, y en dinero
         esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
       */}
-      <section aria-label="Resumen" className="mb-8 grid grid-cols-2 gap-3 t:gap-4">
-        <div className="col-span-2 rounded-[var(--radius-tarjeta)] bg-tinta p-5 text-papel t:p-6">
-          <p className="text-[12px] font-semibold tracking-etiqueta text-white/60 uppercase">
-            Balance
-          </p>
-          <p className="cifra mt-2 text-[40px] leading-none font-semibold tracking-titulo t:text-[48px]">
-            {clp(balance)}
-          </p>
-          <p className="mt-2 text-[13px] text-white/55">
-            {balance >= 0 ? 'a favor' : 'en rojo'}
-          </p>
-        </div>
-
-        <div className="rounded-[var(--radius-tarjeta)] bg-papel p-4 ring-1 ring-borde/70 t:p-5">
-          <p className="text-[12px] font-semibold tracking-etiqueta text-gris uppercase">
-            Ingresos
-          </p>
-          <p className="cifra mt-2 text-[24px] leading-none font-semibold text-verde t:text-[26px]">
-            <span aria-hidden>+</span>
-            <span className="sr-only">más </span>
-            {clp(ingresos)}
-          </p>
-        </div>
-
-        <div className="rounded-[var(--radius-tarjeta)] bg-papel p-4 ring-1 ring-borde/70 t:p-5">
-          <p className="text-[12px] font-semibold tracking-etiqueta text-gris uppercase">
-            Egresos
-          </p>
-          <p className="cifra mt-2 text-[24px] leading-none font-semibold text-tinta-suave t:text-[26px]">
-            <span aria-hidden>−</span>
-            <span className="sr-only">menos </span>
-            {clp(egresos)}
-          </p>
-        </div>
-      </section>
+      <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} />
 
       {/* Punto de equilibrio: la pregunta real del negocio. */}
       {margenUnitario > 0 && lista.length > 0 && (
@@ -175,40 +128,10 @@ export default async function Finanzas() {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-borde/60 overflow-hidden rounded-[var(--radius-tarjeta)] bg-papel ring-1 ring-borde/70">
-              {lista.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 px-4 py-3.5 t:gap-4 t:px-5">
-                  {/* Flecha además de color: la dirección del movimiento se lee
-                      aunque no se distingan los tonos, y de un vistazo. */}
-                  <span
-                    aria-hidden
-                    className={`grid size-8 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${
-                      m.tipo === 'ingreso' ? 'bg-verde/10 text-verde' : 'bg-papel-alt text-tinta-suave'
-                    }`}
-                  >
-                    {m.tipo === 'ingreso' ? '↓' : '↑'}
-                  </span>
-                  <span className="sr-only">{m.tipo === 'ingreso' ? 'Ingreso:' : 'Egreso:'}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-tinta">{m.descripcion}</p>
-                    <p className="mt-0.5 truncate text-[12px] text-gris">
-                      {[etiquetaCategoria(categoriaHistorica(m.categoria, m.tipo), m.categoria), m.contraparte, fmtFecha(m.fecha)].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                  {m.voucher_path && (
-                    <Comprobante ruta={m.voucher_path} nombre={m.voucher_nombre} />
-                  )}
-                  <span
-                    className={`cifra shrink-0 text-[15px] font-medium ${
-                      m.tipo === 'ingreso' ? 'text-verde' : 'text-tinta'
-                    }`}
-                  >
-                    {m.tipo === 'ingreso' ? '+' : '−'}
-                    {clp(m.monto_clp)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ListaMovimientos
+              lista={lista}
+              comprobante={(m) => (m.voucher_path ? <Comprobante ruta={m.voucher_path} nombre={m.voucher_nombre} /> : null)}
+            />
           )}
         </section>
 

@@ -1428,6 +1428,81 @@ body {
   .star-borde-abajo, .star-borde-arriba { animation: none; }
 }
 
+/* ── Tarjeta virtual de Tryvex ───────────────────────────────────────────────
+   Proporción real de tarjeta (85,6 × 54 mm = 1,586). Dos capas: una se inclina
+   con el cursor (rotateX/Y por variables) y otra gira al tocarla (frente y
+   reverso, backface-visibility). Con movimiento reducido no hay inclinación ni
+   giro: el reverso aparece con un fundido. */
+.tarjeta-tryvex { perspective: 1100px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tarjeta-tryvex:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 6px; border-radius: 22px; }
+.tarjeta-tryvex-inclina {
+  --rx: 0deg; --ry: 0deg; --gx: 30%; --gy: 20%;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.tarjeta-tryvex-giro {
+  position: relative;
+  aspect-ratio: 1.586 / 1;
+  transform-style: preserve-3d;
+  transition: transform 750ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tarjeta-tryvex-giro[data-vuelta='true'] { transform: rotateY(180deg); }
+.tarjeta-tryvex:active .tarjeta-tryvex-inclina { scale: 0.985; }
+
+.tarjeta-cara {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 6.5% 7%;
+  color: #fff;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.14) inset, 0 -1px 0 rgb(0 0 0 / 0.5) inset, 0 22px 44px -10px rgb(0 0 0 / 0.45), 0 6px 14px rgb(0 0 0 / 0.25);
+}
+.tarjeta-frente {
+  background:
+    radial-gradient(120% 90% at 100% 100%, rgb(229 57 53 / 0.30), transparent 56%),
+    radial-gradient(80% 60% at 0% 0%, rgb(255 255 255 / 0.11), transparent 55%),
+    repeating-radial-gradient(circle at 82% 18%, rgb(255 255 255 / 0.03) 0 1px, transparent 1px 7px),
+    linear-gradient(135deg, #202023 0%, #0b0b0c 58%, #161618 100%);
+}
+.tarjeta-reverso {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(90% 70% at 0% 100%, rgb(229 57 53 / 0.18), transparent 60%),
+    linear-gradient(135deg, #18181a 0%, #0b0b0c 100%);
+}
+/* El destello sigue al cursor: una luz pasando por una superficie brillante. */
+.tarjeta-brillo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.2), transparent 45%);
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transition: opacity 300ms;
+}
+@media (hover: hover) and (pointer: fine) { .tarjeta-tryvex:hover .tarjeta-brillo { opacity: 1; } }
+/* Cifras en relieve, como estampadas en el plástico. */
+.tarjeta-relieve {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: #ededef;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.22), 0 -1px 0 rgb(0 0 0 / 0.65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-tryvex-inclina { transform: none !important; transition: none; }
+  .tarjeta-tryvex-giro { transform-style: flat; transition: none; }
+  .tarjeta-tryvex-giro[data-vuelta='true'] { transform: none; }
+  .tarjeta-cara { transition: opacity 250ms; }
+  .tarjeta-reverso { transform: none; opacity: 0; }
+  .tarjeta-tryvex-giro[data-vuelta='true'] .tarjeta-reverso { opacity: 1; }
+  .tarjeta-tryvex-giro[data-vuelta='true'] .tarjeta-frente { opacity: 0; }
+}
+
 /* ── Medalla del logo 3D ─────────────────────────────────────────────────────
    Flota unos píxeles, sin prisa, y se inclina al acercarse el cursor. Solo
    transform: no repinta nada. Sin movimiento, queda quieta. */
