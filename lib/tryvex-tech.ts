@@ -10,8 +10,14 @@
 
 const SITIO = 'https://www.tryvex.tech'
 
-/** WhatsApp de Tryvex Tech (el que publica tryvex.tech/links), solo dígitos. */
-const WHATSAPP_TECH = '56950358818'
+/** WhatsApp de Tryvex Tech que definió el dueño (+56 9 7359 3282), solo dígitos. */
+const WHATSAPP_TECH = '56973593282'
+
+/** Correo de contacto que publica tryvex.tech. */
+export const CORREO_TECH = 'contacto@tryvex.tech'
+
+/** Instagram de Tryvex Tech (el mismo de tryvex.tech/links). */
+export const INSTAGRAM_TECH = { usuario: '@tryvex.tech', href: 'https://www.instagram.com/tryvex.tech/' }
 
 /**
  * Enlace a tryvex.tech con la marca de origen: así, en su analítica se ve cuántos
@@ -28,6 +34,15 @@ export function whatsappTech(interes?: string): string {
     ? `Hola Tryvex Tech, vengo de la tienda Tryvex y me interesa: ${interes}.`
     : 'Hola Tryvex Tech, vengo de la tienda Tryvex y quiero conversar sobre un proyecto.'
   return `https://wa.me/${WHATSAPP_TECH}?text=${encodeURIComponent(texto)}`
+}
+
+/** Correo con el asunto y el cuerpo ya escritos, que dicen de dónde viene y qué le interesa. */
+export function correoTech(interes?: string): string {
+  const asunto = interes ? `Consulta desde la tienda Tryvex: ${interes}` : 'Consulta desde la tienda Tryvex'
+  const cuerpo = interes
+    ? `Hola Tryvex Tech, vengo de la tienda Tryvex y me interesa: ${interes}.\n\nMi negocio es: `
+    : 'Hola Tryvex Tech, vengo de la tienda Tryvex y quiero conversar sobre un proyecto.\n\nMi negocio es: '
+  return `mailto:${CORREO_TECH}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`
 }
 
 export interface ItemTech {

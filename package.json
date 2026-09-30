@@ -17,6 +17,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "resend": "^6.28.1",
+    "sileo": "^0.1.5",
     "web-push": "^3.6.7"
   },
   "devDependencies": {

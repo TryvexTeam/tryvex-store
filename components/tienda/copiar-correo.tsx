@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { notificar } from '@/lib/notificar'
 
 type Estado = 'listo' | 'copiado' | 'fallo'
 
@@ -24,6 +25,8 @@ export function CopiarCorreo({ correo, className }: { correo: string; className?
       siguiente = 'fallo'
     }
     setEstado(siguiente)
+    if (siguiente === 'copiado') void notificar.ok('Correo copiado', correo)
+    else void notificar.error('No se pudo copiar', 'Selecciona el correo y cópialo a mano.')
     window.clearTimeout(temporizador.current)
     temporizador.current = window.setTimeout(() => setEstado('listo'), 2400)
   }
@@ -38,9 +41,6 @@ export function CopiarCorreo({ correo, className }: { correo: string; className?
         </svg>
         {texto}
       </button>
-      <span role="status" aria-live="polite" className="sr-only">
-        {estado === 'copiado' ? 'Correo copiado al portapapeles' : estado === 'fallo' ? 'No se pudo copiar el correo' : ''}
-      </span>
     </>
   )
 }

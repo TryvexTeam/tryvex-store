@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { crearClienteNavegador } from '@/lib/supabase/cliente'
 import { alternarFavorito } from '@/app/cuenta/acciones'
+import { notificar } from '@/lib/notificar'
 
 /**
  * Corazón de favorito. Lee su estado con la sesión del navegador (RLS: solo
@@ -15,7 +16,6 @@ export function BotonFavorito({ productoId, nombre, className = '' }: { producto
   const ruta = usePathname()
   const [favorito, setFavorito] = useState(false)
   const [pendiente, iniciar] = useTransition()
-  const [aviso, setAviso] = useState<string | null>(null)
 
   useEffect(() => {
     let vigente = true
@@ -31,13 +31,16 @@ export function BotonFavorito({ productoId, nombre, className = '' }: { producto
   function alternar() {
     const previo = favorito
     setFavorito(!previo)
-    setAviso(null)
     iniciar(async () => {
       const r = await alternarFavorito(productoId)
-      if (r.ok) { setFavorito(r.favorito); return }
+      if (r.ok) {
+        setFavorito(r.favorito)
+        void notificar.ok(r.favorito ? 'Guardado en favoritos' : 'Quitado de favoritos', nombre)
+        return
+      }
       setFavorito(previo)
       if (r.requiereCuenta) { router.push(`/cuenta/ingresar?volver=${encodeURIComponent(ruta)}`); return }
-      setAviso(r.error)
+      void notificar.error('No se pudo actualizar tus favoritos', r.error)
     })
   }
 
@@ -55,7 +58,6 @@ export function BotonFavorito({ productoId, nombre, className = '' }: { producto
           <path d="M12 20.5s-7.5-4.6-9.2-9.2C1.6 8 3.6 4.5 7.1 4.5c2 0 3.4 1.1 4.9 3 1.5-1.9 2.9-3 4.9-3 3.5 0 5.5 3.5 4.3 6.8-1.7 4.6-9.2 9.2-9.2 9.2Z" />
         </svg>
       </button>
-      <span role="status" aria-live="polite" className="sr-only">{aviso ?? ''}</span>
     </>
   )
 }

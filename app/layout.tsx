@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { ProveedorBolsa } from "@/components/tienda/bolsa";
 import { urlSitio } from "@/lib/sitio";
+import { ContenedorNotificaciones } from "@/components/notificaciones";
 
 // Geist es la tipografía de la marca Tryvex (misma que la landing corporativa).
 const geistSans = Geist({
@@ -30,6 +31,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {/* La bolsa acompaña toda la navegación: portada, colección, ficha y checkout. */}
         <ProveedorBolsa>{children}</ProveedorBolsa>
+        {/* Avisos (Sileo): el código pesado solo se descarga cuando hay algo que avisar. */}
+        <ContenedorNotificaciones />
       </body>
     </html>
   );

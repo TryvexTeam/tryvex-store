@@ -1,4 +1,4 @@
-import { GRUPOS_TECH, enlaceTech, whatsappTech, type ItemTech } from '@/lib/tryvex-tech'
+import { CORREO_TECH, GRUPOS_TECH, INSTAGRAM_TECH, correoTech, enlaceTech, whatsappTech, type ItemTech } from '@/lib/tryvex-tech'
 import { TRYVEX_TECH } from '@/lib/redes'
 import { IconoRed } from './icono-red'
 import { FilaAcordeon } from './fila-acordeon'
@@ -29,6 +29,40 @@ function Flecha() {
     <svg aria-hidden width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3.5 8.5 8.5 3.5M4 3.5h4.5V8" />
     </svg>
+  )
+}
+
+/** Íconos de trazo de los canales de contacto. WhatsApp usa un globo de chat genérico: no hay marca que copiar. */
+function IconoCanal({ canal }: { canal: 'whatsapp' | 'correo' | 'web' | 'instagram' }) {
+  if (canal === 'web' || canal === 'instagram') return <IconoRed red={canal} size={15} />
+  const trazo = canal === 'whatsapp' ? 'M5 5h14v10h-8.5L5 19V5Z' : 'M3 6h18v12H3zM3.5 7l8.5 6.5L20.5 7'
+  return (
+    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d={trazo} />
+    </svg>
+  )
+}
+
+/** Cuatro formas de escribirle a Tryvex Tech, con el mensaje ya escrito cuando el canal lo permite. */
+function Canales({ interes, contenido }: { interes?: string; contenido: string }) {
+  const canales = [
+    { canal: 'whatsapp', texto: 'WhatsApp', href: whatsappTech(interes), externo: true },
+    { canal: 'correo', texto: 'Correo', href: correoTech(interes), externo: false },
+    { canal: 'web', texto: 'Nuestro sitio', href: enlaceTech('/contacto', contenido), externo: true },
+    { canal: 'instagram', texto: 'Instagram', href: INSTAGRAM_TECH.href, externo: true },
+  ] as const
+  return (
+    <ul className="mt-6 flex flex-wrap gap-2">
+      {canales.map((c) => (
+        <li key={c.canal}>
+          <a href={c.href} {...(c.externo ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="fila-tech-accion !mt-0">
+            <IconoCanal canal={c.canal} />
+            {c.texto}
+            {c.externo && <span className="sr-only"> (se abre en otra pestaña)</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -88,6 +122,12 @@ export function SeccionTryvexTech() {
             </a>
           </div>
 
+          <p className="mt-6 max-w-[46ch] text-[15px] leading-relaxed text-tinta-suave">
+            También por correo a <a href={correoTech()} className="font-medium text-tinta underline decoration-black/25 underline-offset-[3px] hover:decoration-black">{CORREO_TECH}</a>, en Instagram{' '}
+            <a href={INSTAGRAM_TECH.href} target="_blank" rel="noopener noreferrer" className="font-medium text-tinta underline decoration-black/25 underline-offset-[3px] hover:decoration-black">{INSTAGRAM_TECH.usuario}<span className="sr-only"> (se abre en otra pestaña)</span></a>{' '}
+            o en nuestro sitio.
+          </p>
+
           <ul className="mt-10 max-w-[46ch] divide-y divide-black/[0.08] border-y border-black/[0.08] text-[15px] text-tinta-suave">
             {GARANTIAS.map((g) => (
               <li key={g} className="py-3">{g}</li>
@@ -123,11 +163,8 @@ export function SeccionTryvexTech() {
                   <ul className="grid gap-6">
                     {g.items.map((it) => <Servicio key={it.nombre} item={it} />)}
                   </ul>
-                  <a href={whatsappTech(g.titulo)} target="_blank" rel="noopener noreferrer" className="fila-tech-accion">
-                    Cotizar por WhatsApp
-                    <Flecha />
-                    <span className="sr-only"> (se abre en otra pestaña)</span>
-                  </a>
+                  <p className="mt-7 text-[14px] text-[color:var(--fg-2)]">Consulta por esto:</p>
+                  <Canales interes={g.titulo} contenido={`fila-${g.id}`} />
                 </div>
               </FilaAcordeon>
             ))}

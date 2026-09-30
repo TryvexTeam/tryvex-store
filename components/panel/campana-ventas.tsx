@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAvisos } from '@/components/avisos'
+import { notificar } from '@/lib/notificar'
+import { clp } from '@/lib/formato'
 import { ultimaVenta, type UltimaVenta } from '@/app/panel/(protegido)/ventas-en-vivo'
 
 /**
@@ -25,7 +26,6 @@ const INTERVALO_MS = 20000
 
 export function CampanaVentas() {
   const router = useRouter()
-  const avisos = useAvisos()
   const vista = useRef<string | null>(null)
   const audio = useRef<HTMLAudioElement | null>(null)
 
@@ -76,7 +76,12 @@ export function CampanaVentas() {
         a.currentTime = 0
         a.play().catch(() => {})
       }
-      avisos.ok(`Nuevo pedido pagado · #${venta.numero} · $${venta.total.toLocaleString('es-CL')}${venta.cliente ? ` · ${venta.cliente}` : ''}`)
+      void notificar.accion({
+        titulo: 'Nuevo pedido pagado',
+        descripcion: `#${venta.numero} · ${clp(venta.total)}${venta.cliente ? ` · ${venta.cliente}` : ''}`,
+        accion: { titulo: 'Ver pedidos', alPulsar: () => router.push('/panel/pedidos') },
+        duracion: 9000,
+      })
       router.refresh()
     }
 
@@ -89,7 +94,7 @@ export function CampanaVentas() {
       clearInterval(t)
       document.removeEventListener('visibilitychange', alVolver)
     }
-  }, [avisos, router])
+  }, [router])
 
   return null
 }
