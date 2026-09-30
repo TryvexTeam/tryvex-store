@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MediosPago } from './medios-pago'
 import { GRUPOS_PIE } from '@/lib/ayuda'
+import { REDES_TIENDA, TRYVEX_TECH } from '@/lib/redes'
 
 export function PieTienda({
   nombre,
@@ -27,6 +28,7 @@ export function PieTienda({
             ...grupo.enlaces,
             ...(email ? [{ texto: emailVisible || email, href: `mailto:${email}` }] : []),
             ...(canalWhatsapp ? [{ texto: 'WhatsApp', href: `https://wa.me/${canalWhatsapp}`, externo: true }] : []),
+            ...REDES_TIENDA.map((r) => ({ texto: r.nombre, href: r.href, externo: true })),
           ],
         }
       : grupo
@@ -92,7 +94,7 @@ export function PieTienda({
           <p>Precios en pesos chilenos con IVA incluido. Stock sujeto a disponibilidad al confirmar el pedido.</p>
           {garantia?.trim() && <p className="mt-1.5">{garantia}</p>}
           {retracto?.trim() && <p className="mt-1.5">{retracto}</p>}
-          <p className="mt-4">© {new Date().getFullYear()} {nombre}. Todos los derechos reservados.</p>
+          <p className="mt-4">© {new Date().getFullYear()} {nombre}. Todos los derechos reservados. Sitio creado por <a href={TRYVEX_TECH.sitio} target="_blank" rel="noopener noreferrer" className="font-medium text-tinta-suave underline-offset-2 hover:text-spark hover:underline">Tryvex Tech</a>.</p>
         </div>
       </div>
     </footer>

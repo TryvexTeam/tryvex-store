@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
 import { BUCKET, PESO_MAXIMO, PESO_MAXIMO_VIDEO, TIPOS_ACEPTADOS, TIPOS_VIDEO, esVideo, urlPublica } from '@/lib/imagenes'
+import { DIVISIONES, MAX_CAPSULAS, TIPOS_DESTINO, esDivision, leerPosicion, type TipoDestino } from '@/lib/destinos-pieza'
+import { ACENTOS, TEMAS_TEXTO, esHex } from '@/lib/temas-escena'
 
 /**
  * Guardado de las piezas editables de la portada.
@@ -12,9 +14,6 @@ import { BUCKET, PESO_MAXIMO, PESO_MAXIMO_VIDEO, TIPOS_ACEPTADOS, TIPOS_VIDEO, e
  * porque una clave inventada sería una ranura que ningún componente dibuja —
  * el equipo creería haber publicado algo que no aparece en ninguna parte.
  */
-
-const TIPOS_DESTINO = ['ninguno', 'url', 'seccion', 'producto', 'categoria'] as const
-type TipoDestino = (typeof TIPOS_DESTINO)[number]
 
 const LARGO_MAX = 240
 
@@ -32,10 +31,74 @@ function validarDestino(tipo: TipoDestino, valor: string): string | null {
   if (tipo === 'ninguno') return null
   if (!valor) return 'Elegiste un destino pero no indicaste a dónde lleva.'
   if (tipo === 'url') {
-    if (valor.startsWith('/')) return null
+    if (valor.startsWith('/') && !valor.startsWith('//')) return null
     if (!/^https?:\/\//i.test(valor)) return 'La dirección debe empezar con / para el propio sitio, o con https://'
   }
   return null
+}
+
+/** Lee y valida el destino `<prefijo>_tipo` / `<prefijo>_valor` del formulario. */
+function destinoDelFormulario(datos: FormData, prefijo: string): { destino: { tipo: TipoDestino; valor?: string } } | { error: string } {
+  const crudo = String(datos.get(`${prefijo}_tipo`) ?? 'ninguno')
+  const tipo = (TIPOS_DESTINO as readonly string[]).includes(crudo) ? (crudo as TipoDestino) : 'ninguno'
+  const valor = texto(datos, `${prefijo}_valor`)
+  const error = validarDestino(tipo, valor)
+  if (error) return { error }
+  return { destino: tipo === 'ninguno' ? { tipo } : { tipo, valor } }
+}
+
+/**
+ * Campos propios de una escena del banner: textos, afiche sin texto y zonas.
+ * Cada zona se valida como un destino más, con su número en el mensaje, para
+ * que quien edita sepa cuál corregir.
+ */
+function camposDeEscena(datos: FormData): Record<string, unknown> | { error: string } {
+  const divisionCruda = String(datos.get('division') ?? 'completa')
+  const division = esDivision(divisionCruda) ? divisionCruda : 'completa'
+  const zonas: { destino: unknown; etiqueta: string }[] = []
+  if (division !== 'completa') {
+    for (let i = 0; i < DIVISIONES[division].length; i++) {
+      const leido = destinoDelFormulario(datos, `zona_${i}`)
+      if ('error' in leido) return { error: `Zona ${i + 1}: ${leido.error}` }
+      zonas.push({ destino: leido.destino, etiqueta: texto(datos, `zona_${i}_etiqueta`).slice(0, 80) })
+    }
+  }
+  const capsulas: Record<string, unknown>[] = []
+  const cuantas = Math.min(MAX_CAPSULAS, Math.max(0, Number(datos.get('capsulas_n')) || 0))
+  for (let i = 0; i < cuantas; i++) {
+    const p = `capsula_${i}`
+    const leido = destinoDelFormulario(datos, p)
+    if ('error' in leido) return { error: `Cápsula ${i + 1}: ${leido.error}` }
+    const t = texto(datos, `${p}_texto`).slice(0, 60)
+    if (!t && leido.destino.tipo !== 'producto') return { error: `Cápsula ${i + 1}: escribe un texto, o haz que lleve a un producto para mostrar su precio.` }
+    // «x,y» de la rejilla; cualquier otro valor cae a la posición por defecto.
+    const posicion = (campo: string, porDefecto: { x: 0 | 50 | 100; y: 0 | 50 | 100 }) => {
+      const [x, y] = String(datos.get(campo) ?? '').split(',')
+      return leerPosicion({ x, y }, porDefecto)
+    }
+    capsulas.push({
+      texto: t,
+      boton: texto(datos, `${p}_boton`).slice(0, 30),
+      destino: leido.destino,
+      movil: posicion(`${p}_movil`, { x: 50, y: 100 }),
+      escritorio: posicion(`${p}_escritorio`, { x: 100, y: 100 }),
+    })
+  }
+  return {
+    capsulas,
+    antetitulo: texto(datos, 'antetitulo'),
+    etiqueta: texto(datos, 'etiqueta').slice(0, 40),
+    titulo_1: texto(datos, 'titulo_1').slice(0, 80),
+    titulo_2: texto(datos, 'titulo_2').slice(0, 80),
+    boton: texto(datos, 'boton').slice(0, 40),
+    sin_texto: datos.get('sin_texto') === 'on',
+    // Solo valores de la lista o un hex: el color termina en un `style` de la portada.
+    tema_texto: TEMAS_TEXTO.find((t) => t.valor === datos.get('tema_texto'))?.valor ?? 'auto',
+    acento: ACENTOS.find((a) => a.valor === datos.get('acento'))?.valor ?? 'auto',
+    acento_libre: esHex(datos.get('acento_libre')) ? String(datos.get('acento_libre')).toLowerCase() : null,
+    division,
+    zonas,
+  }
 }
 
 /** Los dos huecos de imagen que tiene cada pieza. */
@@ -121,11 +184,10 @@ export async function guardarPieza(datos: FormData): Promise<Resultado> {
   const clave = String(datos.get('clave') ?? '').trim()
   if (!clave) return fallo('Falta la pieza que se quiere guardar.')
 
-  const tipoCrudo = String(datos.get('destino_tipo') ?? 'ninguno')
-  const tipo = (TIPOS_DESTINO as readonly string[]).includes(tipoCrudo) ? (tipoCrudo as TipoDestino) : 'ninguno'
-  const valor = texto(datos, 'destino_valor')
-  const errorDestino = validarDestino(tipo, valor)
-  if (errorDestino) return fallo(errorDestino)
+  const leido = destinoDelFormulario(datos, 'destino')
+  if ('error' in leido) return fallo(leido.error)
+  const escena = clave.startsWith('heroe-') ? camposDeEscena(datos) : null
+  if (escena && 'error' in escena) return fallo(String(escena.error))
 
   // Se lee el contenido actual y se fusiona: así los campos que esta pantalla
   // no edita (formato, tono, estilo de la escena) no se pierden al guardar.
@@ -141,12 +203,13 @@ export async function guardarPieza(datos: FormData): Promise<Resultado> {
   const previo = (actual.contenido ?? {}) as Record<string, unknown>
   const contenido: Record<string, unknown> = {
     ...previo,
-    titulo: texto(datos, 'titulo'),
+    // Las escenas no tienen «título» suelto: su titular son dos líneas.
+    ...(escena ? escena : { titulo: texto(datos, 'titulo') }),
     bajada: texto(datos, 'bajada'),
     alt: texto(datos, 'alt'),
     foto_movil: texto(datos, 'foto_movil'),
     foto_escritorio: texto(datos, 'foto_escritorio'),
-    destino: tipo === 'ninguno' ? { tipo: 'ninguno' } : { tipo, valor },
+    destino: leido.destino,
   }
 
   const { error } = await supabase

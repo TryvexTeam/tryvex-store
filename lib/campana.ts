@@ -1,3 +1,6 @@
+import { capsulasDe, hrefDeDestino, destinoDe, zonasDe, type CapsulaEscena, type ZonaEnlace } from '@/lib/destinos-pieza'
+import { colorDeAcento, tonoDeTema } from '@/lib/temas-escena'
+
 /**
  * Voz editorial de la portada. Productos, categorías, precios y stock se
  * leen siempre desde la vitrina; aquí solo viven los textos de marca.
@@ -37,6 +40,21 @@ export interface EscenaHeroe {
   /** Cifra grande calculada en el servidor desde `precio_tramos`: nunca un número escrito a mano. */
   promo?: 'mayorista' | 'volumen'
   productoSlug?: string
+  /** A dónde lleva el botón de la escena. Sin destino, a la tienda. */
+  href?: string
+  /** Texto del botón; si falta, uno según el tipo de escena. */
+  boton?: string
+  /**
+   * La imagen ya trae su propio texto (un afiche diseñado): no se dibujan
+   * titular ni botón encima, y la imagen ocupa la escena entera.
+   */
+  sinTexto?: boolean
+  /** Partes de la imagen que llevan a lugares distintos. */
+  zonas?: ZonaEnlace[]
+  /** Color de resalte elegido en el panel: un color CSS o `'degradado'`. */
+  acento?: string
+  /** Etiquetas con enlace puestas sobre la escena. Si hay, reemplazan a la cápsula de compra del código. */
+  capsulas?: CapsulaEscena[]
 }
 
 export const CAMPANA = {
@@ -162,25 +180,45 @@ export function escenasConPiezas(
     const c = pieza.contenido
     const t1 = txt(c, 'titulo_1')
     const t2 = txt(c, 'titulo_2')
-    const movil = txt(c, 'foto_movil')
-    const escritorio = txt(c, 'foto_escritorio')
+    // Con una sola foto cargada se usa para las dos pantallas: exigir las dos
+    // hacía que subir solo una no cambiara nada y pareciera un error.
+    const movil = txt(c, 'foto_movil') ?? txt(c, 'foto_escritorio')
+    const escritorio = txt(c, 'foto_escritorio') ?? movil
     const alt = txt(c, 'alt') ?? e.fotos?.movil.alt ?? ''
     // Solo http(s): una URL mal cargada no puede terminar en el src del video.
-    const video = txt(c, 'video')
+    const videoCrudo = txt(c, 'video')
+    const video = videoCrudo && /^https?:\/\//i.test(videoCrudo) ? videoCrudo : e.video
+    const fotos = movil && escritorio
+      ? {
+          movil: { src: movil, ancho: 1122, alto: 1402, alt },
+          escritorio: { src: escritorio, ancho: 1930, alto: 815, alt },
+        }
+      : e.fotos
+    // Una tarjeta de color que recibe foto o video pasa a ser escena de foto:
+    // así también se reemplaza desde el panel, sin tocar código.
+    const conImagen = Boolean((movil && escritorio) || videoCrudo)
+    const sinTexto = c.sin_texto === true
+    const etiqueta = txt(c, 'etiqueta') ?? e.etiqueta
 
     return [{
       ...e,
-      etiqueta: txt(c, 'etiqueta') ?? e.etiqueta,
+      tono: tonoDeTema(c.tema_texto) ?? e.tono,
+      acento: colorDeAcento(c.acento, c.acento_libre) ?? e.acento,
+      etiqueta,
       antetitulo: txt(c, 'antetitulo') ?? e.antetitulo,
-      titulo: (t1 && t2 ? [t1, t2] : e.titulo) as readonly [string, string],
+      titulo: (t1 ? [t1, t2 ?? ''] : e.titulo) as readonly [string, string],
       bajada: txt(c, 'bajada') ?? e.bajada,
-      fotos: movil && escritorio
-        ? {
-            movil: { src: movil, ancho: 1122, alto: 1402, alt },
-            escritorio: { src: escritorio, ancho: 1930, alto: 815, alt },
-          }
-        : e.fotos,
-      video: video && /^https?:\/\//i.test(video) ? video : e.video,
+      fotos,
+      video,
+      estilo: conImagen ? 'foto' : e.estilo,
+      href: hrefDeDestino(destinoDe(c)) ?? e.href,
+      boton: txt(c, 'boton') ?? e.boton,
+      sinTexto,
+      // Sin texto encima, la imagen ocupa la escena completa en todo tamaño.
+      movilDesde: sinTexto ? undefined : e.movilDesde,
+      texto: sinTexto ? 'centro' : e.texto,
+      zonas: zonasDe(c, etiqueta),
+      capsulas: capsulasDe(c),
     }]
   })
 }

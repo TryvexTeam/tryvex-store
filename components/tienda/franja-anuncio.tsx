@@ -11,7 +11,7 @@ export function FranjaAnuncio({ configuracion }: { configuracion: ConfiguracionT
       : 'Consulta envíos, cambios y devoluciones.'
 
   return (
-    <aside aria-label="Información de envío" className="bg-tinta px-[22px] text-center text-[13px] leading-snug text-white">
+    <aside data-franja-anuncio aria-label="Información de envío" className="bg-tinta px-[22px] text-center text-[13px] leading-snug text-white">
       <Link href="/envios" className="inline-flex min-h-11 items-center justify-center font-medium underline decoration-white/70 underline-offset-2 hover:decoration-white">
         {mensaje} <span aria-hidden>Ver información →</span><span className="sr-only"> Ver información de envíos.</span>
       </Link>
