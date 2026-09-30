@@ -1,3 +1,7 @@
+import { capsulasDe, hrefDeDestino, destinoDe, zonasDe, type CapsulaEscena, type ZonaEnlace } from '@/lib/destinos-pieza'
+import { colorDeAcento, tonoDeTema } from '@/lib/temas-escena'
+import { borradorDesde } from '@/lib/escena-borrador'
+
 /**
  * Voz editorial de la portada. Productos, categorías, precios y stock se
  * leen siempre desde la vitrina; aquí solo viven los textos de marca.
@@ -37,6 +41,21 @@ export interface EscenaHeroe {
   /** Cifra grande calculada en el servidor desde `precio_tramos`: nunca un número escrito a mano. */
   promo?: 'mayorista' | 'volumen'
   productoSlug?: string
+  /** A dónde lleva el botón de la escena. Sin destino, a la tienda. */
+  href?: string
+  /** Texto del botón; si falta, uno según el tipo de escena. */
+  boton?: string
+  /**
+   * La imagen ya trae su propio texto (un afiche diseñado): no se dibujan
+   * titular ni botón encima, y la imagen ocupa la escena entera.
+   */
+  sinTexto?: boolean
+  /** Partes de la imagen que llevan a lugares distintos. */
+  zonas?: ZonaEnlace[]
+  /** Color de resalte elegido en el panel: un color CSS o `'degradado'`. */
+  acento?: string
+  /** Etiquetas con enlace puestas sobre la escena. Si hay, reemplazan a la cápsula de compra del código. */
+  capsulas?: CapsulaEscena[]
 }
 
 export const CAMPANA = {
@@ -131,11 +150,6 @@ export interface PiezaEscena {
   contenido: Record<string, unknown>
 }
 
-const txt = (c: Record<string, unknown>, k: string): string | null => {
-  const v = c[k]
-  return typeof v === 'string' && v.trim() ? v.trim() : null
-}
-
 /**
  * Aplica lo que el equipo editó en el panel sobre las escenas del código.
  *
@@ -144,9 +158,11 @@ const txt = (c: Record<string, unknown>, k: string): string | null => {
  * la tabla esté poblada. Si la fila existe pero está marcada como oculta, la
  * escena sale del carrusel.
  *
- * Las fotos solo se reemplazan si la pieza trae las DOS (teléfono y
- * escritorio). Mezclar una foto nueva con una vieja daría un carrusel donde
- * el teléfono muestra una campaña y el escritorio otra.
+ * Con una fila guardada desde el panel nuevo (`version` 2) manda lo guardado
+ * tal cual: un texto vacío no se muestra y una imagen quitada no vuelve. Las
+ * filas anteriores tratan lo vacío como «usa el del código»; `borradorDesde`
+ * hace esa herencia una sola vez, al abrirlas, para que el editor y la
+ * portada nunca se contradigan.
  */
 export function escenasConPiezas(
   escenas: readonly EscenaHeroe[],
@@ -159,28 +175,39 @@ export function escenasConPiezas(
     if (!pieza) return [e]
     if (!pieza.visible) return []
 
-    const c = pieza.contenido
-    const t1 = txt(c, 'titulo_1')
-    const t2 = txt(c, 'titulo_2')
-    const movil = txt(c, 'foto_movil')
-    const escritorio = txt(c, 'foto_escritorio')
-    const alt = txt(c, 'alt') ?? e.fotos?.movil.alt ?? ''
-    // Solo http(s): una URL mal cargada no puede terminar en el src del video.
-    const video = txt(c, 'video')
+    const b = borradorDesde(pieza.contenido, e)
+    // Con una sola foto cargada se usa para las dos pantallas: exigir las dos
+    // hacía que subir solo una no cambiara nada y pareciera un error.
+    const movil = b.foto_movil || b.foto_escritorio
+    const escritorio = b.foto_escritorio || b.foto_movil
+    const fotos = movil && escritorio
+      ? { movil: { src: movil, ancho: 1122, alto: 1402, alt: b.alt }, escritorio: { src: escritorio, ancho: 1930, alto: 815, alt: b.alt } }
+      : undefined
+    // Una tarjeta de color que recibe foto o video pasa a ser escena de foto.
+    const conImagen = Boolean(fotos || b.video)
+    const estilo = conImagen ? 'foto' : e.estilo
+    const datos = { ...pieza.contenido, capsulas: b.capsulas, division: b.division, zonas: b.zonas }
 
     return [{
       ...e,
-      etiqueta: txt(c, 'etiqueta') ?? e.etiqueta,
-      antetitulo: txt(c, 'antetitulo') ?? e.antetitulo,
-      titulo: (t1 && t2 ? [t1, t2] : e.titulo) as readonly [string, string],
-      bajada: txt(c, 'bajada') ?? e.bajada,
-      fotos: movil && escritorio
-        ? {
-            movil: { src: movil, ancho: 1122, alto: 1402, alt },
-            escritorio: { src: escritorio, ancho: 1930, alto: 815, alt },
-          }
-        : e.fotos,
-      video: video && /^https?:\/\//i.test(video) ? video : e.video,
+      tono: tonoDeTema(b.tema_texto) ?? e.tono,
+      acento: colorDeAcento(b.acento, b.acento_libre) ?? e.acento,
+      etiqueta: b.etiqueta || e.etiqueta,
+      antetitulo: b.antetitulo,
+      titulo: [b.titulo_1, b.titulo_2] as readonly [string, string],
+      bajada: b.bajada,
+      boton: b.boton,
+      fotos,
+      video: b.video || undefined,
+      estilo,
+      promo: b.mostrar_cifra ? e.promo : undefined,
+      href: hrefDeDestino(destinoDe({ destino: b.destino })) ?? e.href,
+      sinTexto: b.sin_texto,
+      // Sin texto encima, la imagen ocupa la escena completa en todo tamaño.
+      movilDesde: b.sin_texto ? undefined : e.movilDesde,
+      texto: b.sin_texto ? 'centro' : e.texto,
+      zonas: zonasDe(datos, b.etiqueta || e.etiqueta),
+      capsulas: capsulasDe(datos),
     }]
   })
 }

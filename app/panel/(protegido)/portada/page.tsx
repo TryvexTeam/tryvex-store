@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { EditorPieza, type PiezaEditable } from './editor'
 import { EditorFoco } from './editor-foco'
+import { ListaEscenas } from './lista-escenas'
 import { CLAVE_FOCO, escenaFocoDe } from '@/lib/foco'
 
 export const dynamic = 'force-dynamic'
@@ -18,9 +19,10 @@ export const metadata: Metadata = { title: 'Portada' }
  */
 export default async function PortadaPanel() {
   const db = crearClienteAdministrador()
-  const [{ data }, { data: listaProductos }] = await Promise.all([
+  const [{ data }, { data: listaProductos }, { data: listaCategorias }] = await Promise.all([
     db.from('secciones_landing').select('clave,titulo,visible,orden,contenido').order('orden'),
-    db.from('productos').select('slug,nombre').eq('activo', true).order('nombre'),
+    db.from('productos').select('slug,nombre,precio_base').eq('activo', true).order('nombre'),
+    db.from('categorias').select('slug,nombre').eq('activo', true).order('orden'),
   ])
 
   const piezas: PiezaEditable[] = (data ?? []).map((f) => ({
@@ -35,7 +37,14 @@ export default async function PortadaPanel() {
   const editoriales = piezas.filter((p) => p.clave.startsWith('editorial-'))
   const foco = piezas.find((p) => p.clave === CLAVE_FOCO)
   const productos = (listaProductos ?? [])
-    .filter((p): p is { slug: string; nombre: string } => Boolean(p.slug && p.nombre))
+    .filter((p): p is { slug: string; nombre: string; precio_base: number } => Boolean(p.slug && p.nombre))
+  // El precio real de cada producto, para que la vista previa de una cápsula muestre «Desde $…» como la tienda.
+  const precios = Object.fromEntries(productos.map((p) => [p.slug, Number(p.precio_base)]))
+  const conNombre = (f: { slug: string | null; nombre: string | null }): f is { slug: string; nombre: string } => Boolean(f.slug && f.nombre)
+  const opciones = {
+    categorias: (listaCategorias ?? []).filter(conNombre).map((f) => ({ valor: f.slug, etiqueta: f.nombre })),
+    productos: productos.map((f) => ({ valor: f.slug, etiqueta: f.nombre })),
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1204px] px-[22px] py-8">
@@ -58,10 +67,10 @@ export default async function PortadaPanel() {
               Carrusel principal
             </h2>
             <p className="mt-1 text-[14px] text-gris">
-              Las escenas que se turnan arriba de todo. {heroe.length} en total.
+              Las escenas que se turnan arriba de todo. Toca una para editarla con vista previa; nada cambia en la tienda hasta que publiques.
             </p>
-            <div className="mt-4 grid gap-4">
-              {heroe.map((p) => <EditorPieza key={p.clave} pieza={p} />)}
+            <div className="mt-4">
+              <ListaEscenas piezas={heroe} opciones={opciones} precios={precios} />
             </div>
           </section>
 
@@ -87,7 +96,7 @@ export default async function PortadaPanel() {
               Los bloques con foto que aparecen al bajar. {editoriales.length} en total.
             </p>
             <div className="mt-4 grid gap-4">
-              {editoriales.map((p) => <EditorPieza key={p.clave} pieza={p} />)}
+              {editoriales.map((p) => <EditorPieza key={p.clave} pieza={p} opciones={opciones} />)}
             </div>
           </section>
         </>

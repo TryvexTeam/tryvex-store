@@ -8,6 +8,7 @@ import { Megamenu } from './megamenu'
 import { ESCENAS_BANNER } from '@/lib/campana'
 import { EnlaceCuenta } from './enlace-cuenta'
 import { Buscador } from './buscador'
+import { BotonMenu, DURACION_CIERRE, MenuMovil, type EstadoMenu } from './menu-movil'
 
 export interface DestinoMenu {
   nombre: string
@@ -27,7 +28,13 @@ export interface DestinoMenu {
  * página, con la misma jerarquía que el escritorio.
  */
 export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: DestinoMenu[]; ayuda: string | null; sobreHeroe?: boolean }) {
-  const [abierto, setAbierto] = useState(false)
+  // El menú del teléfono pasa por cuatro estados para poder animar la entrada
+  // (nace cerrado y un cuadro después se abre) y la salida (queda montado
+  // mientras se recoge).
+  const [estadoMenu, setEstadoMenu] = useState<EstadoMenu>('cerrado')
+  const abierto = estadoMenu === 'entrando' || estadoMenu === 'abierto'
+  const menuVisible = estadoMenu !== 'cerrado'
+  const reloj = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [nivel, setNivel] = useState<DestinoMenu | null>(null)
   const [mega, setMega] = useState<DestinoMenu | null>(null)
   const [servicio, setServicio] = useState<DestinoMenu | null>(null)
@@ -90,8 +97,17 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
     return () => ancho.removeEventListener('change', ajustar)
   }, [])
 
+  // Con el menú abierto la franja de despachos se va y la barra sube al borde,
+  // como en Apple: el marcador en <html> lo lee `globals.css`.
   useEffect(() => {
-    if (!abierto) return
+    if (!menuVisible) return
+    document.documentElement.dataset.menuMovil = estadoMenu
+    return () => { delete document.documentElement.dataset.menuMovil }
+  }, [menuVisible, estadoMenu])
+  useEffect(() => () => { if (reloj.current) clearTimeout(reloj.current) }, [])
+
+  useEffect(() => {
+    if (!menuVisible) return
     const previo = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const alTeclado = (e: KeyboardEvent) => e.key === 'Escape' && cerrar()
@@ -105,14 +121,22 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
       document.removeEventListener('keydown', alTeclado)
       ancho.removeEventListener('change', alCrecer)
     }
-  }, [abierto])
+  }, [menuVisible])
 
-  function cerrar() {
-    setAbierto(false)
+  function abrir() {
+    if (reloj.current) clearTimeout(reloj.current)
     setNivel(null)
+    setEstadoMenu('entrando')
+    // Dos cuadros: el primero pinta la cortina recogida, el segundo la suelta.
+    requestAnimationFrame(() => requestAnimationFrame(() => setEstadoMenu('abierto')))
   }
 
-  const enlaceMovil = 'block py-2 text-[28px] leading-tight font-semibold tracking-[-0.02em] text-tinta'
+  function cerrar() {
+    if (!abierto) return
+    if (reloj.current) clearTimeout(reloj.current)
+    setEstadoMenu('cerrando')
+    reloj.current = setTimeout(() => { setEstadoMenu('cerrado'); setNivel(null) }, DURACION_CIERRE)
+  }
 
   // El menú va fuera del header: el desenfoque de la cabecera crea un bloque
   // contenedor y un hijo fixed quedaría recortado a sus 48 px de alto.
@@ -128,7 +152,7 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
           derecha. Con la marca centrada en una grilla de tres columnas, los tres
           íconos (132 px) no cabían en su tercio y la lupa quedaba sobre la marca. */}
       <nav aria-label="Principal" className="flex h-12 items-center gap-1 px-[12px] n:mx-auto n:h-11 n:w-full n:max-w-[1024px] n:gap-2 n:px-[22px]">
-        <Link href="/" aria-label="Tryvex, inicio" onClick={cerrar} className="order-2 shrink-0 rounded-md p-1 text-[17px] font-semibold tracking-cuerpo n:order-1 n:mr-3">
+        <Link href="/" aria-label="Tryvex, inicio" onClick={cerrar} className="cabecera-se-oculta order-1 shrink-0 rounded-md p-1 text-[17px] font-semibold tracking-cuerpo n:mr-3">
           <Marca size={18} className="!text-inherit" />
         </Link>
 
@@ -146,24 +170,12 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
           ))}
         </ul>
 
-        <div className="order-3 ml-auto flex shrink-0 items-center gap-0.5 n:ml-auto n:gap-1">
+        <div className="cabecera-se-oculta order-3 ml-auto flex shrink-0 items-center gap-0.5 n:ml-auto n:gap-1">
         <Buscador categorias={categorias} alAbrir={() => { cerrar(); cerrarMega() }} />
         <EnlaceCuenta alCerrar={cerrar} />
         <BotonBolsa />
         </div>
-        <button
-          type="button"
-          onClick={() => (abierto ? cerrar() : setAbierto(true))}
-          aria-expanded={abierto}
-          aria-controls="menu-tienda"
-          aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
-          className="order-1 grid size-10 shrink-0 place-items-center min-[360px]:size-11 n:hidden"
-        >
-          <span aria-hidden className="relative block h-3 w-[18px]">
-            <span className={`tienda-raya top-0 ${abierto ? 'translate-y-[5px] rotate-45' : ''}`} />
-            <span className={`tienda-raya bottom-0 ${abierto ? '-translate-y-[5px] -rotate-45' : ''}`} />
-          </span>
-        </button>
+        <BotonMenu abierto={abierto} alTocar={() => (abierto ? cerrar() : abrir())} />
       </nav>
       {mega && <Megamenu categorias={categorias} activa={mega} seleccionar={(c) => { cancelarCierre(); setMega(c) }} cerrar={cerrarMega} />}
       {/* Servicio al cliente usa el MISMO panel ancho que la tienda. Antes caía
@@ -193,48 +205,7 @@ export function Cabecera({ destinos, ayuda, sobreHeroe = false }: { destinos: De
         del panel que cuelga de él. */}
     {(mega || servicio) && <div aria-hidden className="velo-megamenu" />}
 
-      {abierto && (
-        <div id="menu-tienda" className="tienda-menu fixed inset-x-0 z-40 top-12 bottom-0 overflow-y-auto bg-papel px-[44px] pt-6 pb-16 n:hidden">
-          {nivel ? (
-            <div key={nivel.href} className="tienda-nivel">
-              <button type="button" onClick={() => setNivel(null)} className="-ml-2 flex items-center gap-1 rounded-md px-2 py-2 text-[14px] text-gris">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-                Todo
-              </button>
-              <p className="mt-3 mb-2 text-[12px] font-medium text-gris">{nivel.nombre}</p>
-              <ul>
-                {(nivel.enlaces ?? nivel.categorias ?? []).map((p) => (
-                  <li key={p.href}>
-                    <Link href={p.href} onClick={cerrar} className="block py-1.5 text-[21px] font-semibold tracking-tarjeta">{p.nombre}</Link>
-                  </li>
-                ))}
-                <li className="mt-4">
-                  <a href={nivel.href} onClick={cerrar} className="text-[14px] font-medium text-spark">Ver todo en {nivel.nombre}</a>
-                </li>
-              </ul>
-            </div>
-          ) : (
-            <ul key="raiz" className="tienda-nivel">
-              {destinos.map((d) => (
-                <li key={d.nombre}>
-                  {d.categorias || d.enlaces ? (
-                    <button type="button" onClick={() => setNivel(d)} className={`${enlaceMovil} flex w-full items-center justify-between text-left`}>
-                      {d.nombre}
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gris" aria-hidden>
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
-                    </button>
-                  ) : (
-                    <a href={d.href} onClick={cerrar} className={enlaceMovil}>{d.nombre}</a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <MenuMovil estado={estadoMenu} destinos={destinos} nivel={nivel} alElegirNivel={setNivel} alVolver={() => setNivel(null)} alCerrar={cerrar} />
     </>
   )
 }

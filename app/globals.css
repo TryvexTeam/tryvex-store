@@ -717,32 +717,146 @@ body {
   transition: opacity 300ms var(--ease-tienda);
 }
 
-/* Hamburguesa: dos rayas que se cruzan en una X. */
-.tienda-raya {
-  position: absolute;
-  left: 0;
-  height: 1.5px;
-  width: 100%;
-  border-radius: 1px;
-  background: currentColor;
-  transition: transform 300ms var(--ease-tienda);
+/* ── Menú del teléfono, calcado de apple.com/cl ──────────────────────
+   Medido cuadro a cuadro el 2026-09-30 a 390 × 844:
+   · la cortina nace en la barra (48 px) y baja hasta cubrir la pantalla en
+     422 ms, con 80 ms de espera y la curva estándar de Apple;
+   · el fondo pasa del blanco translúcido de la barra a #fafafc;
+   · cada ítem cae 8 px mientras aparece (240 ms), desde los 200 ms y con
+     20 ms entre uno y otro;
+   · marca e íconos se van en 240 ms; la franja de despachos sale y la barra
+     sube al borde;
+   · al cerrar, los ítems se van en orden inverso sin espera y la cortina se
+     recoge 120 ms después.
+   La cortina se recorta con clip-path en vez de animar `height`: el mismo
+   dibujo, pero sin recalcular el diseño en cada cuadro. */
+.menu-movil {
+  --curva-apple: cubic-bezier(0.4, 0, 0.6, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: #333336;
+  background: rgb(255 255 255 / 90%);
+  clip-path: inset(0 0 calc(100% - 48px) 0);
+  transition:
+    clip-path 422ms var(--curva-apple) 80ms,
+    background-color 422ms var(--curva-apple) 80ms;
+}
+.menu-movil[data-estado='abierto'] {
+  clip-path: inset(0);
+  background: #fafafc;
+  /* Al abrir no hay espera (Apple la anula con `with-flyout-open`); los 80 ms
+     de la base valen para el cierre. */
+  transition-delay: 0ms;
+}
+.menu-movil[data-estado='cerrando'] {
+  transition-delay: 120ms;
 }
 
-.tienda-menu {
-  animation: tienda-aparece 240ms var(--ease-tienda) both;
+/* Filas de 46 px con el texto a 48 px del borde, primera fila a 47 px. */
+.menu-movil-raiz { padding: 47px 0 84px; }
+.menu-movil-enlace {
+  display: block;
+  width: 100%;
+  padding: 10.5px 48px 11.5px;
+  margin-bottom: -4px;
+  text-align: start;
+  font-size: 28px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0.007em;
+  color: inherit;
 }
-.tienda-nivel {
-  animation: tienda-desliza 240ms var(--ease-tienda) both;
+.menu-movil-nivel { padding: 54px 0 84px; }
+.menu-movil-rotulo {
+  padding: 0 48px 8px;
+  font-size: 17px;
+  line-height: 1.24;
+  color: #6e6e73;
 }
-@keyframes tienda-aparece {
-  from {
+.menu-movil-enlace-nivel {
+  display: block;
+  padding: 6px 48px;
+  font-size: 24px;
+  line-height: 1.17;
+  font-weight: 600;
+  letter-spacing: 0.009em;
+  color: inherit;
+}
+.menu-movil-ver-todo {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 0 48px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-spark);
+}
+/* Volver: en la barra, donde estaba la marca (48 × 48), como el de Apple. */
+.menu-movil-volver {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: #333336;
+  animation: menu-movil-volver 240ms var(--curva-apple) 160ms both;
+}
+@keyframes menu-movil-volver { from { opacity: 0; transform: translateX(4px); } }
+
+/* Cascada de entrada. Al abrir, los ítems arrancan 200 ms después que la
+   cortina; la cortina se suelta dos cuadros después de montar el menú (~30 ms),
+   de ahí los 230. Al entrar a un segundo nivel, a los 160 ms. */
+.menu-movil-item {
+  animation: menu-movil-item-entra 240ms var(--curva-apple) both;
+  animation-delay: calc(230ms + var(--n, 0) * 20ms);
+}
+.menu-movil-nivel .menu-movil-item { animation-delay: calc(160ms + var(--n, 0) * 20ms); }
+@keyframes menu-movil-item-entra { from { opacity: 0; transform: translateY(-8px); } }
+/* Salida en orden inverso: el último ítem se va primero y más rápido. */
+.menu-movil[data-estado='cerrando'] .menu-movil-item {
+  animation: menu-movil-item-sale min(calc(160ms + (var(--total, 1) - var(--n, 0)) * 20ms), 240ms) var(--curva-apple) both;
+}
+@keyframes menu-movil-item-sale { to { opacity: 0; transform: translateY(-8px); } }
+
+/* La barra mientras el menú está abierto: sube al borde, pierde su fondo
+   (la cortina lo reemplaza) y solo queda el botón. Solo en teléfono. */
+@media (max-width: 833px) {
+  html[data-menu-movil] [data-franja-anuncio] { display: none; }
+  html[data-menu-movil] .cabecera-tienda {
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+    color: #333336;
+    pointer-events: none;
+  }
+  html[data-menu-movil] .cabecera-tienda .menu-movil-boton { pointer-events: auto; }
+  .cabecera-tienda .cabecera-se-oculta {
+    transition: opacity 240ms cubic-bezier(0.4, 0, 0.6, 1) 80ms, visibility 240ms step-start 80ms;
+  }
+  html[data-menu-movil='entrando'] .cabecera-tienda .cabecera-se-oculta,
+  html[data-menu-movil='abierto'] .cabecera-tienda .cabecera-se-oculta {
     opacity: 0;
+    visibility: hidden;
+    transition: opacity 240ms cubic-bezier(0.4, 0, 0.6, 1), visibility 240ms step-end;
   }
 }
-@keyframes tienda-desliza {
-  from {
-    opacity: 0;
-    transform: translateX(12px);
+.menu-movil-boton { opacity: 0.8; transition: opacity 320ms cubic-bezier(0.4, 0, 0.6, 1); }
+.menu-movil-boton:hover { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-movil,
+  .menu-movil-item,
+  .menu-movil-volver,
+  .cabecera-tienda .cabecera-se-oculta {
+    transition: none !important;
+    animation: none !important;
   }
 }
 
@@ -1213,4 +1327,34 @@ body {
   .sello-ok { animation: none; }
   .sello-ok-circulo,
   .sello-ok-visto { animation: none; stroke-dashoffset: 0; }
+}
+
+/* Zonas enlazadas de una escena del banner: se insinúan al pasar el puntero. */
+.heroe-zona { transition: background-color 200ms var(--ease-tienda); }
+@media (hover: hover) { .heroe-zona:hover { background-color: rgb(255 255 255 / 7%); } }
+
+/* Cápsulas puestas desde el panel: rejilla de 3 × 3 por tamaño de pantalla.
+   --cx/--cy valen 0, 50 o 100; el translate ancla la cápsula por su propio
+   borde, así «abajo a la derecha» nunca se sale de la escena. Abajo se
+   reserva el alto de los controles del carrusel. */
+.heroe-capsula-libre {
+  --cx: var(--cx-m);
+  --cy: var(--cy-m);
+  --margen-x: 16px;
+  --margen-arriba: 20px;
+  --margen-abajo: 84px;
+  position: absolute;
+  max-width: calc(100% - 2 * var(--margen-x));
+  left: calc(var(--margen-x) + (100% - 2 * var(--margen-x)) * var(--cx) / 100);
+  top: calc(var(--margen-arriba) + (100% - var(--margen-arriba) - var(--margen-abajo)) * var(--cy) / 100);
+  translate: calc(var(--cx) * -1%) calc(var(--cy) * -1%);
+}
+@media (min-width: 735px) {
+  .heroe-capsula-libre {
+    --cx: var(--cx-d);
+    --cy: var(--cy-d);
+    --margen-x: 32px;
+    --margen-arriba: 32px;
+    --margen-abajo: 96px;
+  }
 }
