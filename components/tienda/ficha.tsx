@@ -250,10 +250,10 @@ export function Ficha({
           ) : (
             <div className="mt-6 grid gap-3">
               {/* Verde 700 (#15803d): con texto blanco da 5:1; el token --color-verde da 3.5:1 y no alcanza. */}
-              <Link href={destino} className="tienda-boton w-full bg-green-700 !min-h-[52px] !text-[17px] text-white hover:bg-green-800">
+              <Link href={destino} className="tienda-boton boton-presion w-full bg-green-700 !min-h-[52px] !text-[17px] text-white hover:bg-green-800">
                 Comprar · <span className="cifra ml-1">{clp(precio * cantidad)}</span>
               </Link>
-              <button type="button" onClick={agregarABolsa} className="tienda-boton boton-bolsa w-full gap-2 !min-h-[52px] !text-[17px] text-tinta ring-1 ring-borde ring-inset hover:bg-papel hover:ring-tinta">
+              <button type="button" onClick={agregarABolsa} className="tienda-boton boton-presion boton-presion-contorno boton-bolsa w-full gap-2 !min-h-[52px] !text-[17px] text-tinta ring-1 ring-borde ring-inset hover:bg-papel hover:ring-tinta">
                 <IconoBolsa size={22} />
                 Agregar al carrito
               </button>
@@ -307,11 +307,11 @@ export function Ficha({
             <p className="truncate text-[19px] font-semibold tracking-cuerpo">{ficha.nombre}</p>
             <div className="flex shrink-0 items-center gap-5">
               <p className="cifra text-[15px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
-              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton boton-bolsa min-h-9 gap-1.5 px-4 py-1.5 text-[14px] text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion boton-presion-contorno boton-bolsa min-h-9 gap-1.5 px-4 py-1.5 text-[14px] text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
                 <IconoBolsa size={18} />
                 Agregar al carrito
               </button>
-              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white hover:bg-green-800">
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white hover:bg-green-800">
                 Comprar
               </Link>
             </div>
@@ -332,11 +332,11 @@ export function Ficha({
               <p className="cifra text-[13px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar al carrito" className="tienda-boton boton-bolsa gap-1.5 !px-4 text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar al carrito" className="tienda-boton boton-presion boton-presion-contorno boton-bolsa gap-1.5 !px-4 text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
                 <IconoBolsa size={20} />
                 Agregar
               </button>
-              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton bg-green-700 text-white hover:bg-green-800">
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion bg-green-700 text-white hover:bg-green-800">
                 Comprar
               </Link>
             </div>

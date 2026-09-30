@@ -713,6 +713,36 @@ body {
   }
 }
 
+/* ── Botón con «presión» (la animación del botón de WhatsApp) ─────────────────
+   Medida cuadro a cuadro en api.whatsapp.com, botón «Abrir aplicación»:
+     · al pasar el cursor no cambia nada;
+     · al presionarlo se vuelve oscuro AL INSTANTE (#1c1e21, texto blanco);
+     · al soltarlo, el fondo vuelve a su color en 330 ms en línea recta (linear)
+       y el texto cambia después, con 500 ms de retraso.
+   Acá el oscuro es el tinta de la tienda. En el botón con contorno el texto
+   cambia a la vez que el fondo (`--retraso-texto: 0`): con el retraso original
+   quedaría texto blanco sobre fondo claro un instante. */
+.boton-presion {
+  --retraso-texto: 500ms;
+  transition:
+    background-color 330ms linear,
+    color 330ms linear var(--retraso-texto),
+    border-color 500ms ease-out,
+    scale 300ms var(--ease-tienda),
+    box-shadow 300ms var(--ease-tienda);
+}
+.boton-presion-contorno { --retraso-texto: 0ms; }
+.boton-presion:not(:disabled):active {
+  background-color: var(--color-tinta);
+  color: #fff;
+  border-color: var(--color-tinta);
+  /* Al presionar, el color cambia sin transición; solo el hundido se anima. */
+  transition: scale 120ms var(--ease-tienda);
+}
+@media (prefers-reduced-motion: reduce) {
+  .boton-presion { transition-duration: 0.01ms; transition-delay: 0s; }
+}
+
 .tienda-enlace {
   transition: color 300ms var(--ease-tienda);
 }
