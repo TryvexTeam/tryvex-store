@@ -168,6 +168,17 @@ export function EditorEscena({ pieza, codigo, opciones, precios, alCerrar }: {
             {seccion === 'textos' && (
               <>
                 <p className="text-[12px] leading-snug text-gris">Lo que dejes vacío no se muestra. Usa la × para borrar un texto.</p>
+                {/* La cifra también es texto de la escena: escondida al final, quien vaciaba todos los campos la seguía viendo en la tienda. */}
+                {codigo?.promo && (
+                  <div className="rounded-[14px] bg-papel-alt/60 p-3 ring-1 ring-borde">
+                    <Casilla checked={b.mostrar_cifra} onChange={(v) => cambiar({ mostrar_cifra: v })} className="!text-[14px] font-medium">
+                      Mostrar la cifra grande
+                    </Casilla>
+                    <p className="mt-1 pl-8 text-[12px] leading-snug text-gris">
+                      {codigo.promo === 'volumen' ? 'Dice «Hasta X % menos comprando por volumen».' : 'Dice «$ c/u desde N unidades».'} Se calcula sola con sus precios por pack. Desmárcala para quitarla de la escena.
+                    </p>
+                  </div>
+                )}
                 <Texto id={`an-${k}`} etiqueta="Texto chico de arriba" valor={b.antetitulo} alCambiar={(v) => cambiar({ antetitulo: v })} max={120} />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Texto id={`t1-${k}`} etiqueta="Titular, primera línea" valor={b.titulo_1} alCambiar={(v) => cambiar({ titulo_1: v })} max={80} />
@@ -176,11 +187,6 @@ export function EditorEscena({ pieza, codigo, opciones, precios, alCerrar }: {
                 <Texto id={`b-${k}`} etiqueta="Bajada" valor={b.bajada} alCambiar={(v) => cambiar({ bajada: v })} max={240} />
                 <Texto id={`bt-${k}`} etiqueta="Texto del botón" valor={b.boton} alCambiar={(v) => cambiar({ boton: v })} max={40} ayuda="Sin texto, no hay botón." />
                 <Texto id={`et-${k}`} etiqueta="Nombre de la escena" valor={b.etiqueta} alCambiar={(v) => cambiar({ etiqueta: v })} max={40} ayuda="Solo lo oyen los lectores de pantalla y aparece en esta lista." />
-                {codigo?.promo && (
-                  <Casilla checked={b.mostrar_cifra} onChange={(v) => cambiar({ mostrar_cifra: v })} className="!text-[14px] text-tinta-suave">
-                    Mostrar la cifra automática ({codigo.promo === 'volumen' ? '«Hasta X% menos comprando por volumen»' : '«$ c/u desde N unidades»'})
-                  </Casilla>
-                )}
               </>
             )}
 
