@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import { useAvisos } from '@/components/avisos'
 import { activarAvisos, desactivarAvisos, probarAvisos } from '@/app/panel/(protegido)/avisos-push'
+import { esperarWorkerActivo, explicarFalloDeAvisos } from '@/lib/esperar-worker'
 
 /**
  * «Avisarme cada venta en este teléfono».
@@ -89,7 +90,8 @@ export function AvisosTelefono() {
           return
         }
         const reg = await registro()
-        await conLimite(navigator.serviceWorker.ready)
+        // No `serviceWorker.ready`: en `/panel` (fuera del alcance `/panel/`) no se resuelve nunca.
+        await esperarWorkerActivo(reg)
         const sub =
           (await reg.pushManager.getSubscription()) ??
           (await conLimite(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveABytes(CLAVE_PUBLICA) })))
@@ -101,11 +103,9 @@ export function AvisosTelefono() {
         setEstado('activo')
         avisos.ok('Listo. Cada venta pagada te va a llegar aquí.')
       } catch (e) {
-        avisos.error(
-          e instanceof Error && e.message === 'tiempo'
-            ? 'El servicio de avisos del teléfono no respondió. Revisa tu conexión e intenta de nuevo.'
-            : 'Este navegador no permitió activar los avisos.'
-        )
+        // Queda en la consola para poder diagnosticar un caso que el mensaje no alcance a explicar.
+        console.error('[avisos] no se pudo activar:', e)
+        avisos.error(explicarFalloDeAvisos(e))
       }
     })
   }
