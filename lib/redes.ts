@@ -2,17 +2,42 @@
  * Redes de Tryvex Store y de Tryvex Tech, el estudio de desarrollo.
  * Son de marca, no de configuración: cambian casi nunca y con un despliegue basta.
  */
+export interface EstadisticasRed {
+  seguidores: string
+  meGusta: string
+  /** Fecha de la captura: las cifras son de esa fecha, no en vivo. */
+  al: string
+}
+
 export interface Red {
   red: 'tiktok' | 'instagram' | 'web'
   nombre: string
   usuario: string
   href: string
+  estadisticas?: EstadisticasRed
 }
 
 export const REDES_TIENDA: readonly Red[] = [
   { red: 'instagram', nombre: 'Instagram', usuario: '@tryvexstore.cl', href: 'https://www.instagram.com/tryvexstore.cl/' },
-  { red: 'tiktok', nombre: 'TikTok', usuario: '@tryvexstore', href: 'https://www.tiktok.com/@tryvexstore' },
+  // Cifras tomadas del perfil el 2026-09-30 (107,9 K seguidores y 405,4 K me gusta).
+  // No se consultan en vivo: TikTok no ofrece una API pública sin credenciales.
+  // Actualizarlas a mano cuando cambien de forma visible.
+  {
+    red: 'tiktok',
+    nombre: 'TikTok',
+    usuario: '@tryvexstore',
+    href: 'https://www.tiktok.com/@tryvexstore',
+    estadisticas: { seguidores: '107,9 K', meGusta: '405,4 K', al: '30 sep 2026' },
+  },
 ]
+
+/** Lo que hace Tryvex Tech. Son capacidades, no cifras: nada de «clientes atendidos» ni años. */
+export const SERVICIOS_TECH = [
+  { icono: 'software', titulo: 'Software a medida', texto: 'Sistemas y paneles hechos para cómo trabaja tu negocio.' },
+  { icono: 'automatizacion', titulo: 'Automatizaciones', texto: 'Lo repetitivo, resuelto solo: pedidos, avisos y reportes.' },
+  { icono: 'web', titulo: 'Páginas web y tiendas', texto: 'Sitios rápidos, claros y pensados para vender.' },
+  { icono: 'posicionamiento', titulo: 'Posicionamiento en internet', texto: 'Que te encuentren en Google cuando te buscan.' },
+] as const
 
 export const TRYVEX_TECH = {
   sitio: 'https://www.tryvex.tech/',
