@@ -31,12 +31,22 @@ export const REDES_TIENDA: readonly Red[] = [
   },
 ]
 
-/** Lo que hace Tryvex Tech. Son capacidades, no cifras: nada de «clientes atendidos» ni años. */
+/**
+ * Lo que hace Tryvex Tech, según tryvex.tech («estudio de IA y agencia de software,
+ * human-first, AI-powered»). Son capacidades, no cifras: nada de «clientes atendidos»
+ * ni años, que van en su propio sitio. `destacado` ocupa todo el ancho.
+ */
 export const SERVICIOS_TECH = [
-  { icono: 'software', titulo: 'Software a medida', texto: 'Sistemas y paneles hechos para cómo trabaja tu negocio.' },
-  { icono: 'automatizacion', titulo: 'Automatizaciones', texto: 'Lo repetitivo, resuelto solo: pedidos, avisos y reportes.' },
-  { icono: 'web', titulo: 'Páginas web y tiendas', texto: 'Sitios rápidos, claros y pensados para vender.' },
-  { icono: 'posicionamiento', titulo: 'Posicionamiento en internet', texto: 'Que te encuentren en Google cuando te buscan.' },
+  {
+    icono: 'ia',
+    destacado: true,
+    titulo: 'Inteligencia artificial',
+    texto: 'La desarrollamos nosotros, a la medida de cada negocio: agentes conectados a tus sistemas, documentos que se clasifican solos y búsqueda sobre tu propia información.',
+  },
+  { icono: 'software', destacado: false, titulo: 'Software a medida', texto: 'Sistemas, paneles y productos hechos para cómo trabaja tu negocio.' },
+  { icono: 'automatizacion', destacado: false, titulo: 'Automatizaciones', texto: 'Lo repetitivo, resuelto solo: pedidos, avisos, facturación y reportes.' },
+  { icono: 'web', destacado: false, titulo: 'Páginas web y tiendas', texto: 'Sitios rápidos, claros y pensados para vender.' },
+  { icono: 'posicionamiento', destacado: false, titulo: 'Posicionamiento en internet', texto: 'Que te encuentren en Google cuando te buscan.' },
 ] as const
 
 export const TRYVEX_TECH = {

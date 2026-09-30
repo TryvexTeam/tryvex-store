@@ -29,6 +29,7 @@ const TRAZOS = {
   automatizacion: 'M13 3 5 13h6l-1 8 8-10h-6l1-8Z',
   web: 'M3 5h18v14H3zM3 9h18M6.5 7h.01M9 7h.01',
   posicionamiento: 'M4 19V5M4 19h16M8 15l3.5-4 3 2.5L20 7M16 7h4v4',
+  ia: 'M10 3.5l1.9 5.2 5.1 1.9-5.1 1.9L10 17.7l-1.9-5.2L3 10.6l5.1-1.9L10 3.5ZM18.5 14l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3Z',
 } as const
 
 function Icono({ trazo, size = 24 }: { trazo: keyof typeof TRAZOS; size?: number }) {
@@ -87,7 +88,7 @@ export default async function Contacto() {
                   <a href="#tryvex-tech" className="tarjeta-enlace inline-flex min-h-12 items-center gap-2.5 rounded-full bg-papel py-1.5 pr-5 pl-2 text-[15px] font-semibold whitespace-nowrap text-tinta ring-1 ring-borde hover:shadow-[0_10px_30px_rgb(0_0_0/0.12)] hover:ring-tinta">
                     <span className="grid size-9 place-items-center rounded-full bg-tinta text-white"><Icono trazo="software" size={18} /></span>
                     Tryvex Tech
-                    <span className="hidden font-medium text-tinta-suave t:inline">· agencia de software</span>
+                    <span className="hidden font-medium text-tinta-suave t:inline">· estudio de IA y software</span>
                   </a>
                 </li>
               </ul>
@@ -228,10 +229,13 @@ export default async function Contacto() {
             <span aria-hidden className="absolute -bottom-32 -left-20 -z-10 size-[420px] rounded-full bg-[radial-gradient(closest-side,rgb(175_82_222/34%),transparent)]" />
             <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-14">
               <div>
-                <p className="text-[13px] font-semibold tracking-etiqueta text-[#7fd4ff] uppercase">Tryvex Tech · Agencia de software</p>
+                <p className="text-[13px] font-semibold tracking-etiqueta text-[#7fd4ff] uppercase">Tryvex Tech · Estudio de IA y software</p>
                 <h2 id="tech-titulo" className="mt-4 max-w-[16ch] text-[34px] leading-[1.04] font-semibold tracking-seccion text-balance t:text-[52px]">¿Tu negocio necesita una web como esta?</h2>
                 <p className="mt-5 max-w-[44ch] text-[16px] leading-relaxed text-white/75 t:text-[18px]">
-                  Somos la agencia que diseñó y programó esta tienda. Hacemos software, automatizaciones, páginas web y posicionamiento para negocios que quieren vender más y trabajar menos.
+                  Somos la agencia que diseñó y programó esta tienda. Hacemos software, automatizaciones, inteligencia artificial, páginas web y posicionamiento para negocios que quieren vender más y trabajar menos.
+                </p>
+                <p className="mt-4 max-w-[44ch] text-[16px] leading-relaxed text-white/75 t:text-[18px]">
+                  La IA también la hacemos nosotros: no revendemos una herramienta, construimos la solución para cada negocio.
                 </p>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <a href={TRYVEX_TECH.sitio} target="_blank" rel="noopener noreferrer" className="tienda-boton bg-white text-black hover:bg-white/85">
@@ -245,10 +249,18 @@ export default async function Contacto() {
 
               <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 t:grid-cols-2">
                 {SERVICIOS_TECH.map((x) => (
-                  <li key={x.titulo} className="rounded-[22px] bg-white/[0.07] p-5 ring-1 ring-white/12 backdrop-blur-sm t:p-6">
-                    <span className="grid size-11 place-items-center rounded-full bg-white/12 text-[#7fd4ff]"><Icono trazo={x.icono} size={22} /></span>
-                    <p className="mt-5 text-[18px] leading-tight font-semibold tracking-tarjeta">{x.titulo}</p>
-                    <p className="mt-1.5 text-[14px] leading-snug text-white/65">{x.texto}</p>
+                  <li
+                    key={x.titulo}
+                    className={
+                      x.destacado
+                        ? 'relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[#7fd4ff]/18 via-white/[0.07] to-[#af52de]/18 p-5 ring-1 ring-[#7fd4ff]/40 backdrop-blur-sm t:col-span-2 t:p-7'
+                        : 'rounded-[22px] bg-white/[0.07] p-5 ring-1 ring-white/12 backdrop-blur-sm t:p-6'
+                    }
+                  >
+                    <span className={`grid place-items-center rounded-full text-[#7fd4ff] ${x.destacado ? 'size-12 bg-white/14' : 'size-11 bg-white/12'}`}><Icono trazo={x.icono} size={x.destacado ? 26 : 22} /></span>
+                    {x.destacado && <p className="mt-5 text-[11px] font-semibold tracking-etiqueta text-[#7fd4ff] uppercase">Human-first · AI-powered</p>}
+                    <p className={`${x.destacado ? 'mt-1.5 text-[22px] t:text-[26px]' : 'mt-5 text-[18px]'} leading-tight font-semibold tracking-tarjeta`}>{x.titulo}</p>
+                    <p className={`mt-1.5 leading-snug text-white/65 ${x.destacado ? 'max-w-[56ch] text-[15px] t:text-[16px]' : 'text-[14px]'}`}>{x.texto}</p>
                   </li>
                 ))}
               </ul>
