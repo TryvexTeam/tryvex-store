@@ -6,6 +6,8 @@ import { useAvisos } from '@/components/avisos'
 import { IconoCamara, IconoBasura, IconoEstrella } from '@/components/iconos'
 import { alternarVisibilidadResena, borrarResena, crearResena, editarResena, quitarFotoResena, subirFotoResena } from './acciones'
 import { CampoFotoResena } from './campo-foto-resena'
+import { marcoFoto } from '@/lib/proporcion-foto'
+import { medirFoto, type MedidasFoto } from '@/lib/medir-foto'
 
 const TIPOS_FOTO_RESENA = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic'] as const
 const PESO_MAXIMO_FOTO_RESENA = 5 * 1024 * 1024
@@ -16,6 +18,7 @@ export type OpcionResena = { productoId: string; producto: string }
 export type ResenaPanel = {
   id: string; producto_id: string | null; cliente_nombre: string; texto: string; calificacion: number
   visible: boolean; created_at: string; pedidoNumero: number | null; producto: string | null; foto: string | null
+  fotoAncho: number | null; fotoAlto: number | null
 }
 
 const SIN_PRODUCTO = 'Portada de la tienda (sin producto)'
@@ -46,6 +49,18 @@ function SelectorEstrellas({ id, defaultValue = 5, disabled }: { id: string; def
   )
 }
 
+/** Miniatura con el mismo marco que verá el cliente; sin foto, un recuadro 4:3 vacío. */
+function MiniaturaResena({ r }: { r: ResenaPanel }) {
+  const marco = marcoFoto(r.fotoAncho, r.fotoAlto)
+  return (
+    <div className="relative w-full shrink-0 self-start overflow-hidden rounded-[12px] bg-papel-alt sm:w-40" style={{ aspectRatio: r.foto ? marco.proporcion : 4 / 3 }}>
+      {r.foto
+        ? <Image src={r.foto} alt={`Foto de la reseña de ${r.cliente_nombre}`} fill sizes="160px" className={marco.contener ? 'object-contain' : 'object-cover'} />
+        : <span className="grid size-full place-items-center text-[12px] text-gris">Sin foto</span>}
+    </div>
+  )
+}
+
 function Estrellas({ calificacion }: { calificacion: number }) {
   return (
     <span role="img" aria-label={`${calificacion} de 5 estrellas`} className="inline-flex items-center gap-0.5 text-tinta">
@@ -59,6 +74,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
   const [pendiente, iniciar] = useTransition()
   const [productoId, setProductoId] = useState('')
   const [fotoNueva, setFotoNueva] = useState<File | null>(null)
+  const [medidasNueva, setMedidasNueva] = useState<MedidasFoto | null>(null)
   const [editando, setEditando] = useState<string | null>(null)
   const entradas = useRef<Record<string, HTMLInputElement | null>>({})
 
@@ -69,10 +85,13 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
     const datos = new FormData(formulario)
     datos.set('producto_id', productoId)
     datos.delete('archivo')
-    if (fotoNueva) datos.set('archivo', fotoNueva)
+    if (fotoNueva) {
+      datos.set('archivo', fotoNueva)
+      if (medidasNueva) { datos.set('foto_ancho', String(medidasNueva.ancho)); datos.set('foto_alto', String(medidasNueva.alto)) }
+    }
     iniciar(async () => {
       const r = await crearResena(datos)
-      if (r.ok) { formulario.reset(); setFotoNueva(null); avisos.ok(fotoNueva ? 'Reseña creada con su foto.' : 'Reseña creada.') }
+      if (r.ok) { formulario.reset(); setFotoNueva(null); setMedidasNueva(null); avisos.ok(fotoNueva ? 'Reseña creada con su foto.' : 'Reseña creada.') }
       else avisos.error(r.error)
     })
   }
@@ -88,12 +107,14 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
     })
   }
 
-  function subir(id: string, archivo: File | undefined) {
+  async function subir(id: string, archivo: File | undefined) {
     if (!archivo) return
     if (!TIPOS_FOTO_RESENA.includes(archivo.type as (typeof TIPOS_FOTO_RESENA)[number])) return avisos.error('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
     if (archivo.size > PESO_MAXIMO_FOTO_RESENA) return avisos.error('La foto supera el máximo de 5 MB.')
     const datos = new FormData()
     datos.set('resena_id', id); datos.set('archivo', archivo)
+    const medidas = await medirFoto(archivo)
+    if (medidas) { datos.set('foto_ancho', String(medidas.ancho)); datos.set('foto_alto', String(medidas.alto)) }
     iniciar(async () => {
       const r = await subirFotoResena(datos)
       if (r.ok) avisos.ok('Foto añadida a la reseña.')
@@ -140,7 +161,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
             </label>
             <label className="text-[12px] font-medium text-gris" htmlFor="resena-texto">Reseña<textarea id="resena-texto" name="texto" required maxLength={1200} disabled={pendiente} rows={4} className={`${campo} mt-1 resize-y`} placeholder="Escribe aquí la reseña." /></label>
             <SelectorEstrellas id="resena-calificacion" disabled={pendiente} />
-            <CampoFotoResena id="resena-foto" archivo={fotoNueva} alCambiar={setFotoNueva} alError={avisos.error} deshabilitado={pendiente} />
+            <CampoFotoResena id="resena-foto" archivo={fotoNueva} medidas={medidasNueva} alCambiar={(f, m) => { setFotoNueva(f); setMedidasNueva(m) }} alError={avisos.error} deshabilitado={pendiente} />
             <label className="flex items-center gap-2 text-[13px] text-tinta"><input name="visible" type="checkbox" defaultChecked disabled={pendiente} /> Publicar de inmediato</label>
             <button type="submit" disabled={pendiente} className="presionable w-fit rounded-full bg-spark px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-60">{pendiente ? 'Guardando…' : 'Crear reseña'}</button>
           </form>
@@ -152,9 +173,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
           <ul className="grid gap-3">
             {resenas.map((r) => (
               <li key={r.id} className="flex flex-col gap-4 rounded-[var(--radius-tarjeta)] bg-papel p-4 ring-1 ring-borde/70 sm:flex-row sm:p-5">
-                <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[12px] bg-papel-alt sm:w-40">
-                  {r.foto ? <Image src={r.foto} alt={`Foto de la reseña de ${r.cliente_nombre}`} fill sizes="160px" className="object-cover" /> : <span className="grid size-full place-items-center text-[12px] text-gris">Sin foto</span>}
-                </div>
+                <MiniaturaResena r={r} />
                 <div className="min-w-0 flex-1">
                   {editando === r.id ? (
                     <form onSubmit={(e) => guardar(e, r.id)} className="grid gap-3">

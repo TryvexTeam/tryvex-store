@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { IconoEstrella } from '@/components/iconos'
+import { marcoFoto } from '@/lib/proporcion-foto'
 import type { ResenaPublica } from '@/lib/resenas'
 
 type Props = {
@@ -74,11 +75,7 @@ export function Comentarios({
         {resenas.map((resena, indice) => (
           <li key={resena.id} className="comentario-tarjeta relative isolate flex min-h-[330px] w-[min(82vw,390px)] shrink-0 snap-start flex-col overflow-hidden rounded-[28px] bg-papel p-6 shadow-sutil t:min-h-[360px] t:w-[390px] t:p-8" style={{ '--comentario-tono': TONOS[indice % TONOS.length], '--comentario-indice': indice } as CSSProperties}>
             <span aria-hidden className="comentario-orbita comentario-orbita-a" /><span aria-hidden className="comentario-orbita comentario-orbita-b" />
-            {resena.foto && (
-              <div className="relative mb-5 aspect-[16/9] overflow-hidden rounded-[18px] bg-papel-alt">
-                <Image src={resena.foto} alt={`Foto compartida por ${resena.cliente}`} fill sizes="(min-width: 640px) 390px, 82vw" className="object-cover" />
-              </div>
-            )}
+            {resena.foto && <FotoResena resena={resena} />}
             <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">Compra verificada</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
             <div className="relative mt-3"><Estrellas calificacion={resena.calificacion} /></div>
             <blockquote className="relative mt-5 text-[22px] leading-[1.18] font-medium tracking-cuerpo text-tinta t:text-[25px]">“{resena.texto}”</blockquote>
@@ -87,6 +84,19 @@ export function Comentarios({
         ))}
       </ul>
     </section>
+  )
+}
+
+/**
+ * El marco sigue la forma real de la foto (acotada): una vertical de celular no
+ * se corta, y una muy alta o muy panorámica se muestra entera en vez de recortarse.
+ */
+function FotoResena({ resena }: { resena: ResenaPublica }) {
+  const { proporcion, contener } = marcoFoto(resena.fotoAncho, resena.fotoAlto)
+  return (
+    <div className="relative mb-5 overflow-hidden rounded-[18px] bg-papel-alt" style={{ aspectRatio: proporcion }}>
+      <Image src={resena.foto!} alt={`Foto compartida por ${resena.cliente}`} fill sizes="(min-width: 640px) 390px, 82vw" className={contener ? 'object-contain' : 'object-cover'} />
+    </div>
   )
 }
 

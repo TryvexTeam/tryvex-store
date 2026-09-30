@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { marcoFoto } from '@/lib/proporcion-foto'
+import { medirFoto, type MedidasFoto } from '@/lib/medir-foto'
 
 const TIPOS = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic']
 const PESO_MAXIMO = 5 * 1024 * 1024
@@ -16,10 +18,12 @@ const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
  * formulario y se sube junto con la reseña al guardarla. Así, si se cancela o la
  * reseña falla, no quedan fotos huérfanas en el almacenamiento.
  */
-export function CampoFotoResena({ id, archivo, alCambiar, alError, deshabilitado }: {
+export function CampoFotoResena({ id, archivo, medidas, alCambiar, alError, deshabilitado }: {
   id: string
   archivo: File | null
-  alCambiar: (archivo: File | null) => void
+  /** Medidas de la foto elegida; el marco de la vista previa las sigue. */
+  medidas: MedidasFoto | null
+  alCambiar: (archivo: File | null, medidas: MedidasFoto | null) => void
   /** Motivo por el que se rechazó el archivo (formato o peso). */
   alError: (mensaje: string) => void
   deshabilitado?: boolean
@@ -35,12 +39,15 @@ export function CampoFotoResena({ id, archivo, alCambiar, alError, deshabilitado
     return () => URL.revokeObjectURL(url)
   }, [archivo])
 
-  function elegir(nuevo: File | undefined) {
+  async function elegir(nuevo: File | undefined) {
     if (!nuevo) return
     if (!TIPOS.includes(nuevo.type)) return alError('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
     if (nuevo.size > PESO_MAXIMO) return alError(`La foto pesa ${(nuevo.size / 1024 / 1024).toFixed(1)} MB y el máximo son 5 MB.`)
-    alCambiar(nuevo)
+    alCambiar(nuevo, await medirFoto(nuevo))
   }
+
+  // Mismo marco que verá el cliente en la tarjeta: lo que se ve al subir es lo que sale.
+  const marco = marcoFoto(medidas?.ancho, medidas?.alto)
 
   return (
     <div>
@@ -52,12 +59,13 @@ export function CampoFotoResena({ id, archivo, alCambiar, alError, deshabilitado
       <div
         onDragOver={(e) => { e.preventDefault(); if (!deshabilitado) setEncima(true) }}
         onDragLeave={() => setEncima(false)}
-        onDrop={(e) => { e.preventDefault(); setEncima(false); if (!deshabilitado) elegir(e.dataTransfer.files?.[0]) }}
-        className={`relative aspect-[16/9] w-full max-w-[420px] overflow-hidden rounded-[12px] bg-papel-alt ring-1 transition-colors ${encima ? 'ring-2 ring-spark' : 'ring-borde'}`}
+        onDrop={(e) => { e.preventDefault(); setEncima(false); if (!deshabilitado) void elegir(e.dataTransfer.files?.[0]) }}
+        style={{ aspectRatio: marco.proporcion }}
+        className={`relative w-full max-w-[420px] overflow-hidden rounded-[12px] bg-papel-alt ring-1 transition-colors ${encima ? 'ring-2 ring-spark' : 'ring-borde'}`}
       >
         {vista ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={vista} alt="Vista previa de la foto elegida" className="size-full object-cover" />
+          <img src={vista} alt="Vista previa de la foto elegida" className={`size-full ${marco.contener ? 'object-contain' : 'object-cover'}`} />
         ) : (
           <span className="grid size-full place-items-center px-3 text-center text-[12px] text-gris">Sin foto</span>
         )}
@@ -70,13 +78,13 @@ export function CampoFotoResena({ id, archivo, alCambiar, alError, deshabilitado
             id={id}
             type="file"
             accept={TIPOS.join(',')}
-            onChange={(e) => { elegir(e.target.files?.[0]); e.target.value = '' }}
+            onChange={(e) => { void elegir(e.target.files?.[0]); e.target.value = '' }}
             disabled={deshabilitado}
             className="sr-only"
           />
         </label>
         {archivo && (
-          <button type="button" onClick={() => alCambiar(null)} disabled={deshabilitado} className="presionable inline-flex min-h-[44px] items-center rounded-full px-4 text-[14px] font-medium text-rojo hover:bg-rojo/10 disabled:opacity-60">
+          <button type="button" onClick={() => alCambiar(null, null)} disabled={deshabilitado} className="presionable inline-flex min-h-[44px] items-center rounded-full px-4 text-[14px] font-medium text-rojo hover:bg-rojo/10 disabled:opacity-60">
             Quitar
           </button>
         )}

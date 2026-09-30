@@ -50,8 +50,22 @@ function validarFoto(archivo: FormDataEntryValue | null): Fallo | null {
   return null
 }
 
+type Medidas = { ancho: number; alto: number } | null
+
+/**
+ * Medidas que tomó el navegador al elegir la foto. Son solo para dibujar el marco
+ * de la tarjeta, así que un valor raro no bloquea nada: se descarta y la foto se
+ * muestra con el marco de siempre.
+ */
+function leerMedidas(datos: FormData): Medidas {
+  const ancho = Number(datos.get('foto_ancho'))
+  const alto = Number(datos.get('foto_alto'))
+  const valido = (n: number) => Number.isInteger(n) && n >= 1 && n <= 20000
+  return valido(ancho) && valido(alto) ? { ancho, alto } : null
+}
+
 /** Sube la foto y la deja asociada a la reseña; borra la anterior si tenía otra ruta. */
-async function guardarFoto(supabase: SupabaseClient, id: string, archivo: File, rutaAnterior: string | null): Promise<Resultado> {
+async function guardarFoto(supabase: SupabaseClient, id: string, archivo: File, rutaAnterior: string | null, medidas: Medidas): Promise<Resultado> {
   const ruta = nombreFotoResena(id, archivo.name)
   const { error: errorSubida } = await supabase.storage
     .from(BUCKET_RESENAS)
@@ -60,7 +74,7 @@ async function guardarFoto(supabase: SupabaseClient, id: string, archivo: File, 
 
   const { error: errorUpdate } = await supabase
     .from('resenas_tienda')
-    .update({ foto_path: ruta, updated_at: new Date().toISOString() })
+    .update({ foto_path: ruta, foto_ancho: medidas?.ancho ?? null, foto_alto: medidas?.alto ?? null, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (errorUpdate) return fallo(errorUpdate.message)
 
@@ -108,7 +122,7 @@ export async function crearResena(datos: FormData): Promise<Resultado<{ id: stri
   if (error) return fallo(error.message)
 
   if (archivo instanceof File && archivo.size > 0) {
-    const r = await guardarFoto(sesion.supabase, data.id, archivo, null)
+    const r = await guardarFoto(sesion.supabase, data.id, archivo, null, leerMedidas(datos))
     if (!r.ok) {
       // Sin foto la reseña sigue siendo válida, pero quien la crea espera verla
       // completa: se deshace para que reintente desde cero en vez de duplicarla.
@@ -171,7 +185,7 @@ export async function subirFotoResena(datos: FormData): Promise<Resultado> {
   if (errorLectura) return fallo(errorLectura.message)
   if (!resena) return fallo('La reseña ya no existe.')
 
-  const r = await guardarFoto(sesion.supabase, id, archivo, resena.foto_path)
+  const r = await guardarFoto(sesion.supabase, id, archivo, resena.foto_path, leerMedidas(datos))
   if (!r.ok) return r
 
   revalidar()
@@ -195,7 +209,7 @@ export async function quitarFotoResena(id: string): Promise<Resultado> {
 
   const { error } = await sesion.supabase
     .from('resenas_tienda')
-    .update({ foto_path: null, updated_at: new Date().toISOString() })
+    .update({ foto_path: null, foto_ancho: null, foto_alto: null, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return fallo(error.message)
   await sesion.supabase.storage.from(BUCKET_RESENAS).remove([resena.foto_path])
