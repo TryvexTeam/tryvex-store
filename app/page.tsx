@@ -42,7 +42,7 @@ const datosDePortada = unstable_cache(
     return { vitrina, piezas: [...piezas] as [string, PiezaLanding][], resenas }
   },
   ['portada'],
-  { revalidate: 300, tags: ['resenas'] },
+  { revalidate: 300, tags: ['resenas', 'portada'] },
 )
 
 const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'

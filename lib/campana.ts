@@ -1,5 +1,6 @@
 import { capsulasDe, hrefDeDestino, destinoDe, zonasDe, type CapsulaEscena, type ZonaEnlace } from '@/lib/destinos-pieza'
 import { colorDeAcento, tonoDeTema } from '@/lib/temas-escena'
+import { borradorDesde } from '@/lib/escena-borrador'
 
 /**
  * Voz editorial de la portada. Productos, categorías, precios y stock se
@@ -149,11 +150,6 @@ export interface PiezaEscena {
   contenido: Record<string, unknown>
 }
 
-const txt = (c: Record<string, unknown>, k: string): string | null => {
-  const v = c[k]
-  return typeof v === 'string' && v.trim() ? v.trim() : null
-}
-
 /**
  * Aplica lo que el equipo editó en el panel sobre las escenas del código.
  *
@@ -162,9 +158,11 @@ const txt = (c: Record<string, unknown>, k: string): string | null => {
  * la tabla esté poblada. Si la fila existe pero está marcada como oculta, la
  * escena sale del carrusel.
  *
- * Las fotos solo se reemplazan si la pieza trae las DOS (teléfono y
- * escritorio). Mezclar una foto nueva con una vieja daría un carrusel donde
- * el teléfono muestra una campaña y el escritorio otra.
+ * Con una fila guardada desde el panel nuevo (`version` 2) manda lo guardado
+ * tal cual: un texto vacío no se muestra y una imagen quitada no vuelve. Las
+ * filas anteriores tratan lo vacío como «usa el del código»; `borradorDesde`
+ * hace esa herencia una sola vez, al abrirlas, para que el editor y la
+ * portada nunca se contradigan.
  */
 export function escenasConPiezas(
   escenas: readonly EscenaHeroe[],
@@ -177,48 +175,39 @@ export function escenasConPiezas(
     if (!pieza) return [e]
     if (!pieza.visible) return []
 
-    const c = pieza.contenido
-    const t1 = txt(c, 'titulo_1')
-    const t2 = txt(c, 'titulo_2')
+    const b = borradorDesde(pieza.contenido, e)
     // Con una sola foto cargada se usa para las dos pantallas: exigir las dos
     // hacía que subir solo una no cambiara nada y pareciera un error.
-    const movil = txt(c, 'foto_movil') ?? txt(c, 'foto_escritorio')
-    const escritorio = txt(c, 'foto_escritorio') ?? movil
-    const alt = txt(c, 'alt') ?? e.fotos?.movil.alt ?? ''
-    // Solo http(s): una URL mal cargada no puede terminar en el src del video.
-    const videoCrudo = txt(c, 'video')
-    const video = videoCrudo && /^https?:\/\//i.test(videoCrudo) ? videoCrudo : e.video
+    const movil = b.foto_movil || b.foto_escritorio
+    const escritorio = b.foto_escritorio || b.foto_movil
     const fotos = movil && escritorio
-      ? {
-          movil: { src: movil, ancho: 1122, alto: 1402, alt },
-          escritorio: { src: escritorio, ancho: 1930, alto: 815, alt },
-        }
-      : e.fotos
-    // Una tarjeta de color que recibe foto o video pasa a ser escena de foto:
-    // así también se reemplaza desde el panel, sin tocar código.
-    const conImagen = Boolean((movil && escritorio) || videoCrudo)
-    const sinTexto = c.sin_texto === true
-    const etiqueta = txt(c, 'etiqueta') ?? e.etiqueta
+      ? { movil: { src: movil, ancho: 1122, alto: 1402, alt: b.alt }, escritorio: { src: escritorio, ancho: 1930, alto: 815, alt: b.alt } }
+      : undefined
+    // Una tarjeta de color que recibe foto o video pasa a ser escena de foto.
+    const conImagen = Boolean(fotos || b.video)
+    const estilo = conImagen ? 'foto' : e.estilo
+    const datos = { ...pieza.contenido, capsulas: b.capsulas, division: b.division, zonas: b.zonas }
 
     return [{
       ...e,
-      tono: tonoDeTema(c.tema_texto) ?? e.tono,
-      acento: colorDeAcento(c.acento, c.acento_libre) ?? e.acento,
-      etiqueta,
-      antetitulo: txt(c, 'antetitulo') ?? e.antetitulo,
-      titulo: (t1 ? [t1, t2 ?? ''] : e.titulo) as readonly [string, string],
-      bajada: txt(c, 'bajada') ?? e.bajada,
+      tono: tonoDeTema(b.tema_texto) ?? e.tono,
+      acento: colorDeAcento(b.acento, b.acento_libre) ?? e.acento,
+      etiqueta: b.etiqueta || e.etiqueta,
+      antetitulo: b.antetitulo,
+      titulo: [b.titulo_1, b.titulo_2] as readonly [string, string],
+      bajada: b.bajada,
+      boton: b.boton,
       fotos,
-      video,
-      estilo: conImagen ? 'foto' : e.estilo,
-      href: hrefDeDestino(destinoDe(c)) ?? e.href,
-      boton: txt(c, 'boton') ?? e.boton,
-      sinTexto,
+      video: b.video || undefined,
+      estilo,
+      promo: b.mostrar_cifra ? e.promo : undefined,
+      href: hrefDeDestino(destinoDe({ destino: b.destino })) ?? e.href,
+      sinTexto: b.sin_texto,
       // Sin texto encima, la imagen ocupa la escena completa en todo tamaño.
-      movilDesde: sinTexto ? undefined : e.movilDesde,
-      texto: sinTexto ? 'centro' : e.texto,
-      zonas: zonasDe(c, etiqueta),
-      capsulas: capsulasDe(c),
+      movilDesde: b.sin_texto ? undefined : e.movilDesde,
+      texto: b.sin_texto ? 'centro' : e.texto,
+      zonas: zonasDe(datos, b.etiqueta || e.etiqueta),
+      capsulas: capsulasDe(datos),
     }]
   })
 }

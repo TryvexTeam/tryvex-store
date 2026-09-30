@@ -1,10 +1,10 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
 import { BUCKET, PESO_MAXIMO, PESO_MAXIMO_VIDEO, TIPOS_ACEPTADOS, TIPOS_VIDEO, esVideo, urlPublica } from '@/lib/imagenes'
-import { DIVISIONES, MAX_CAPSULAS, TIPOS_DESTINO, esDivision, leerPosicion, type TipoDestino } from '@/lib/destinos-pieza'
-import { ACENTOS, TEMAS_TEXTO, esHex } from '@/lib/temas-escena'
+import { TIPOS_DESTINO, type TipoDestino } from '@/lib/destinos-pieza'
+import { validarBorrador } from '@/lib/escena-borrador'
 
 /**
  * Guardado de las piezas editables de la portada.
@@ -14,6 +14,17 @@ import { ACENTOS, TEMAS_TEXTO, esHex } from '@/lib/temas-escena'
  * porque una clave inventada sería una ranura que ningún componente dibuja —
  * el equipo creería haber publicado algo que no aparece en ninguna parte.
  */
+
+/**
+ * Hace visible un cambio en la portada. La portada guarda sus datos 5 minutos
+ * en un caché propio (`portada`); sin invalidarlo, guardar aquí y mirar la
+ * tienda seguía mostrando lo anterior, y parecía que el guardado no servía.
+ */
+function publicar() {
+  revalidatePath('/')
+  revalidatePath('/panel/portada')
+  updateTag('portada')
+}
 
 const LARGO_MAX = 240
 
@@ -45,60 +56,6 @@ function destinoDelFormulario(datos: FormData, prefijo: string): { destino: { ti
   const error = validarDestino(tipo, valor)
   if (error) return { error }
   return { destino: tipo === 'ninguno' ? { tipo } : { tipo, valor } }
-}
-
-/**
- * Campos propios de una escena del banner: textos, afiche sin texto y zonas.
- * Cada zona se valida como un destino más, con su número en el mensaje, para
- * que quien edita sepa cuál corregir.
- */
-function camposDeEscena(datos: FormData): Record<string, unknown> | { error: string } {
-  const divisionCruda = String(datos.get('division') ?? 'completa')
-  const division = esDivision(divisionCruda) ? divisionCruda : 'completa'
-  const zonas: { destino: unknown; etiqueta: string }[] = []
-  if (division !== 'completa') {
-    for (let i = 0; i < DIVISIONES[division].length; i++) {
-      const leido = destinoDelFormulario(datos, `zona_${i}`)
-      if ('error' in leido) return { error: `Zona ${i + 1}: ${leido.error}` }
-      zonas.push({ destino: leido.destino, etiqueta: texto(datos, `zona_${i}_etiqueta`).slice(0, 80) })
-    }
-  }
-  const capsulas: Record<string, unknown>[] = []
-  const cuantas = Math.min(MAX_CAPSULAS, Math.max(0, Number(datos.get('capsulas_n')) || 0))
-  for (let i = 0; i < cuantas; i++) {
-    const p = `capsula_${i}`
-    const leido = destinoDelFormulario(datos, p)
-    if ('error' in leido) return { error: `Cápsula ${i + 1}: ${leido.error}` }
-    const t = texto(datos, `${p}_texto`).slice(0, 60)
-    if (!t && leido.destino.tipo !== 'producto') return { error: `Cápsula ${i + 1}: escribe un texto, o haz que lleve a un producto para mostrar su precio.` }
-    // «x,y» de la rejilla; cualquier otro valor cae a la posición por defecto.
-    const posicion = (campo: string, porDefecto: { x: 0 | 50 | 100; y: 0 | 50 | 100 }) => {
-      const [x, y] = String(datos.get(campo) ?? '').split(',')
-      return leerPosicion({ x, y }, porDefecto)
-    }
-    capsulas.push({
-      texto: t,
-      boton: texto(datos, `${p}_boton`).slice(0, 30),
-      destino: leido.destino,
-      movil: posicion(`${p}_movil`, { x: 50, y: 100 }),
-      escritorio: posicion(`${p}_escritorio`, { x: 100, y: 100 }),
-    })
-  }
-  return {
-    capsulas,
-    antetitulo: texto(datos, 'antetitulo'),
-    etiqueta: texto(datos, 'etiqueta').slice(0, 40),
-    titulo_1: texto(datos, 'titulo_1').slice(0, 80),
-    titulo_2: texto(datos, 'titulo_2').slice(0, 80),
-    boton: texto(datos, 'boton').slice(0, 40),
-    sin_texto: datos.get('sin_texto') === 'on',
-    // Solo valores de la lista o un hex: el color termina en un `style` de la portada.
-    tema_texto: TEMAS_TEXTO.find((t) => t.valor === datos.get('tema_texto'))?.valor ?? 'auto',
-    acento: ACENTOS.find((a) => a.valor === datos.get('acento'))?.valor ?? 'auto',
-    acento_libre: esHex(datos.get('acento_libre')) ? String(datos.get('acento_libre')).toLowerCase() : null,
-    division,
-    zonas,
-  }
 }
 
 /** Los dos huecos de imagen que tiene cada pieza. */
@@ -171,8 +128,7 @@ export async function subirImagenPieza(datos: FormData): Promise<Resultado<{ url
     return fallo('Subimos la imagen pero no pudimos aplicarla. Intenta de nuevo.')
   }
 
-  revalidatePath('/')
-  revalidatePath('/panel/portada')
+  publicar()
   return { ok: true, url }
 }
 
@@ -186,8 +142,8 @@ export async function guardarPieza(datos: FormData): Promise<Resultado> {
 
   const leido = destinoDelFormulario(datos, 'destino')
   if ('error' in leido) return fallo(leido.error)
-  const escena = clave.startsWith('heroe-') ? camposDeEscena(datos) : null
-  if (escena && 'error' in escena) return fallo(String(escena.error))
+  // Las escenas del banner se guardan con `guardarEscena`: aquí solo las franjas.
+  if (clave.startsWith('heroe-')) return fallo('Las escenas del banner se guardan desde su propio editor.')
 
   // Se lee el contenido actual y se fusiona: así los campos que esta pantalla
   // no edita (formato, tono, estilo de la escena) no se pierden al guardar.
@@ -203,8 +159,7 @@ export async function guardarPieza(datos: FormData): Promise<Resultado> {
   const previo = (actual.contenido ?? {}) as Record<string, unknown>
   const contenido: Record<string, unknown> = {
     ...previo,
-    // Las escenas no tienen «título» suelto: su titular son dos líneas.
-    ...(escena ? escena : { titulo: texto(datos, 'titulo') }),
+    titulo: texto(datos, 'titulo'),
     bajada: texto(datos, 'bajada'),
     alt: texto(datos, 'alt'),
     foto_movil: texto(datos, 'foto_movil'),
@@ -224,46 +179,57 @@ export async function guardarPieza(datos: FormData): Promise<Resultado> {
 
   if (error) return fallo('No pudimos guardar los cambios.')
 
-  revalidatePath('/')
-  revalidatePath('/panel/portada')
+  publicar()
   return { ok: true }
 }
 
-/* ── Video de una escena del banner ───────────────────────────────────
-   Mismo camino que el video de la escena en foco: el servidor firma la
-   subida, el navegador la hace directo al bucket (Vercel corta los envíos de
-   más de 4,5 MB) y el servidor la confirma y la deja aplicada. Vive bajo
-   `campana/<clave>/`, que ya cubren las reglas de escritura de la portada. */
+/* ── Escenas del banner ───────────────────────────────────────────────
+   El editor trabaja sobre un borrador en pantalla y nada toca la tienda hasta
+   «Publicar». Subir una imagen o un video solo los deja en el bucket; el
+   servidor los aplica al guardar y, recién entonces, borra los archivos que
+   dejaron de usarse. Así cancelar no rompe la portada, y quitar un video no
+   deja una tienda apuntando a un archivo ya borrado. */
 
-async function contenidoDeEscena(
-  supabase: Awaited<ReturnType<typeof exigirIntegrante>> extends infer R ? (R extends { supabase: infer S } ? S : never) : never,
-  clave: string,
-): Promise<Resultado<{ contenido: Record<string, unknown> }>> {
-  if (!clave.startsWith('heroe-')) return fallo('Solo las escenas del banner llevan video aquí.')
-  const { data, error } = await supabase.from('secciones_landing').select('contenido').eq('clave', clave).maybeSingle()
-  if (error) return fallo('No pudimos leer la escena. Intenta de nuevo.')
-  if (!data) return fallo('Esa escena ya no existe.')
-  return { ok: true, contenido: (data.contenido ?? {}) as Record<string, unknown> }
-}
+type Supabase = Extract<Awaited<ReturnType<typeof exigirIntegrante>>, { ok: true }>['supabase']
 
-/** Ruta del bucket a partir de la URL pública guardada, si es de esa escena. */
-function rutaDeVideo(url: unknown, clave: string): string | null {
+const escenaValida = (clave: string): boolean => /^heroe-[a-z0-9-]+$/.test(clave)
+
+/** Ruta del bucket a partir de la URL pública guardada, si es un archivo de esa escena. */
+function rutaDeArchivo(url: unknown, clave: string): string | null {
   if (typeof url !== 'string') return null
   const marca = `/storage/v1/object/public/${BUCKET}/`
   const i = url.indexOf(marca)
   const ruta = i > -1 ? url.slice(i + marca.length) : ''
-  return ruta.startsWith(`campana/${clave}/`) ? ruta : null
+  return ruta.startsWith(`campana/${clave}/`) && !ruta.includes('..') ? ruta : null
+}
+
+export async function subirImagenEscena(datos: FormData): Promise<Resultado<{ url: string }>> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  const clave = String(datos.get('clave') ?? '').trim()
+  const campo = CAMPOS_IMAGEN.find((c) => c === String(datos.get('campo') ?? ''))
+  if (!escenaValida(clave) || !campo) return fallo('Falta indicar qué imagen se está cambiando.')
+
+  const archivo = datos.get('archivo')
+  if (!(archivo instanceof File) || archivo.size === 0) return fallo('Elige una imagen para subir.')
+  if (!(TIPOS_ACEPTADOS as readonly string[]).includes(archivo.type)) return fallo('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
+  if (archivo.size > PESO_MAXIMO) return fallo(`La imagen pesa ${(archivo.size / 1024 / 1024).toFixed(1)} MB y el máximo son 5 MB.`)
+
+  const punto = archivo.name.lastIndexOf('.')
+  const ext = (punto > -1 ? archivo.name.slice(punto + 1) : 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+  const ruta = `campana/${clave}/${campo}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error } = await sesion.supabase.storage.from(BUCKET).upload(ruta, archivo, { cacheControl: '31536000', upsert: false })
+  if (error) return fallo(`No se pudo subir: ${error.message}`)
+  return { ok: true, url: urlPublica(ruta) }
 }
 
 export async function pedirSubidaVideoEscena(clave: string, tipo: string, peso: number): Promise<Resultado<{ ruta: string; token: string }>> {
   const sesion = await exigirIntegrante()
   if (!sesion.ok) return sesion
+  if (!escenaValida(clave)) return fallo('Solo las escenas del banner llevan video aquí.')
   if (!TIPOS_VIDEO.includes(tipo as (typeof TIPOS_VIDEO)[number])) return fallo('Formato de video no admitido. Usa MP4 o WebM.')
   if (!Number.isFinite(peso) || peso <= 0) return fallo('El video llegó vacío.')
   if (peso > PESO_MAXIMO_VIDEO) return fallo(`El video pesa ${(peso / 1024 / 1024).toFixed(1)} MB y el máximo son 30 MB.`)
-
-  const leido = await contenidoDeEscena(sesion.supabase, clave)
-  if (!leido.ok) return leido
 
   const extension = tipo === 'video/webm' ? 'webm' : 'mp4'
   const ruta = `campana/${clave}/video-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${extension}`
@@ -272,54 +238,68 @@ export async function pedirSubidaVideoEscena(clave: string, tipo: string, peso: 
   return { ok: true, ruta, token: data.token }
 }
 
+/** Confirma que el video terminó de subirse y devuelve su URL; aún no lo aplica. */
 export async function confirmarVideoEscena(clave: string, ruta: string): Promise<Resultado<{ url: string }>> {
   const sesion = await exigirIntegrante()
   if (!sesion.ok) return sesion
-  const { supabase } = sesion
-
   const carpeta = `campana/${clave}`
-  if (!ruta.startsWith(`${carpeta}/`) || ruta.includes('..') || !esVideo(ruta)) return fallo('Ese video no es de la escena.')
+  if (!escenaValida(clave) || !ruta.startsWith(`${carpeta}/`) || ruta.includes('..') || !esVideo(ruta)) return fallo('Ese video no es de la escena.')
   const archivo = ruta.slice(carpeta.length + 1)
-  const { data: encontrados, error: errLista } = await supabase.storage.from(BUCKET).list(carpeta, { search: archivo })
-  if (errLista) return fallo(errLista.message)
-  if (!encontrados?.some((o) => o.name === archivo)) return fallo('El video no terminó de subirse. Inténtalo de nuevo.')
-
-  const leido = await contenidoDeEscena(supabase, clave)
-  if (!leido.ok) {
-    await supabase.storage.from(BUCKET).remove([ruta])
-    return leido
-  }
-  const anterior = rutaDeVideo(leido.contenido.video, clave)
-  const url = urlPublica(ruta)
-  const { error } = await supabase
-    .from('secciones_landing')
-    .update({ contenido: { ...leido.contenido, video: url }, updated_at: new Date().toISOString(), updated_by: sesion.integranteId })
-    .eq('clave', clave)
-  if (error) {
-    await supabase.storage.from(BUCKET).remove([ruta])
-    return fallo('No pudimos guardar el video.')
-  }
-  if (anterior && anterior !== ruta) await supabase.storage.from(BUCKET).remove([anterior])
-
-  revalidatePath('/')
-  revalidatePath('/panel/portada')
-  return { ok: true, url }
+  const { data, error } = await sesion.supabase.storage.from(BUCKET).list(carpeta, { search: archivo })
+  if (error) return fallo(error.message)
+  if (!data?.some((o) => o.name === archivo)) return fallo('El video no terminó de subirse. Inténtalo de nuevo.')
+  return { ok: true, url: urlPublica(ruta) }
 }
 
-export async function quitarVideoEscena(clave: string): Promise<Resultado> {
+async function borrarHuerfanos(supabase: Supabase, clave: string, antes: Record<string, unknown>, despues: Record<string, unknown>) {
+  const rutas = (['foto_movil', 'foto_escritorio', 'video'] as const)
+    .filter((k) => antes[k] !== despues[k])
+    .flatMap((k) => rutaDeArchivo(antes[k], clave) ?? [])
+  if (rutas.length) await supabase.storage.from(BUCKET).remove(rutas)
+}
+
+/**
+ * Guarda una escena completa. Lo que llega se valida de nuevo aquí: el
+ * navegador no es de fiar. Devuelve el borrador ya normalizado para que el
+ * editor muestre exactamente lo que quedó guardado.
+ */
+export async function guardarEscena(clave: string, visible: boolean, borrador: unknown): Promise<Resultado<{ guardado: string }>> {
   const sesion = await exigirIntegrante()
   if (!sesion.ok) return sesion
   const { supabase } = sesion
-  const leido = await contenidoDeEscena(supabase, clave)
-  if (!leido.ok) return leido
-  const anterior = rutaDeVideo(leido.contenido.video, clave)
+  if (!escenaValida(clave)) return fallo('Esa escena no existe.')
+
+  const leido = validarBorrador(borrador)
+  if (!leido.ok) return fallo(leido.error)
+
+  const { data: actual, error: errLectura } = await supabase.from('secciones_landing').select('contenido').eq('clave', clave).maybeSingle()
+  if (errLectura) return fallo('No pudimos leer la escena. Intenta de nuevo.')
+  if (!actual) return fallo('Esa escena ya no existe.')
+
+  const previo = (actual.contenido ?? {}) as Record<string, unknown>
+  // `tono`, `estilo` y demás campos de fábrica se conservan; solo se pisa lo que el editor maneja.
+  const contenido = { ...previo, ...leido.borrador }
   const { error } = await supabase
     .from('secciones_landing')
-    .update({ contenido: { ...leido.contenido, video: null }, updated_at: new Date().toISOString(), updated_by: sesion.integranteId })
+    .update({ contenido, visible, updated_at: new Date().toISOString(), updated_by: sesion.integranteId })
     .eq('clave', clave)
-  if (error) return fallo('No pudimos quitar el video.')
-  if (anterior) await supabase.storage.from(BUCKET).remove([anterior])
-  revalidatePath('/')
-  revalidatePath('/panel/portada')
+  if (error) return fallo('No pudimos guardar los cambios.')
+
+  await borrarHuerfanos(supabase, clave, previo, contenido)
+  publicar()
+  return { ok: true, guardado: JSON.stringify(leido.borrador) }
+}
+
+/** Muestra u oculta una escena sin abrir su editor. */
+export async function cambiarVisibilidadEscena(clave: string, visible: boolean): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  if (!escenaValida(clave)) return fallo('Esa escena no existe.')
+  const { error } = await sesion.supabase
+    .from('secciones_landing')
+    .update({ visible, updated_at: new Date().toISOString(), updated_by: sesion.integranteId })
+    .eq('clave', clave)
+  if (error) return fallo('No pudimos cambiar la visibilidad.')
+  publicar()
   return { ok: true }
 }

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { Selector } from '@/components/selector'
-import { ACENTOS, TEMAS_TEXTO, esHex, type Acento } from '@/lib/temas-escena'
+import { ACENTOS, TEMAS_TEXTO, esHex, type Acento, type TemaTexto } from '@/lib/temas-escena'
 
 const DEGRADADO = 'conic-gradient(from 180deg, #5ac8fa, #af52de, #ff2d55, #ff9500, #5ac8fa)'
 
@@ -13,46 +12,32 @@ const DEGRADADO = 'conic-gradient(from 180deg, #5ac8fa, #af52de, #ff2d55, #ff950
  * «Ámbar» no dice nada hasta que se ve. Cada muestra es un radio real, así
  * que funciona con teclado y lector de pantalla como cualquier formulario.
  */
-export function CampoColores({ clave, tema, acento, libre }: {
+export function CampoColores({ clave, tema, acento, libre, alCambiar }: {
   clave: string
-  tema: unknown
-  acento: unknown
-  libre: unknown
+  tema: TemaTexto
+  acento: Acento
+  libre: string | null
+  alCambiar: (cambio: { tema_texto?: TemaTexto; acento?: Acento; acento_libre?: string | null }) => void
 }) {
-  const [temaTexto, setTemaTexto] = useState(TEMAS_TEXTO.find((t) => t.valor === tema)?.valor ?? 'auto')
-  const [elegido, setElegido] = useState<Acento>(ACENTOS.find((a) => a.valor === acento)?.valor ?? 'auto')
-  const [colorLibre, setColorLibre] = useState(esHex(libre) ? libre : '#ff5a4f')
-
+  const colorLibre = esHex(libre) ? libre : '#ff5a4f'
   return (
-    <fieldset className="md:col-span-2 grid gap-4 rounded-[14px] bg-papel-alt/60 p-4 ring-1 ring-borde md:grid-cols-2">
-      <legend className="px-1 text-[13px] font-semibold text-tinta">Colores del texto</legend>
-
+    <div className="grid gap-4">
       <Selector
         id={`tema-${clave}`}
         name="tema_texto"
         etiqueta="Color del texto"
         opciones={TEMAS_TEXTO}
-        valor={temaTexto}
-        alCambiar={(v) => setTemaTexto(v as typeof temaTexto)}
+        valor={tema}
+        alCambiar={(v) => alCambiar({ tema_texto: v as TemaTexto })}
       />
-
       <div>
-        <p id={`acento-${clave}`} className="mb-1 block text-[12px] font-medium text-gris">
-          Resalte: segunda línea del titular y texto chico
-        </p>
-        <div role="radiogroup" aria-labelledby={`acento-${clave}`} className="flex flex-wrap items-center gap-2">
+        <p id={`acento-${clave}`} className="mb-1 block text-[12px] font-medium text-gris">Resalte: segunda línea del titular y texto chico</p>
+        <div role="radiogroup" aria-labelledby={`acento-${clave}`} className="flex flex-wrap items-center gap-1">
           {ACENTOS.map((a) => {
             const fondo = a.valor === 'degradado' ? DEGRADADO : a.valor === 'libre' ? colorLibre : a.color
             return (
               <label key={a.valor} title={a.etiqueta} className="relative grid size-11 cursor-pointer place-items-center">
-                <input
-                  type="radio"
-                  name="acento"
-                  value={a.valor}
-                  checked={elegido === a.valor}
-                  onChange={() => setElegido(a.valor)}
-                  className="peer sr-only"
-                />
+                <input type="radio" name={`acento-${clave}`} value={a.valor} checked={acento === a.valor} onChange={() => alCambiar({ acento: a.valor })} className="peer sr-only" />
                 <span className="sr-only">{a.etiqueta}</span>
                 <span
                   aria-hidden
@@ -66,20 +51,14 @@ export function CampoColores({ clave, tema, acento, libre }: {
             )
           })}
         </div>
-        {elegido === 'libre' && (
+        {acento === 'libre' && (
           <label className="mt-2 flex items-center gap-3 text-[13px] text-tinta-suave">
-            <input
-              type="color"
-              name="acento_libre"
-              value={colorLibre}
-              onChange={(e) => setColorLibre(e.target.value)}
-              className="h-11 w-16 cursor-pointer rounded-[10px] bg-papel ring-1 ring-borde"
-            />
+            <input type="color" value={colorLibre} onChange={(e) => alCambiar({ acento_libre: e.target.value })} className="h-11 w-16 cursor-pointer rounded-[10px] bg-papel ring-1 ring-borde" />
             Elige el color · <span className="font-mono">{colorLibre}</span>
           </label>
         )}
-        <p className="mt-1 text-[12px] text-gris">«Automático» deja el color que trae la escena.</p>
+        <p className="mt-1 text-[12px] text-gris">«Automático» deja el color de fábrica de la escena.</p>
       </div>
-    </fieldset>
+    </div>
   )
 }
