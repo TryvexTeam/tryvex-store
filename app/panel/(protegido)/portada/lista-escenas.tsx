@@ -15,6 +15,7 @@ function resumen(p: PiezaEditable): string {
   const b = borradorDesde(p.contenido, codigo)
   const partes = [
     b.video ? 'Video' : b.foto_movil || b.foto_escritorio ? 'Imagen' : codigo?.estilo === 'tarjeta' ? 'Tarjeta de color' : 'Color liso',
+    codigo?.promo && b.mostrar_cifra ? 'Con cifra automática' : null,
     b.capsulas.length ? `${b.capsulas.length} ${b.capsulas.length === 1 ? 'cápsula' : 'cápsulas'}` : null,
     b.division !== 'completa' ? 'Zonas con enlace' : null,
     b.sin_texto ? 'Sin texto encima' : null,
