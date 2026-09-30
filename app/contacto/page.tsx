@@ -9,6 +9,7 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { IconoRed } from '@/components/tienda/icono-red'
 import { CopiarCorreo } from '@/components/tienda/copiar-correo'
+import { EnlaceFoco } from '@/components/tienda/enlace-foco'
 import { SeccionTryvexTech } from '@/components/tienda/seccion-tryvex-tech'
 import { REDES_TIENDA } from '@/lib/redes'
 
@@ -96,7 +97,7 @@ export default async function Contacto() {
                 <>
                   {email && (
                     <div className="medalla-marco relative mt-7">
-                      <span aria-hidden className="medalla absolute -top-9 right-5 z-10 block size-[84px] overflow-hidden rounded-full bg-[#fdf9f0] shadow-[0_14px_34px_rgb(0_0_0/0.28)] ring-4 ring-papel-alt t:-top-11 t:right-7 t:size-[104px]">
+                      <span aria-hidden className="medalla brillo-hover absolute -top-9 right-5 z-10 block size-[84px] overflow-hidden rounded-full bg-[#fdf9f0] shadow-[0_14px_34px_rgb(0_0_0/0.28)] ring-4 ring-papel-alt t:-top-11 t:right-7 t:size-[104px]">
                         <Image src="/marca/tryvex-tx.webp" alt="" fill sizes="(min-width: 735px) 104px, 84px" className="object-cover" />
                       </span>
                     <div className="relative isolate overflow-hidden rounded-[28px] bg-tinta p-7 text-white t:p-8">
@@ -152,7 +153,7 @@ export default async function Contacto() {
                 <span aria-hidden className="absolute -top-20 -right-20 -z-10 size-80 rounded-full bg-[radial-gradient(closest-side,rgb(229_57_53/38%),transparent)]" />
                 <span aria-hidden className="absolute -bottom-28 -left-16 -z-10 size-80 rounded-full bg-[radial-gradient(closest-side,rgb(90_200_250/22%),transparent)]" />
                 <span className="flex items-center gap-3 t:gap-4">
-                  <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[#fdf9f0] ring-1 ring-white/20 t:size-20"><Image src="/marca/tryvex-tx.webp" alt="Logo de Tryvex" fill sizes="(min-width: 735px) 80px, 56px" className="object-cover" /></span>
+                  <span className="brillo-hover relative size-14 shrink-0 overflow-hidden rounded-full bg-[#fdf9f0] ring-1 ring-white/20 t:size-20"><Image src="/marca/tryvex-tx.webp" alt="Logo de Tryvex" fill sizes="(min-width: 735px) 80px, 56px" className="object-cover" /></span>
                   <span className="min-w-0">
                     <span className="block truncate text-[clamp(17px,5.4vw,20px)] leading-tight font-semibold tracking-tarjeta t:text-[22px]">{tiktok.usuario}</span>
                     <span className="mt-0.5 flex items-center gap-1.5 text-[14px] text-white/65"><IconoRed red="tiktok" size={14} />TikTok</span>
@@ -202,7 +203,7 @@ export default async function Contacto() {
             <ul className="mt-9 grid grid-cols-[minmax(0,1fr)] gap-3 t:grid-cols-2 d:grid-cols-4">
               {ATAJOS.map((a) => (
                 <li key={a.href}>
-                  <Link href={a.href} className="tarjeta-enlace group flex h-full min-h-[172px] flex-col rounded-[24px] bg-papel-alt p-6 ring-1 ring-transparent hover:bg-papel hover:shadow-[0_10px_30px_rgb(0_0_0/0.08)] hover:ring-borde">
+                  <EnlaceFoco href={a.href} className="tarjeta-enlace group flex h-full min-h-[172px] flex-col rounded-[24px] bg-papel-alt p-6 ring-1 ring-transparent hover:bg-papel hover:shadow-[0_10px_30px_rgb(0_0_0/0.08)] hover:ring-borde">
                     <span className="flex items-start justify-between text-tinta">
                       <Icono trazo={a.icono} size={30} />
                       <span aria-hidden className="flecha text-[20px] text-gris">↗</span>
@@ -211,7 +212,7 @@ export default async function Contacto() {
                       <span className="block text-[19px] leading-tight font-semibold tracking-tarjeta text-tinta">{a.titulo}</span>
                       <span className="mt-1 block text-[15px] leading-snug text-tinta-suave">{a.texto}</span>
                     </span>
-                  </Link>
+                  </EnlaceFoco>
                 </li>
               ))}
             </ul>

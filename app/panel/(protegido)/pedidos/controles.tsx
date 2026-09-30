@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
 import { useAvisos } from '@/components/avisos'
+import { MantenerParaConfirmar } from '@/components/panel/mantener-para-confirmar'
 import { cambiarEstado, crearPedido, crearVentaRapida } from './acciones'
 import { precioParaCantidad } from '../stock/acciones'
 import { clp } from '@/lib/formato'
@@ -70,7 +71,6 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
   const cancelable = opciones.includes('cancelado')
 
   function mover(nuevo: string) {
-    if (nuevo === 'cancelado' && !confirm('¿Cancelar el pedido? El stock vuelve a bodega.')) return
     setError(null); setAviso(null)
     iniciar(async () => {
       const r = await cambiarEstado(id, nuevo)
@@ -99,16 +99,17 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
           </button>
         ))}
         {cancelable && (
-          <button
-            type="button"
-            onClick={() => mover('cancelado')}
+          // Cancelar no se deshace (el stock vuelve a bodega): en vez del cuadro
+          // nativo del navegador, hay que mantener presionado.
+          <MantenerParaConfirmar
+            etiqueta="Mantén para cancelar"
+            ayuda="El pedido se cancela y el stock vuelve a bodega."
+            onConfirmar={() => mover('cancelado')}
             disabled={trabajando}
-            className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 text-[13px] font-medium text-gris transition-colors hover:bg-rojo/10 hover:text-rojo disabled:opacity-40 ${
+            className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 text-[13px] font-medium text-gris hover:text-rojo disabled:opacity-40 ${
               avances.length ? 'w-full sm:w-auto' : 'w-full ring-1 ring-borde sm:w-auto'
             }`}
-          >
-            {VERBO.cancelado}
-          </button>
+          />
         )}
       </div>
       {error && <p role="alert" className="text-[12px] text-rojo sm:text-right">{error}</p>}
