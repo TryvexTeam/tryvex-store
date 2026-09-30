@@ -116,6 +116,16 @@ export function IconoBolsa({ size = 24, className }: Props) {
   )
 }
 
+export function IconoPersonas({ size = 24, className }: Props) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
+      <circle cx="10" cy="8" r="3.2" />
+      <path d="M20 20v-1.4a3.4 3.4 0 0 0-2.5-3.3M15.5 4.9a3.2 3.2 0 0 1 0 6.2" />
+    </svg>
+  )
+}
+
 export function IconoBasura({ size = 24, className }: Props) {
   return (
     <svg {...base(size)} className={className}>

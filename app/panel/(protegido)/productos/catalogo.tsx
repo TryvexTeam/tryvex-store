@@ -18,6 +18,7 @@ import { IconoMas, IconoBuscar, IconoCamara } from '@/components/iconos'
 import EditorProducto, { type Producto, type Tramo } from './editor'
 import { Galeria } from './galeria'
 import { Variantes } from './variantes'
+import { LandingProducto } from './landing'
 import { Categorias } from './categorias'
 import { crearProducto } from './acciones-catalogo'
 
@@ -295,6 +296,7 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
                 precioProducto={Number(enDetalle.precio_base)}
                 variantes={enDetalle.variantes}
               />
+              <LandingProducto key={enDetalle.id} productoId={enDetalle.id} />
             </div>
           </div>
         )}
