@@ -166,6 +166,7 @@ function CapsulasLibres({ capsulas, productos, tono }: { capsulas: readonly Caps
     <div data-tono={tono} className="heroe-copy pointer-events-none absolute inset-0 z-[25]">
       {capsulas.map((c, i) => {
         const producto = c.productoSlug ? productos.find((p) => p.slug === c.productoSlug) ?? null : null
+        if (!c.texto && !producto) return null
         const texto = c.texto ?? (producto ? (producto.agotado ? 'Agotado' : `Desde ${clp(producto.precio)}`) : null)
         const posicion = {
           '--cx-m': c.movil.x, '--cy-m': c.movil.y,
@@ -199,6 +200,7 @@ function estiloAcento(acento: string | undefined): { className: string; style?: 
 function BotonEscena({ escena, className, porDefecto }: { escena: EscenaHeroe; className: string; porDefecto: string }) {
   const href = escena.href ?? '/tienda'
   const texto = escena.boton ?? porDefecto
+  if (!texto) return null
   return /^https?:\/\//i.test(href)
     ? <a href={href} target="_blank" rel="noopener noreferrer" className={className}>{texto}<span className="sr-only"> (se abre en otra pestaña)</span></a>
     : <Link href={href} className={className}>{texto}</Link>
@@ -427,10 +429,13 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
         const producto = escena.productoSlug ? productos.find((item) => item.slug === escena.productoSlug) ?? null : null
         const acento = estiloAcento(escena.acento)
         // Un afiche que ya trae su texto: el titular queda solo para lectores de pantalla.
+        // Lo que está vacío no se dibuja: borrar un texto en el panel lo quita de la portada.
+        const hayTitulo = Boolean(escena.titulo[0] || escena.titulo[1])
+        const hayTexto = Boolean(escena.antetitulo || hayTitulo || escena.bajada || escena.promo || escena.boton)
         const capsulas = escena.capsulas && escena.capsulas.length > 0
           ? <CapsulasLibres capsulas={escena.capsulas} productos={productos} tono={escena.tono} />
           : null
-        if (escena.sinTexto) {
+        if (escena.sinTexto || !hayTexto) {
           return (
             <Fragment key={`copy-${escena.id}`}>
               <h1 id="heroe-titulo" className="sr-only">{`${escena.titulo[0]} ${escena.titulo[1]}`.trim() || escena.etiqueta}</h1>
@@ -444,21 +449,22 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
           <div data-tono={escena.tono} className={`heroe-copy pointer-events-none absolute inset-0 z-20 flex ${escena.estilo === 'tarjeta' ? 'items-center pt-20' : escena.texto === 'arriba' ? 'items-start pt-16 t:pt-20' : 'items-center'} ${esActiva ? 'heroe-escena-copy-activa' : 'heroe-escena-copy-saliendo'} ${entrando ? 'heroe-escena-copy-entrando' : ''}`} aria-hidden={!esActiva} inert={!esActiva ? true : undefined}>
             <div className="heroe-copy-interior mx-auto w-full max-w-[1204px] px-[22px] pb-24 text-center [&_.heroe-tarjeta]:pointer-events-auto [&_a]:pointer-events-auto">
               {escena.estilo === 'tarjeta' ? <div className="heroe-tarjeta mx-auto flex w-[min(92vw,880px)] flex-col items-center justify-center rounded-[36px] border-[3px] border-transparent bg-white px-5 py-6 t:px-10 t:py-8 d:min-h-[min(56vh,480px)] text-tinta shadow-[0_18px_70px_rgb(90_200_250_/_12%)] sm:px-12" >
-                <div className="heroe-linea"><span className="heroe-linea-contenido text-[15px] font-semibold tracking-apoyo text-tinta-suave t:text-[17px]" style={acento.style?.color !== 'transparent' ? acento.style : undefined}>{escena.antetitulo}</span></div>
-                <div className="heroe-linea mt-3"><h1 id={esActiva ? 'heroe-titulo' : undefined} className="heroe-linea-contenido mx-auto block w-full max-w-[16ch] text-[34px] leading-[1.04] font-semibold tracking-seccion text-balance t:text-[48px] d:text-[64px]"><span className={escena.acento ? acento.className : 'heroe-titulo-degradado'} style={acento.style}>{escena.titulo[0]}</span> {escena.titulo[1]}</h1></div>
+                {escena.antetitulo && <div className="heroe-linea"><span className="heroe-linea-contenido text-[15px] font-semibold tracking-apoyo text-tinta-suave t:text-[17px]" style={acento.style?.color !== 'transparent' ? acento.style : undefined}>{escena.antetitulo}</span></div>}
+                {hayTitulo ? <div className="heroe-linea mt-3"><h1 id={esActiva ? 'heroe-titulo' : undefined} className="heroe-linea-contenido mx-auto block w-full max-w-[16ch] text-[34px] leading-[1.04] font-semibold tracking-seccion text-balance t:text-[48px] d:text-[64px]"><span className={escena.acento ? acento.className : 'heroe-titulo-degradado'} style={acento.style}>{escena.titulo[0]}</span> {escena.titulo[1]}</h1></div> : <h1 id={esActiva ? 'heroe-titulo' : undefined} className="sr-only">{escena.etiqueta}</h1>}
                 {escena.promo && <div className="heroe-linea" style={{ animationDelay: '90ms' }}><CifraPromo tipo={escena.promo} promo={promo} tarjeta /></div>}
-                <div className="heroe-linea mt-4"><p className="heroe-linea-contenido mx-auto block w-full max-w-[30ch] text-[17px] leading-snug text-tinta-suave t:max-w-[34ch] t:text-[21px]">{escena.bajada}</p></div>
+                {escena.bajada && <div className="heroe-linea mt-4"><p className="heroe-linea-contenido mx-auto block w-full max-w-[30ch] text-[17px] leading-snug text-tinta-suave t:max-w-[34ch] t:text-[21px]">{escena.bajada}</p></div>}
                 {/* El color claro de .heroe-linea-contenido pintaba de tinta el texto del botón: va en el envoltorio. */}
-                <div className="heroe-linea mt-7"><div className="heroe-linea-contenido"><BotonEscena escena={escena} className="tienda-boton bg-tinta text-white hover:bg-tinta/90" porDefecto={escena.promo === 'mayorista' ? 'Ver la tienda' : 'Ver ofertas'} /></div></div>
+                {(escena.boton ?? 'x') && <div className="heroe-linea mt-7"><div className="heroe-linea-contenido"><BotonEscena escena={escena} className="tienda-boton bg-tinta text-white hover:bg-tinta/90" porDefecto={escena.promo === 'mayorista' ? 'Ver la tienda' : 'Ver ofertas'} /></div></div>}
               </div> : <>
-              <div className="heroe-linea"><span className="heroe-linea-contenido text-[15px] font-semibold tracking-apoyo text-[#ff6b61] t:text-[17px]" style={{ animationDelay: '0ms', ...(acento.style?.color !== 'transparent' ? acento.style : {}) }}>{escena.antetitulo}</span></div>
-              <div className="heroe-linea mt-3"><h1 id={esActiva ? 'heroe-titulo' : undefined} className="heroe-linea-contenido mx-auto block w-full max-w-[13ch] text-[44px] leading-[1.02] font-semibold tracking-titulo text-balance t:text-[64px] d:text-[80px]" style={{ animationDelay: '60ms' }}>{escena.titulo[0]} <span className={escena.acento ? acento.className : 'text-[#ff5a4f]'} style={acento.style}>{escena.titulo[1]}</span></h1></div>
+              {escena.antetitulo && <div className="heroe-linea"><span className="heroe-linea-contenido text-[15px] font-semibold tracking-apoyo text-[#ff6b61] t:text-[17px]" style={{ animationDelay: '0ms', ...(acento.style?.color !== 'transparent' ? acento.style : {}) }}>{escena.antetitulo}</span></div>}
+              {hayTitulo ? <div className="heroe-linea mt-3"><h1 id={esActiva ? 'heroe-titulo' : undefined} className="heroe-linea-contenido mx-auto block w-full max-w-[13ch] text-[44px] leading-[1.02] font-semibold tracking-titulo text-balance t:text-[64px] d:text-[80px]" style={{ animationDelay: '60ms' }}>{escena.titulo[0]} <span className={escena.acento ? acento.className : 'text-[#ff5a4f]'} style={acento.style}>{escena.titulo[1]}</span></h1></div> : <h1 id={esActiva ? 'heroe-titulo' : undefined} className="sr-only">{escena.etiqueta}</h1>}
               {escena.promo && <div className="heroe-linea" style={{ animationDelay: '90ms' }}><CifraPromo tipo={escena.promo} promo={promo} /></div>}
-              <div className="heroe-linea mt-4"><p className="heroe-linea-contenido mx-auto block w-full max-w-[30ch] text-[17px] leading-snug text-white/85 t:max-w-[34ch] t:text-[21px]" style={{ animationDelay: '120ms' }}>{escena.bajada}</p></div>
-              <div className="heroe-linea mt-7"><div className="heroe-linea-contenido flex items-center justify-center gap-3" style={{ animationDelay: '180ms' }}>
+              {escena.bajada && <div className="heroe-linea mt-4"><p className="heroe-linea-contenido mx-auto block w-full max-w-[30ch] text-[17px] leading-snug text-white/85 t:max-w-[34ch] t:text-[21px]" style={{ animationDelay: '120ms' }}>{escena.bajada}</p></div>}
+              {(escena.boton ?? 'x') && <div className="heroe-linea mt-7"><div className="heroe-linea-contenido flex items-center justify-center gap-3" style={{ animationDelay: '180ms' }}>
                 <BotonEscena escena={escena} className="banner-secundario tienda-boton text-white ring-1 ring-white/40 ring-inset hover:bg-white/10" porDefecto="Ver la tienda" />
-              </div></div>
-              {producto && !capsulas && <CapsulaCompra producto={producto} />}
+              </div></div>}
+              {/* La cápsula de compra de fábrica solo vale mientras la escena no tenga cápsulas propias: si se quitaron todas, no vuelve. */}
+              {producto && escena.capsulas === undefined && <CapsulaCompra producto={producto} />}
               </>}
             </div>
           </div>
