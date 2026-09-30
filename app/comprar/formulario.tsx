@@ -14,6 +14,8 @@ import { BANCOS, MediosPago } from '@/components/tienda/medios-pago'
 import { Selector } from '@/components/selector'
 import { clp } from '@/lib/formato'
 import { Estrella } from '@/app/marca'
+import { LlegadaEstimada, SellosConfianza } from '@/components/tienda/confianza-compra'
+import type { Hito } from '@/lib/plazo-envio'
 import { SelectorPuntoStarken } from '@/components/tienda/punto-starken'
 import type { PuntoStarken } from '@/lib/sucursales-starken'
 
@@ -191,6 +193,7 @@ export default function Checkout({
   datosPago,
   emailCuenta,
   perfil = null,
+  hitosEnvio = null,
 }: {
   /** «Comprar ahora»: una línea que no pasa por la bolsa. */
   lineaDirecta: LineaPedida | null
@@ -198,6 +201,8 @@ export default function Checkout({
   datosPago: DatosPago
   /** Correo de la sesión, para no pedirle a quien ya tiene cuenta que lo escriba. */
   emailCuenta: string | null
+  /** Fechas estimadas de entrega, calculadas en el servidor. */
+  hitosEnvio?: readonly Hito[] | null
   /** Datos guardados de la compra anterior, si hay sesión. */
   perfil?: PerfilCompra | null
 }) {
@@ -304,6 +309,7 @@ export default function Checkout({
         <div className="flex justify-between border-t border-borde/70 pt-3 text-[18px] font-semibold"><dt>Total</dt><dd className={`cifra transition-opacity ${cotizando ? 'opacity-50' : ''}`}>{clp(total)}</dd></div>
       </dl>
       {faltaParaGratis > 0 && <p className="mt-3 rounded-[10px] bg-verde/10 px-3 py-2 text-[13px] text-verde">Te faltan {clp(faltaParaGratis)} para el envío gratis.</p>}
+      {entrega !== 'retiro' && <LlegadaEstimada hitos={hitosEnvio} className="mt-4" />}
     </div>
   )
 
@@ -506,6 +512,7 @@ export default function Checkout({
             {hayProblemas ? 'Revisa tu pedido' : enviando ? 'Reservando tu pedido…' : `Confirmar pedido · ${clp(total)}`}
           </button>
           <p className="mt-3 text-center text-[13px] leading-relaxed text-gris">No se cobra nada todavía: reservamos tus unidades y te indicamos cómo pagar.</p>
+          <SellosConfianza envioGratis={envio.tarifa === 0 && envio.gratisDesde === null} className="mx-auto mt-5 w-fit" />
         </div>
       </div>
 

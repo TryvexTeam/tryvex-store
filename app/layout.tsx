@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { ProveedorBolsa } from "@/components/tienda/bolsa";
+import { urlSitio } from "@/lib/sitio";
 
 // Geist es la tipografía de la marca Tryvex (misma que la landing corporativa).
 const geistSans = Geist({
@@ -10,6 +11,9 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  // Con esto, la imagen de vista previa y los enlaces canónicos salen con el dominio
+  // de la tienda y no con el de la vista previa de Vercel.
+  metadataBase: new URL(urlSitio()),
   title: {
     default: "Tryvex Store",
     template: "%s — Tryvex",

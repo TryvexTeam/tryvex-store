@@ -684,7 +684,27 @@ body {
   letter-spacing: -0.01em;
   transition:
     background-color 300ms var(--ease-tienda),
-    color 300ms var(--ease-tienda);
+    color 300ms var(--ease-tienda),
+    box-shadow 300ms var(--ease-tienda),
+    scale 300ms var(--ease-tienda);
+}
+/* Al pasar el cursor el botón se asienta un poco más grande y al pulsarlo se
+   hunde: dice «esto responde» sin mover nada de sitio. Se usa `scale` y no
+   `transform` para no pisar los translate de Tailwind. En táctil no hay hover
+   real, así que solo queda el hundido al tocar. */
+@media (hover: hover) and (pointer: fine) {
+  .tienda-boton:not(:disabled):hover { scale: 1.025; }
+}
+.tienda-boton:not(:disabled):active { scale: 0.97; transition-duration: 120ms; }
+/* El ícono de la bolsa se inclina al acercarse: el gesto de «meter algo». */
+.boton-bolsa svg { transition: transform 360ms var(--ease-tienda); }
+@media (hover: hover) and (pointer: fine) {
+  .boton-bolsa:hover svg { transform: translateY(-2px) rotate(-8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda-boton, .boton-bolsa svg { transition-duration: 0.01ms; }
+  .tienda-boton:not(:disabled):hover, .tienda-boton:not(:disabled):active { scale: 1; }
+  .boton-bolsa:hover svg { transform: none; }
 }
 @media (max-width: 734px) {
   .tienda-boton {
@@ -1201,6 +1221,75 @@ body {
 @keyframes heroe-a-tarjeta {
   from { clip-path: inset(0 var(--margen-heroe) 0 var(--margen-heroe) round 28px); }
   to { clip-path: inset(0 calc(var(--margen-heroe) + 2.5%) 3% calc(var(--margen-heroe) + 2.5%) round 32px); }
+}
+
+/* ── Cinta de confianza ──────────────────────────────────────────────────────
+   Dos copias idénticas del grupo y una pista que avanza la mitad de su ancho:
+   el bucle cierra sin salto. Pausa con cursor o foco; sin movimiento reducido
+   queda una fila quieta que envuelve. */
+.cinta-pista { display: flex; width: max-content; animation: cinta-corre 42s linear infinite; }
+.cinta-grupo { display: flex; flex-shrink: 0; align-items: center; gap: 2.75rem; padding-right: 2.75rem; }
+@keyframes cinta-corre { to { transform: translateX(-50%); } }
+.cinta:hover .cinta-pista, .cinta:focus-within .cinta-pista { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .cinta-pista { animation: none; width: auto; justify-content: center; }
+  .cinta-grupo { flex-wrap: wrap; justify-content: center; row-gap: 0.5rem; padding-inline: 22px; }
+  .cinta-copia { display: none; }
+}
+
+/* ── Packs por cantidad ─────────────────────────────────────────────────────
+   Mismo gesto que los botones: se asienta al pasar el cursor y se hunde al
+   pulsar, y el borde cambia de color con suavidad. */
+.pack-opcion {
+  transition: box-shadow 300ms var(--ease-tienda), scale 300ms var(--ease-tienda), opacity 200ms;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pack-opcion:not(:disabled):hover { scale: 1.02; }
+}
+.pack-opcion:not(:disabled):active { scale: 0.97; transition-duration: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pack-opcion { transition-duration: 0.01ms; }
+  .pack-opcion:not(:disabled):hover, .pack-opcion:not(:disabled):active { scale: 1; }
+}
+
+/* Según el aparato: donde hay cursor se ve `.solo-cursor`; en táctil, `.solo-tactil`. */
+.solo-cursor { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .solo-cursor { display: block; }
+  .solo-tactil { display: none; }
+}
+
+/* ── Medalla del logo 3D ─────────────────────────────────────────────────────
+   Flota unos píxeles, sin prisa, y se inclina al acercarse el cursor. Solo
+   transform: no repinta nada. Sin movimiento, queda quieta. */
+@keyframes medalla-flota {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-7px) rotate(3deg); }
+}
+.medalla { animation: medalla-flota 7s ease-in-out infinite; }
+@media (hover: hover) and (pointer: fine) {
+  .medalla-marco:hover .medalla { animation-play-state: paused; transform: rotate(8deg) scale(1.06); transition: transform 400ms var(--ease-tienda); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .medalla { animation: none; }
+  .medalla-marco:hover .medalla { transform: none; }
+}
+
+/* ── Tarjetas-enlace (contacto) ─────────────────────────────────────────────
+   Se asientan al pasar el cursor, la flecha se adelanta y al pulsar se hunden.
+   La sombra va por utilidad de Tailwind para no pisar el anillo (ring), que
+   también es un box-shadow. */
+.tarjeta-enlace { transition: box-shadow 300ms var(--ease-tienda), background-color 300ms var(--ease-tienda), scale 300ms var(--ease-tienda); }
+.tarjeta-enlace .flecha { transition: transform 300ms var(--ease-tienda); }
+@media (hover: hover) and (pointer: fine) {
+  .tarjeta-enlace:hover { scale: 1.012; }
+  .tarjeta-enlace:hover .flecha { transform: translate(3px, -3px); }
+}
+.tarjeta-enlace:active { scale: 0.985; transition-duration: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-enlace, .tarjeta-enlace .flecha { transition-duration: 0.01ms; }
+  .tarjeta-enlace:hover, .tarjeta-enlace:active { scale: 1; }
+  .tarjeta-enlace:hover .flecha { transform: none; }
 }
 
 /* ── Línea de envío ──────────────────────────────────────────────────────────
