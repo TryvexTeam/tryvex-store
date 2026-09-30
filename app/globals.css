@@ -1259,6 +1259,18 @@ body {
   .solo-tactil { display: none; }
 }
 
+/* ── Acordeón de Tryvex Tech ─────────────────────────────────────────────────
+   El panel (details nativo) se abre con el contenido bajando unos píxeles y
+   apareciendo. Solo opacity y transform. */
+@keyframes tech-abre {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+.tech-panel[open] .tech-contenido { animation: tech-abre 320ms var(--ease-tienda); }
+@media (prefers-reduced-motion: reduce) {
+  .tech-panel[open] .tech-contenido { animation: none; }
+}
+
 /* ── Medalla del logo 3D ─────────────────────────────────────────────────────
    Flota unos píxeles, sin prisa, y se inclina al acercarse el cursor. Solo
    transform: no repinta nada. Sin movimiento, queda quieta. */

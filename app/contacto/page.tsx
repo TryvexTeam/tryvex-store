@@ -9,7 +9,8 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { IconoRed } from '@/components/tienda/icono-red'
 import { CopiarCorreo } from '@/components/tienda/copiar-correo'
-import { REDES_TIENDA, SERVICIOS_TECH, TRYVEX_TECH } from '@/lib/redes'
+import { SeccionTryvexTech } from '@/components/tienda/seccion-tryvex-tech'
+import { REDES_TIENDA } from '@/lib/redes'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -26,10 +27,6 @@ const TRAZOS = {
   cambio: 'M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4',
   duda: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM9.6 9.4a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.9M12 17h.01',
   software: 'm8 8-4 4 4 4M16 8l4 4-4 4M13.5 6l-3 12',
-  automatizacion: 'M13 3 5 13h6l-1 8 8-10h-6l1-8Z',
-  web: 'M3 5h18v14H3zM3 9h18M6.5 7h.01M9 7h.01',
-  posicionamiento: 'M4 19V5M4 19h16M8 15l3.5-4 3 2.5L20 7M16 7h4v4',
-  ia: 'M10 3.5l1.9 5.2 5.1 1.9-5.1 1.9L10 17.7l-1.9-5.2L3 10.6l5.1-1.9L10 3.5ZM18.5 14l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3Z',
 } as const
 
 function Icono({ trazo, size = 24 }: { trazo: keyof typeof TRAZOS; size?: number }) {
@@ -221,64 +218,7 @@ export default async function Contacto() {
           </div>
         </section>
 
-        {/* Tryvex Tech: la agencia de software detrás de esta tienda. Con peso propio y
-            sus servicios a la vista, pero al final: la compra va primero. */}
-        <section id="tryvex-tech" aria-labelledby="tech-titulo" className="mx-auto w-full max-w-[1204px] scroll-mt-28 px-[22px] pb-16 t:pb-24">
-          <div className="relative isolate overflow-hidden rounded-[32px] bg-black p-7 text-white t:p-12 lg:p-14">
-            <span aria-hidden className="absolute -top-28 -right-24 -z-10 size-[420px] rounded-full bg-[radial-gradient(closest-side,rgb(90_200_250/42%),transparent)]" />
-            <span aria-hidden className="absolute -bottom-32 -left-20 -z-10 size-[420px] rounded-full bg-[radial-gradient(closest-side,rgb(175_82_222/34%),transparent)]" />
-            <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-14">
-              <div>
-                <p className="text-[13px] font-semibold tracking-etiqueta text-[#7fd4ff] uppercase">Tryvex Tech · Estudio de IA y software</p>
-                <h2 id="tech-titulo" className="mt-4 max-w-[16ch] text-[34px] leading-[1.04] font-semibold tracking-seccion text-balance t:text-[52px]">¿Tu negocio necesita una web como esta?</h2>
-                <p className="mt-5 max-w-[44ch] text-[16px] leading-relaxed text-white/75 t:text-[18px]">
-                  Somos la agencia que diseñó y programó esta tienda. Hacemos software, automatizaciones, inteligencia artificial, páginas web y posicionamiento para negocios que quieren vender más y trabajar menos.
-                </p>
-                <p className="mt-4 max-w-[44ch] text-[16px] leading-relaxed text-white/75 t:text-[18px]">
-                  La IA también la hacemos nosotros: no revendemos una herramienta, construimos la solución para cada negocio.
-                </p>
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <a href={TRYVEX_TECH.sitio} target="_blank" rel="noopener noreferrer" className="tienda-boton bg-white text-black hover:bg-white/85">
-                    Conoce Tryvex Tech<span className="sr-only"> (se abre en otra pestaña)</span>
-                  </a>
-                  <a href={TRYVEX_TECH.redes[1].href} target="_blank" rel="noopener noreferrer" className="tienda-boton text-white ring-1 ring-white/30 ring-inset hover:bg-white/10">
-                    Ver todos los enlaces<span className="sr-only"> (se abre en otra pestaña)</span>
-                  </a>
-                </div>
-              </div>
-
-              <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 t:grid-cols-2">
-                {SERVICIOS_TECH.map((x) => (
-                  <li
-                    key={x.titulo}
-                    className={
-                      x.destacado
-                        ? 'relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[#7fd4ff]/18 via-white/[0.07] to-[#af52de]/18 p-5 ring-1 ring-[#7fd4ff]/40 backdrop-blur-sm t:col-span-2 t:p-7'
-                        : 'rounded-[22px] bg-white/[0.07] p-5 ring-1 ring-white/12 backdrop-blur-sm t:p-6'
-                    }
-                  >
-                    <span className={`grid place-items-center rounded-full text-[#7fd4ff] ${x.destacado ? 'size-12 bg-white/14' : 'size-11 bg-white/12'}`}><Icono trazo={x.icono} size={x.destacado ? 26 : 22} /></span>
-                    {x.destacado && <p className="mt-5 text-[11px] font-semibold tracking-etiqueta text-[#7fd4ff] uppercase">Human-first · AI-powered</p>}
-                    <p className={`${x.destacado ? 'mt-1.5 text-[22px] t:text-[26px]' : 'mt-5 text-[18px]'} leading-tight font-semibold tracking-tarjeta`}>{x.titulo}</p>
-                    <p className={`mt-1.5 leading-snug text-white/65 ${x.destacado ? 'max-w-[56ch] text-[15px] t:text-[16px]' : 'text-[14px]'}`}>{x.texto}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <ul className="mt-10 flex flex-wrap gap-2 border-t border-white/15 pt-6">
-              {TRYVEX_TECH.redes.map((r) => (
-                <li key={r.href}>
-                  <a href={r.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 text-[14px] font-medium text-white hover:bg-white/20">
-                    <IconoRed red={r.red} size={16} />
-                    {r.usuario}
-                    <span className="sr-only">: {r.nombre} (se abre en otra pestaña)</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+        <SeccionTryvexTech />
       </main>
 
       <PieTienda nombre={configuracion?.nombre_tienda ?? 'Tryvex'} email={configuracion?.email_contacto ?? null} emailVisible={configuracion?.email_visible ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
