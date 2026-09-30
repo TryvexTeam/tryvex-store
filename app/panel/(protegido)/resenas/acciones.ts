@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
-import { exigirIntegrante, fallo, type Resultado } from '@/lib/autorizacion'
+import { exigirIntegrante, fallo, type Fallo, type Resultado } from '@/lib/autorizacion'
 import { UUID } from '@/lib/catalogo'
 import {
   BUCKET_RESENAS,
@@ -16,56 +16,79 @@ function revalidar(): void {
   revalidatePath('/panel/resenas')
 }
 
-/** Crea una reseña solo si el producto figura en un pedido ya entregado. */
+function leerCalificacion(datos: FormData): number | Fallo {
+  const crudo = String(datos.get('calificacion') ?? '5')
+  const calificacion = Number(crudo)
+  if (!Number.isInteger(calificacion) || calificacion < 1 || calificacion > 5) return fallo('Elige entre 1 y 5 estrellas.')
+  return calificacion
+}
+
+/** Crea una reseña para cualquier producto del catálogo. */
 export async function crearResena(datos: FormData): Promise<Resultado<{ id: string }>> {
   const sesion = await exigirIntegrante()
   if (!sesion.ok) return sesion
 
-  const pedidoId = String(datos.get('pedido_id') ?? '')
   const productoId = String(datos.get('producto_id') ?? '')
   const cliente = String(datos.get('cliente_nombre') ?? '').trim()
   const texto = String(datos.get('texto') ?? '').trim()
+  const calificacion = leerCalificacion(datos)
 
-  if (!UUID.test(pedidoId) || !UUID.test(productoId)) return fallo('Elige un pedido y un producto válidos.')
+  if (!UUID.test(productoId)) return fallo('Elige un producto válido.')
   if (!cliente || cliente.length > 120) return fallo('Indica el nombre del cliente (máximo 120 caracteres).')
   if (!texto || texto.length > 1200) return fallo('La reseña debe tener entre 1 y 1.200 caracteres.')
+  if (typeof calificacion !== 'number') return calificacion
 
-  const { data: pedido, error: errorPedido } = await sesion.supabase
-    .from('pedidos')
-    .select('id,estado')
-    .eq('id', pedidoId)
+  const { data: producto, error: errorProducto } = await sesion.supabase
+    .from('productos')
+    .select('id')
+    .eq('id', productoId)
     .maybeSingle()
-  if (errorPedido) return fallo(errorPedido.message)
-  if (!pedido || pedido.estado !== 'entregado') return fallo('Solo puedes reseñar pedidos que ya fueron entregados.')
-
-  const { data: item, error: errorItem } = await sesion.supabase
-    .from('pedido_items')
-    .select('pedido_id')
-    .eq('pedido_id', pedidoId)
-    .eq('producto_id', productoId)
-    .maybeSingle()
-  if (errorItem) return fallo(errorItem.message)
-  if (!item) return fallo('Ese producto no pertenece al pedido elegido.')
+  if (errorProducto) return fallo(errorProducto.message)
+  if (!producto) return fallo('Ese producto no existe.')
 
   const { data, error } = await sesion.supabase
     .from('resenas_tienda')
     .insert({
-      pedido_id: pedidoId,
       producto_id: productoId,
       cliente_nombre: cliente,
       texto,
+      calificacion,
       visible: datos.get('visible') === 'on',
       created_by: sesion.integranteId,
     })
     .select('id')
     .single()
 
-  if (error) {
-    if (error.code === '23505') return fallo('Ya existe una reseña para este producto en ese pedido.')
-    return fallo(error.message)
-  }
+  if (error) return fallo(error.message)
   revalidar()
   return { ok: true, id: data.id }
+}
+
+/** Edita el texto, la calificación y el nombre de una reseña ya creada. */
+export async function editarResena(datos: FormData): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+
+  const id = String(datos.get('resena_id') ?? '')
+  const cliente = String(datos.get('cliente_nombre') ?? '').trim()
+  const texto = String(datos.get('texto') ?? '').trim()
+  const calificacion = leerCalificacion(datos)
+
+  if (!UUID.test(id)) return fallo('Reseña no válida.')
+  if (!cliente || cliente.length > 120) return fallo('Indica el nombre del cliente (máximo 120 caracteres).')
+  if (!texto || texto.length > 1200) return fallo('La reseña debe tener entre 1 y 1.200 caracteres.')
+  if (typeof calificacion !== 'number') return calificacion
+
+  const { data: filas, error } = await sesion.supabase
+    .from('resenas_tienda')
+    .update({ cliente_nombre: cliente, texto, calificacion, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id')
+  if (error) return fallo(error.message)
+  if (!filas || filas.length === 0) return fallo('La reseña ya no existe.')
+
+  revalidar()
+  return { ok: true }
 }
 
 /** Añade o reemplaza la foto de una reseña existente. */

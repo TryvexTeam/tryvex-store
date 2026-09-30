@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { clp } from '@/lib/formato'
+import { IconoBolsa } from '@/components/iconos'
 import { precioPara, type FichaProducto } from '@/lib/ficha-precio'
 import { useBolsa } from './bolsa'
 import { GaleriaFicha } from './galeria-ficha'
@@ -232,13 +233,14 @@ export function Ficha({
               Avísame cuando llegue
             </a>
           ) : (
-            <div className="mt-6 grid gap-3">
-              <button type="button" onClick={agregarABolsa} className="tienda-boton w-full bg-tinta !min-h-[52px] !text-[17px] text-white hover:bg-tinta/85">
-                Agregar a la bolsa · <span className="cifra ml-1">{clp(precio * cantidad)}</span>
-              </button>
-              <Link href={destino} className="tienda-boton w-full text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
-                Comprar ahora
+            <div className="mt-6 flex gap-3">
+              {/* Verde 700 (#15803d): con texto blanco da 5:1; el token --color-verde da 3.5:1 y no alcanza. */}
+              <Link href={destino} className="tienda-boton flex-1 bg-green-700 !min-h-[52px] !text-[17px] text-white hover:bg-green-800">
+                Comprar · <span className="cifra ml-1">{clp(precio * cantidad)}</span>
               </Link>
+              <button type="button" onClick={agregarABolsa} aria-label="Agregar a la bolsa" title="Agregar a la bolsa" className="tienda-boton size-[52px] shrink-0 !min-h-[52px] !px-0 text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
+                <IconoBolsa size={22} />
+              </button>
             </div>
           )}
           {!agotado && (
@@ -289,9 +291,12 @@ export function Ficha({
             <p className="truncate text-[19px] font-semibold tracking-cuerpo">{ficha.nombre}</p>
             <div className="flex shrink-0 items-center gap-5">
               <p className="cifra text-[15px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
-              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton min-h-9 bg-tinta px-4 py-1.5 text-[14px] text-white hover:bg-tinta/85">
-                Agregar a la bolsa
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar a la bolsa" title="Agregar a la bolsa" className="tienda-boton size-9 !min-h-9 !px-0 text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
+                <IconoBolsa size={18} />
               </button>
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white hover:bg-green-800">
+                Comprar
+              </Link>
             </div>
           </div>
         </div>
@@ -309,9 +314,14 @@ export function Ficha({
               <p className="truncate text-[14px] font-semibold">{ficha.nombre}</p>
               <p className="cifra text-[13px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
             </div>
-            <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton shrink-0 bg-tinta text-white">
-              Agregar
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar a la bolsa" title="Agregar a la bolsa" className="tienda-boton size-11 !px-0 text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
+                <IconoBolsa size={20} />
+              </button>
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton bg-green-700 text-white hover:bg-green-800">
+                Comprar
+              </Link>
+            </div>
           </div>
         </div>
       )}

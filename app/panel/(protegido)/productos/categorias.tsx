@@ -8,6 +8,29 @@ import { useAvisos } from '@/components/avisos'
 import { IconoMas } from '@/components/iconos'
 import { guardarCategoria, borrarCategoria, alternarCategoria, subirFotoCategoria, quitarFotoCategoria } from './acciones-categorias'
 
+/**
+ * Reduce la foto antes de enviarla: el servidor rechaza cuerpos de más de unos
+ * pocos MB y una foto de celular pesa el doble o el triple. Para la fila de
+ * familias sobran 1200 px. Si el navegador no puede leerla (p. ej. HEIC), se
+ * envía tal cual y decide el servidor.
+ */
+async function reducirFoto(archivo: File, ladoMax = 1200): Promise<File> {
+  try {
+    const bmp = await createImageBitmap(archivo)
+    const escala = Math.min(1, ladoMax / Math.max(bmp.width, bmp.height))
+    const lienzo = document.createElement('canvas')
+    lienzo.width = Math.round(bmp.width * escala)
+    lienzo.height = Math.round(bmp.height * escala)
+    lienzo.getContext('2d')?.drawImage(bmp, 0, 0, lienzo.width, lienzo.height)
+    bmp.close()
+    const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, 'image/webp', 0.86))
+    if (!blob || blob.size >= archivo.size) return archivo
+    return new File([blob], archivo.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp' })
+  } catch {
+    return archivo
+  }
+}
+
 const campo =
   'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
@@ -41,13 +64,20 @@ export function Categorias({
     if (entradaFoto.current) entradaFoto.current.value = ''
     if (!archivo || !id) return
     setSubiendoFoto(id)
-    const datos = new FormData()
-    datos.set('id', id)
-    datos.set('archivo', archivo)
-    const r = await subirFotoCategoria(datos)
-    setSubiendoFoto(null)
-    if (r.ok) avisos.ok('Foto de la categoría actualizada.')
-    else avisos.error(r.error)
+    try {
+      const datos = new FormData()
+      datos.set('id', id)
+      datos.set('archivo', await reducirFoto(archivo))
+      const r = await subirFotoCategoria(datos)
+      if (r.ok) avisos.ok('Foto de la categoría actualizada.')
+      else avisos.error(r.error)
+    } catch {
+      // Antes, un rechazo del servidor (p. ej. foto demasiado pesada) dejaba el
+      // círculo girando para siempre porque este apagado quedaba después del await.
+      avisos.error('No se pudo subir la foto. Prueba con una imagen más liviana.')
+    } finally {
+      setSubiendoFoto(null)
+    }
   }
 
   function quitarFoto(c: Categoria) {
