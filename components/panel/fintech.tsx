@@ -32,6 +32,7 @@ export function MontoGrande({
   return (
     <p className={`cifra leading-none font-semibold tracking-[-0.03em] ${tamano} ${className}`}>
       {signo && <span aria-hidden className="mr-1 opacity-70">{signo}</span>}
+      {signo && <span className="sr-only">{signo === '−' ? 'menos ' : 'más '}</span>}
       <span aria-hidden className="mr-1 align-[0.42em] text-[0.42em] font-medium opacity-60">$</span>
       {animar ? <CifraAnimada valor={abs} /> : <>{new Intl.NumberFormat('es-CL').format(abs)}</>}
       {valor < 0 && !signo && <span className="sr-only"> negativo</span>}

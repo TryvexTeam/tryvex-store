@@ -11,7 +11,7 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { Comentarios } from '@/components/tienda/comentarios'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
-import { hitosDeEnvio } from '@/lib/plazo-envio'
+import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
 import { urlSitio } from '@/lib/sitio'
 import { CintaConfianza } from '@/components/tienda/cinta-confianza'
 
@@ -89,8 +89,15 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
               shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CL' },
               deliveryTime: {
                 '@type': 'ShippingDeliveryTime',
-                handlingTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 2, unitCode: 'DAY' },
-                transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 3, unitCode: 'DAY' },
+                // Derivados de la misma promesa que ve el comprador (PLAZO_TRYVEX): el tránsito es lo que
+                // queda entre el despacho y la llegada, tomando el caso más corto y el más largo.
+                handlingTime: { '@type': 'QuantitativeValue', minValue: PLAZO_TRYVEX.despacho[0], maxValue: PLAZO_TRYVEX.despacho[1], unitCode: 'DAY' },
+                transitTime: {
+                  '@type': 'QuantitativeValue',
+                  minValue: Math.max(0, PLAZO_TRYVEX.llegada[0] - PLAZO_TRYVEX.despacho[1]),
+                  maxValue: PLAZO_TRYVEX.llegada[1] - PLAZO_TRYVEX.despacho[0],
+                  unitCode: 'DAY',
+                },
               },
             },
           }

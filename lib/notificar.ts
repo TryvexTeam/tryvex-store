@@ -36,11 +36,19 @@ let montar: (() => void) | null = null
 let anunciar: ((texto: string) => void) | null = null
 let avisarMontado: (() => void) | null = null
 let carga: Promise<typeof import('sileo')> | null = null
+/** Alguien pidió montar el toaster antes de que el contenedor estuviera conectado. */
+let montajePendiente = false
 
 /** La usa ContenedorNotificaciones para que `notificar` pueda pedirle que monte Sileo. */
 export function conectarContenedor(api: { montar: () => void; anunciar: (texto: string) => void } | null): void {
   montar = api?.montar ?? null
   anunciar = api?.anunciar ?? null
+  // Un aviso lanzado durante la hidratación pidió montar cuando nadie escuchaba: se atiende ahora.
+  // Sin esto, la promesa de montaje no se resolvía nunca y ningún aviso salía en esa sesión.
+  if (api && montajePendiente) {
+    montajePendiente = false
+    api.montar()
+  }
 }
 
 /** La llama el toaster cuando ya está en pantalla. */
@@ -53,7 +61,9 @@ function cargar(): Promise<typeof import('sileo')> {
     const montado = new Promise<void>((resolver) => {
       avisarMontado = resolver
     })
-    carga = Promise.all([import('sileo'), (montar?.(), montado)]).then(([modulo]) => modulo)
+    if (montar) montar()
+    else montajePendiente = true
+    carga = Promise.all([import('sileo'), montado]).then(([modulo]) => modulo)
     // Si algo falla (sin red para bajar el código), la próxima vez se reintenta.
     carga.catch(() => {
       carga = null
