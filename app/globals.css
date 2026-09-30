@@ -1260,15 +1260,142 @@ body {
 }
 
 /* ── Acordeón de Tryvex Tech ─────────────────────────────────────────────────
-   El panel (details nativo) se abre con el contenido bajando unos píxeles y
-   apareciendo. Solo opacity y transform. */
-@keyframes tech-abre {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: none; }
+   Hoja blanca con filas de línea fina. Al pasar el cursor, la fila se vuelve
+   negra: el relleno (`::before`) entra desde el borde más cercano al cursor
+   —`--origen`, que pone fila-acordeon.tsx— y sale por el más cercano también.
+   Es la mecánica del Flowing Menu de React Bits, pero solo con `transform`.
+
+   El color va en variables REGISTRADAS (@property): así se animan y todo el
+   texto de la fila cambia a la vez que el relleno. Sin registrarlas, el texto
+   cambiaría de golpe y quedaría blanco sobre blanco a mitad del barrido.
+   Solo con mouse; en táctil se invierte la fila abierta. */
+@property --fg { syntax: '<color>'; inherits: true; initial-value: #1d1d1f; }
+@property --fg-2 { syntax: '<color>'; inherits: true; initial-value: #6e6e73; }
+@property --linea { syntax: '<color>'; inherits: true; initial-value: rgb(0 0 0 / 0.08); }
+@property --fondo { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+
+:root { interpolate-size: allow-keywords; }
+
+.fila-tech {
+  --ease-fila: cubic-bezier(0.22, 1, 0.36, 1);
+  --origen: bottom;
+  position: relative;
+  isolation: isolate;
+  color: var(--fg);
+  border-top: 1px solid var(--linea);
+  transition: --fg 260ms var(--ease-fila), --fg-2 260ms var(--ease-fila), --linea 260ms var(--ease-fila), --fondo 260ms var(--ease-fila);
 }
-.tech-panel[open] .tech-contenido { animation: tech-abre 320ms var(--ease-tienda); }
+.fila-tech:first-child { border-top-color: transparent; }
+.fila-tech::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  transform: scaleY(0);
+  transform-origin: var(--origen);
+  transition: transform 380ms var(--ease-fila);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fila-tech:hover,
+  .fila-tech:has(:focus-visible) {
+    --fg: #ffffff;
+    --fg-2: rgb(255 255 255 / 0.62);
+    --linea: rgb(255 255 255 / 0.16);
+    --fondo: #000000;
+  }
+  .fila-tech:hover::before,
+  .fila-tech:has(:focus-visible)::before { transform: scaleY(1); }
+}
+@media (hover: none) {
+  .fila-tech[open] {
+    --fg: #ffffff;
+    --fg-2: rgb(255 255 255 / 0.62);
+    --linea: rgb(255 255 255 / 0.16);
+    --fondo: #000000;
+  }
+  .fila-tech[open]::before { transform: scaleY(1); }
+}
+
+.fila-tech-resumen {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+.fila-tech-resumen::-webkit-details-marker { display: none; }
+.fila-tech-resumen:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; border-radius: 1.25rem; }
+@media (min-width: 735px) { .fila-tech-resumen { padding: 1.5rem 1.75rem; } }
+
+.fila-tech-mas {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg) 24%, transparent);
+  transition: transform 300ms var(--ease-fila);
+}
+.fila-tech[open] .fila-tech-mas { transform: rotate(45deg); }
+
+.fila-tech-contenido { padding: 0 1.25rem 1.5rem; }
+@media (min-width: 735px) { .fila-tech-contenido { padding: 0 1.75rem 1.75rem; } }
+
+.fila-tech-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  margin-top: 1.5rem;
+  padding-inline: 1.1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg) 28%, transparent);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  transition: background-color 200ms var(--ease-fila), color 200ms var(--ease-fila), border-color 200ms var(--ease-fila), scale 160ms var(--ease-fila);
+}
+.fila-tech-accion:active { scale: 0.97; }
+@media (hover: hover) and (pointer: fine) {
+  .fila-tech-accion:hover { background: var(--fg); color: var(--fondo); border-color: var(--fg); }
+}
+
+/* La altura del panel se anima donde el navegador lo permite (::details-content);
+   en los demás se abre de golpe, que también es correcto. */
+.fila-tech::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition: block-size 340ms var(--ease-fila), content-visibility 340ms allow-discrete;
+}
+.fila-tech[open]::details-content { block-size: auto; }
+
 @media (prefers-reduced-motion: reduce) {
-  .tech-panel[open] .tech-contenido { animation: none; }
+  .fila-tech, .fila-tech::before, .fila-tech-mas, .fila-tech-accion, .fila-tech::details-content { transition-duration: 0.01ms; }
+}
+
+/* ── Star Border (adaptado de React Bits: ver components/tienda/star-border.tsx) ── */
+.star-borde-abajo, .star-borde-arriba {
+  position: absolute;
+  width: 300%;
+  height: 50%;
+  opacity: 0.7;
+  border-radius: 999px;
+  z-index: 0;
+  animation: star-movimiento linear infinite alternate;
+}
+.star-borde-abajo { bottom: -11px; right: -250%; }
+.star-borde-arriba { top: -10px; left: -250%; --sentido: 1; }
+.star-borde-abajo { --sentido: -1; }
+@keyframes star-movimiento {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(calc(var(--sentido) * 100%), 0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .star-borde-abajo, .star-borde-arriba { animation: none; }
 }
 
 /* ── Medalla del logo 3D ─────────────────────────────────────────────────────

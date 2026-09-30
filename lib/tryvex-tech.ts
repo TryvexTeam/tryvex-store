@@ -1,8 +1,9 @@
 /**
- * Lo que ofrece Tryvex Tech, tal como lo publica tryvex.tech (servicios y planes,
- * leído el 2026-09-30). Son los precios y plazos «desde» de su propio sitio: si
- * allá cambian, hay que actualizarlos acá. No se copian sus cifras de resultados
- * (clientes, conversión, uptime): esas viven en su sitio, donde el dueño las controla.
+ * Lo que ofrece Tryvex Tech, tal como lo describe tryvex.tech (leído el
+ * 2026-09-30). Sin precios ni plazos a propósito: cada proyecto se cotiza a
+ * medida, y un precio copiado acá quedaría desactualizado apenas cambie en su
+ * sitio. Tampoco se copian sus cifras de resultados (clientes, conversión,
+ * uptime): esas viven en tryvex.tech, donde el dueño las controla.
  *
  * Sin dependencias de React: lo usa la sección de /contacto.
  */
@@ -31,26 +32,16 @@ export function whatsappTech(interes?: string): string {
 
 export interface ItemTech {
   nombre: string
-  /** Precio en CLP. Con `desde`, es «desde $X»; sin él, el precio es ese. */
-  precio?: number
-  desde?: boolean
-  /** Plan mensual: se muestra como «$X/mes». */
-  mensual?: boolean
-  plazo?: string
   texto: string
   puntos?: string[]
-  recomendado?: boolean
   /** Páginas de tryvex.tech que amplían este servicio. */
   ver?: { ruta: string; texto: string }[]
 }
 
-export type IconoGrupo = 'inicio' | 'ia' | 'automatizacion' | 'web' | 'software' | 'mantencion'
-
 export interface GrupoTech {
   id: string
-  icono: IconoGrupo
   titulo: string
-  /** Una línea que dice para qué sirve, visible con el panel cerrado. */
+  /** Una línea que dice para qué sirve, visible con la fila cerrada. */
   resumen: string
   items: ItemTech[]
 }
@@ -58,38 +49,22 @@ export interface GrupoTech {
 export const GRUPOS_TECH: readonly GrupoTech[] = [
   {
     id: 'empieza-aqui',
-    icono: 'inicio',
     titulo: 'Empieza aquí',
     resumen: 'Dos formas de probar, en una o dos semanas, antes de comprometer un proyecto.',
     items: [
-      {
-        nombre: 'Sprint de diagnóstico',
-        precio: 450_000,
-        plazo: '1 semana',
-        texto: 'Qué se puede automatizar en tu negocio y cuánto rinde.',
-        recomendado: true,
-      },
-      {
-        nombre: 'Prueba de concepto',
-        precio: 900_000,
-        plazo: '2 semanas',
-        texto: 'El problema difícil, resuelto en pequeño.',
-      },
+      { nombre: 'Sprint de diagnóstico', texto: 'Qué se puede automatizar en tu negocio y cuánto rinde. Una semana.' },
+      { nombre: 'Prueba de concepto', texto: 'El problema difícil, resuelto en pequeño. Dos semanas.' },
     ],
   },
   {
     id: 'ia',
-    icono: 'ia',
     titulo: 'Inteligencia artificial',
     resumen: 'La desarrollamos nosotros, a la medida de cada negocio.',
     items: [
       {
         nombre: 'Agentes de IA',
-        precio: 1_600_000,
-        desde: true,
-        plazo: '4 semanas',
-        texto: 'Clasifica, redacta y consulta tus sistemas.',
-        puntos: ['Conectado a tus sistemas actuales', 'Clasificación y redacción automática', 'Trazabilidad de cada acción', 'Fase de validación antes del alcance final'],
+        texto: 'Clasifican, redactan y consultan tus sistemas.',
+        puntos: ['Conectados a tus sistemas actuales', 'Clasificación y redacción automática', 'Trazabilidad de cada acción', 'Fase de validación antes del alcance final'],
         ver: [
           { ruta: '/procesar-facturas-y-contratos-con-ia', texto: 'Facturas y contratos con IA' },
           { ruta: '/ia-en-tu-propio-servidor', texto: 'IA en tu propio servidor' },
@@ -99,40 +74,27 @@ export const GRUPOS_TECH: readonly GrupoTech[] = [
   },
   {
     id: 'automatizacion',
-    icono: 'automatizacion',
     titulo: 'Automatización de procesos',
     resumen: 'Procesos que corren mientras duermes.',
     items: [
       {
         nombre: 'Automatización de un proceso',
-        precio: 450_000,
-        desde: true,
-        plazo: '2 semanas',
-        texto: 'Un flujo, hasta 3 integraciones.',
-        puntos: ['Ingeniería propia primero; n8n o Zapier cuando conviene', 'Logs y alertas', 'Mantención los primeros 90 días sin costo'],
+        texto: 'Un flujo, hasta tres integraciones.',
+        puntos: ['Ingeniería propia primero; n8n o Zapier cuando conviene', 'Registros y alertas', 'Mantención los primeros 90 días sin costo'],
       },
       {
         nombre: 'Automatización operativa',
-        precio: 1_200_000,
-        desde: true,
-        plazo: '4 semanas',
-        texto: 'Varios flujos, panel de control.',
-        puntos: ['Múltiples flujos coordinados', 'Panel de control en tiempo real', 'Conexión con Shopify, Bsale, Mercado Libre y más'],
+        texto: 'Varios flujos coordinados, con panel de control.',
+        puntos: ['Panel de control en tiempo real', 'Conexión con Shopify, Bsale, Mercado Libre y más'],
       },
       {
         nombre: 'Integración con sistemas chilenos',
-        precio: 850_000,
-        desde: true,
-        plazo: '3 semanas',
-        texto: 'SII, Bsale, Shopify, Mercado Libre.',
+        texto: 'SII, Bsale, Shopify y Mercado Libre.',
         puntos: ['Facturación electrónica SII', 'Sincronización de inventario y ventas', 'Panel con estado en tiempo real'],
         ver: [{ ruta: '/automatizar-facturacion-sii', texto: 'Automatizar la facturación SII' }],
       },
       {
         nombre: 'Atención automatizada por WhatsApp',
-        precio: 900_000,
-        desde: true,
-        plazo: '3 semanas',
         texto: 'Responde, agenda y deriva sin que nadie esté pegado al teléfono.',
         puntos: ['Respuestas y agendamiento automático', 'Derivación a una persona cuando corresponde', 'Conexión con Google Calendar y CRM', 'Métricas de conversación'],
         ver: [{ ruta: '/agente-de-whatsapp-para-empresas', texto: 'Agente de WhatsApp para empresas' }],
@@ -141,55 +103,38 @@ export const GRUPOS_TECH: readonly GrupoTech[] = [
   },
   {
     id: 'web',
-    icono: 'web',
     titulo: 'Páginas web y posicionamiento',
     resumen: 'Páginas que cargan rápido y convierten, sin plantillas.',
     items: [
       {
         nombre: 'Landing esencial',
-        precio: 150_000,
-        desde: true,
-        plazo: '7 días hábiles',
-        texto: 'Una página, un formulario, métricas desde el día uno.',
+        texto: 'Una página, un formulario y métricas desde el primer día.',
         puntos: ['Diseño y copy enfocados en conversión', 'SEO técnico desde el día uno', 'Seguimiento de conversiones', 'Rendimiento 90+ en Core Web Vitals'],
       },
       {
         nombre: 'Landing avanzada',
-        precio: 650_000,
-        desde: true,
-        plazo: '3 semanas',
-        texto: 'Multipágina, animación, contenido editable.',
+        texto: 'Varias páginas, animación y contenido editable.',
         puntos: ['Múltiples secciones y rutas', 'Animación e interacción a medida', 'Pruebas A/B y mejora continua'],
       },
     ],
   },
   {
     id: 'software',
-    icono: 'software',
     titulo: 'Productos a medida',
     resumen: 'Software hecho para cómo trabaja tu negocio, sin ruedas.',
     items: [
       {
         nombre: 'Producto a medida (MVP)',
-        precio: 2_800_000,
-        desde: true,
-        plazo: '8 semanas',
         texto: 'Frontend, backend, autenticación y despliegue completo.',
         puntos: ['Next.js, TypeScript y PostgreSQL', 'Autenticación, roles y panel de administración', 'Despliegue en producción con CI/CD'],
       },
       {
-        nombre: 'Panel interno / dashboard',
-        precio: 1_400_000,
-        desde: true,
-        plazo: '4 semanas',
-        texto: 'Operación visible en un solo lugar.',
+        nombre: 'Panel interno y dashboard',
+        texto: 'Tu operación visible en un solo lugar.',
         puntos: ['Métricas y estado en tiempo real', 'Roles y permisos por usuario', 'Exportación de reportes'],
       },
       {
         nombre: 'Portal de clientes',
-        precio: 2_200_000,
-        desde: true,
-        plazo: '5 semanas',
         texto: 'Acceso, estado y documentos, sin correos de ida y vuelta.',
         puntos: ['Acceso con autenticación propia', 'Estado y documentos centralizados', 'Notificaciones automáticas', 'Panel de administración incluido'],
       },
@@ -197,40 +142,24 @@ export const GRUPOS_TECH: readonly GrupoTech[] = [
   },
   {
     id: 'mantencion',
-    icono: 'mantencion',
     titulo: 'Planes de mantención',
     resumen: 'Los primeros 90 días van incluidos en todos los servicios.',
     items: [
       {
         nombre: 'Esencial',
-        precio: 20_000,
-        mensual: true,
-        texto: 'Sitios sin panel ni datos que operar.',
+        texto: 'Para sitios sin panel ni datos que operar.',
         puntos: ['Infraestructura, dominio y certificado', 'Respaldos y actualizaciones de seguridad', 'Respuesta a incidentes en 72 horas'],
       },
       {
         nombre: 'Activo',
-        precio: 139_000,
-        mensual: true,
         texto: 'Para automatizaciones, paneles e integraciones.',
         puntos: ['Todo lo del plan Esencial', '3 horas de evolución al mes', 'Respuesta a incidentes en 48 horas', 'Informe mensual'],
-        recomendado: true,
       },
       {
         nombre: 'Socio',
-        precio: 320_000,
-        mensual: true,
         texto: 'Para MVP, portales y agentes de IA.',
         puntos: ['Todo lo del plan Activo', '8 horas de evolución al mes', 'Respuesta a incidentes en 24 horas', 'Revisión mensual'],
       },
     ],
   },
 ]
-
-/** Precio más bajo del grupo, para mostrarlo con el panel cerrado. */
-export function precioMinimo(grupo: GrupoTech): { precio: number; desde: boolean; mensual: boolean } | null {
-  const con = grupo.items.filter((i) => i.precio !== undefined)
-  if (con.length === 0) return null
-  const menor = con.reduce((a, b) => ((a.precio as number) <= (b.precio as number) ? a : b))
-  return { precio: menor.precio as number, desde: con.length > 1 || Boolean(menor.desde), mensual: Boolean(menor.mensual) }
-}
