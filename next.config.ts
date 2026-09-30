@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
   // inconsistente y en el servidor pueden faltar archivos.
   turbopack: { root: __dirname },
 
+  // Next corta por defecto todo envío de más de 1 MB antes de llegar a la
+  // acción. Las fotos aceptan hasta 5 MB (lib/imagenes.ts), así que sin esto
+  // cualquier foto normal era rechazada y el panel quedaba «cargando».
+  experimental: { serverActions: { bodySizeLimit: '6mb' } },
+
   // Cabeceras de seguridad. Una tienda que cobra no puede ser enmarcable: sin
   // frame-ancestors, el checkout y el login del panel se pueden incrustar en
   // un sitio ajeno y superponerle controles falsos.

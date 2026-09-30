@@ -54,7 +54,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   }
 
   return (
-    <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel">
+    <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
       <FranjaAnuncio configuracion={c} />
       <Cabecera destinos={destinosMenu(vitrina.categorias, '/')} ayuda={whatsapp} />
 
