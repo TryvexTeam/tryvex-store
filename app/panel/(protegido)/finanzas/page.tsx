@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { clp } from '@/lib/formato'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
@@ -18,6 +19,12 @@ import Comprobante from './comprobante'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Finanzas' }
+
+/** «Ventas $436.000 · Aporte de socio $480.000»: las tres categorías más grandes y cuántas más hay. */
+function resumirCategorias(filas: { etiqueta: string; total: number }[]): string {
+  const principales = filas.slice(0, 3).map((f) => `${f.etiqueta} ${clp(f.total)}`).join(' · ')
+  return filas.length > 3 ? `${principales} · y ${filas.length - 3} más` : principales
+}
 
 export default async function Finanzas({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string; sin?: string; tipo?: string }> }) {
   const yo = await integranteActual()
@@ -162,7 +169,15 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         únicamente por el color deja fuera a quien no lo percibe, y en dinero
         esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
       */}
-      <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
+      <ResumenFinanzas
+        balance={balance}
+        ingresos={ingresos}
+        egresos={egresos}
+        anterior={anterior}
+        etiquetaPeriodo={periodo.etiqueta}
+        detalleEntro={resumirCategorias(desglosarPorCategoria(todos, 'ingreso'))}
+        detalleSalio={resumirCategorias(desglosarPorCategoria(todos, 'egreso'))}
+      />
 
       <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <ResultadoNegocio resultado={resultado} etiquetaPeriodo={periodo.etiqueta} />

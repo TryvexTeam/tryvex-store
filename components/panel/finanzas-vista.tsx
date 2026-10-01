@@ -33,6 +33,8 @@ export function ResumenFinanzas({
   egresos,
   anterior,
   etiquetaPeriodo,
+  detalleEntro,
+  detalleSalio,
 }: {
   balance: number
   ingresos: number
@@ -40,6 +42,9 @@ export function ResumenFinanzas({
   /** Totales del periodo anterior del mismo largo, para decir si sube o baja. */
   anterior?: { ingresos: number; egresos: number } | null
   etiquetaPeriodo?: string
+  /** De qué se compone «Entró» y «Salió» (por ejemplo «Ventas $436.000 · Aporte de socio $480.000»). */
+  detalleEntro?: string
+  detalleSalio?: string
 }) {
   return (
     <section aria-label="Resumen" className="entra mb-8 overflow-hidden rounded-[var(--radius-popup)] bg-tinta p-6 text-papel shadow-[var(--shadow-alzado)]">
@@ -59,6 +64,7 @@ export function ResumenFinanzas({
             <span className="sr-only">más </span>
             {clp(ingresos)}
           </dd>
+          {detalleEntro && <dd className="mt-2 text-[11.5px] leading-snug text-white/60">{detalleEntro}</dd>}
         </div>
         <div className="rounded-[var(--radius-widget)] bg-white/[0.08] p-3.5">
           <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
@@ -71,6 +77,7 @@ export function ResumenFinanzas({
             <span className="sr-only">menos </span>
             {clp(egresos)}
           </dd>
+          {detalleSalio && <dd className="mt-2 text-[11.5px] leading-snug text-white/60">{detalleSalio}</dd>}
         </div>
       </dl>
     </section>
