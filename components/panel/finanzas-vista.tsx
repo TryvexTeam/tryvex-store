@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
 import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
-import { Avatar, EncabezadoDia, MontoGrande, agruparPorDia } from '@/components/panel/fintech'
+import { Avatar, CambioPildora, EncabezadoDia, MontoGrande, agruparPorDia } from '@/components/panel/fintech'
 
 /**
  * Finanzas con el lenguaje de una app de dinero. Solo presentación: recibe los
@@ -27,10 +27,23 @@ export interface Movimiento {
 const n = (v: string | number) => Number(v) || 0
 
 /** Balance enorme y, debajo, lo que entró y lo que salió, en dos píldoras. */
-export function ResumenFinanzas({ balance, ingresos, egresos }: { balance: number; ingresos: number; egresos: number }) {
+export function ResumenFinanzas({
+  balance,
+  ingresos,
+  egresos,
+  anterior,
+  etiquetaPeriodo,
+}: {
+  balance: number
+  ingresos: number
+  egresos: number
+  /** Totales del periodo anterior del mismo largo, para decir si sube o baja. */
+  anterior?: { ingresos: number; egresos: number } | null
+  etiquetaPeriodo?: string
+}) {
   return (
     <section aria-label="Resumen" className="entra mb-8 overflow-hidden rounded-[var(--radius-popup)] bg-tinta p-6 text-papel shadow-[var(--shadow-alzado)]">
-      <p className="text-[14px] font-medium text-white/60">Balance</p>
+      <p className="text-[14px] font-medium text-white/60">Balance{etiquetaPeriodo ? ` · ${etiquetaPeriodo}` : ''}</p>
       <MontoGrande valor={balance} signo={balance < 0 ? '−' : undefined} className="mt-4" />
       <p className="mt-3 text-[13px] text-white/55">{balance >= 0 ? 'a favor' : 'en rojo'}</p>
 
@@ -39,6 +52,7 @@ export function ResumenFinanzas({ balance, ingresos, egresos }: { balance: numbe
           <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
             <span aria-hidden className="grid size-5 place-items-center rounded-full bg-verde/25 text-[11px] text-[#7be39e]">↓</span>
             Entró
+            {anterior && <span className="ml-auto"><CambioPildora actual={ingresos} anterior={anterior.ingresos} oscuro /></span>}
           </dt>
           <dd className="cifra mt-2 text-[clamp(1.05rem,4.6vw,1.4rem)] leading-none font-semibold text-[#7be39e]">
             <span aria-hidden>+</span>
@@ -50,6 +64,7 @@ export function ResumenFinanzas({ balance, ingresos, egresos }: { balance: numbe
           <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
             <span aria-hidden className="grid size-5 place-items-center rounded-full bg-white/15 text-[11px] text-white/80">↑</span>
             Salió
+            {anterior && <span className="ml-auto"><CambioPildora actual={egresos} anterior={anterior.egresos} oscuro /></span>}
           </dt>
           <dd className="cifra mt-2 text-[clamp(1.05rem,4.6vw,1.4rem)] leading-none font-semibold text-white">
             <span aria-hidden>−</span>

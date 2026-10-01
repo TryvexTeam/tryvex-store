@@ -1900,3 +1900,9 @@ html[data-tema-panel='oscuro'] { background: #000; color-scheme: dark; }
   --default-transition-timing-function: var(--ease-panel);
   font-family: var(--font-inter-panel), var(--font-sans);
 }
+
+/* Imprimir o «Guardar como PDF» una pantalla del panel: sin cabecera, barra ni controles. */
+@media print {
+  [data-tema] header, [data-tema] nav, [data-tema] aside, .no-imprimir { display: none !important; }
+  [data-tema] { background: #fff !important; }
+}

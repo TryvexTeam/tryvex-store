@@ -3,14 +3,21 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { clp } from '@/lib/formato'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
+import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, desglosarPorCategoria } from '@/components/panel/finanzas-extras'
+import { BotonImprimir } from '@/components/panel/boton-imprimir'
+import { BotonEnlace } from '@/components/panel/ui'
+import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
 import FormularioMovimiento from './formulario'
 import Comprobante from './comprobante'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Finanzas' }
 
-export default async function Finanzas() {
+export default async function Finanzas({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string; sin?: string }> }) {
   const yo = await integranteActual()
+  const params = await searchParams
+  const periodo = resolverPeriodo(params)
+  const soloSinComprobante = params.sin === '1'
 
   // El enlace ya se oculta en el layout, pero alguien puede escribir la URL.
   // Por debajo el RLS también lo bloquearía; esto da un desvío limpio.
@@ -18,25 +25,51 @@ export default async function Finanzas() {
 
   const supabase = await crearClienteServidor()
 
-  const [{ data: movs }, { data: stock }, { data: productos }] = await Promise.all([
-    supabase
-      .from('movimientos_financieros')
-      .select('id,tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte,voucher_path,voucher_nombre')
-      // La tabla es compartida con Tryvex Plataform: aquí solo lo de la tienda.
-      .eq('negocio', NEGOCIO_TIENDA)
-      .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(60),
+  const LIMITE = 2000
+  let consulta = supabase
+    .from('movimientos_financieros')
+    .select('id,tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte,voucher_path,voucher_nombre')
+    // La tabla es compartida con Tryvex Plataform: aquí solo lo de la tienda.
+    .eq('negocio', NEGOCIO_TIENDA)
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(LIMITE)
+  if (periodo.desde) consulta = consulta.gte('fecha', periodo.desde)
+  if (periodo.hasta) consulta = consulta.lte('fecha', periodo.hasta)
+
+  const consultaAnterior = periodo.anterior
+    ? supabase
+        .from('movimientos_financieros')
+        .select('tipo,monto_clp')
+        .eq('negocio', NEGOCIO_TIENDA)
+        .gte('fecha', periodo.anterior.desde)
+        .lte('fecha', periodo.anterior.hasta)
+        .limit(LIMITE)
+    : null
+
+  const [{ data: movs }, { data: movsAnteriores }, { data: stock }, { data: productos }] = await Promise.all([
+    consulta,
+    consultaAnterior ?? Promise.resolve({ data: null }),
     supabase.from('v_stock_actual').select('producto_id,stock'),
     supabase.from('productos').select('id,precio_base,costo_unitario'),
   ])
 
-  const lista = (movs ?? []) as Movimiento[]
+  const todos = (movs ?? []) as Movimiento[]
   const n = (v: string | number) => Number(v) || 0
 
-  const ingresos = lista.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0)
-  const egresos = lista.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0)
+  const ingresos = todos.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0)
+  const egresos = todos.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0)
   const balance = ingresos - egresos
+  const anterior = movsAnteriores
+    ? {
+        ingresos: movsAnteriores.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0),
+        egresos: movsAnteriores.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0),
+      }
+    : null
+
+  const sinComprobante = todos.filter((m) => m.tipo === 'egreso' && !m.voucher_path)
+  const lista = (soloSinComprobante ? sinComprobante : todos).slice(0, 200)
+  const truncado = todos.length >= LIMITE
 
   // ── Analítica propia: lo que Treinta no muestra ──────────────────
   // Cuánto falta para recuperar lo invertido, y cuántas unidades son.
@@ -53,14 +86,24 @@ export default async function Finanzas() {
 
   return (
     <>
-      <header className="mb-8">
-        <h1 className="text-[2.2rem] leading-tight font-semibold tracking-[-0.022em]">Finanzas</h1>
-        <p className="mt-1 text-[15px] text-gris">
-          {lista.length === 0
-            ? 'Aún no hay movimientos registrados.'
-            : `${lista.length} movimientos recientes.`}
-        </p>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[2.2rem] leading-tight font-semibold tracking-[-0.022em]">Finanzas</h1>
+          <p className="mt-1 text-[15px] text-gris">
+            {todos.length === 0
+              ? 'No hay movimientos en este periodo.'
+              : `${todos.length} ${todos.length === 1 ? 'movimiento' : 'movimientos'} · ${periodo.etiqueta}${truncado ? ' (se muestran los más recientes)' : ''}`}
+          </p>
+        </div>
+        <div className="no-imprimir flex items-center gap-2">
+          <BotonEnlace variante="secundario" tamano="sm" href={`/api/reportes?tipo=finanzas&${queryDePeriodo(periodo)}`} aria-label="Descargar los movimientos de este periodo en CSV">
+            CSV
+          </BotonEnlace>
+          <BotonImprimir />
+        </div>
       </header>
+
+      <SelectorPeriodo periodo={periodo} conservarSin={soloSinComprobante} />
 
       {/*
         Jerarquía numérica: UNA cifra manda.
@@ -72,10 +115,17 @@ export default async function Finanzas() {
         únicamente por el color deja fuera a quien no lo percibe, y en dinero
         esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
       */}
-      <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} />
+      <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
+
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
+        <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" />
+        <DesgloseCategorias titulo="Entró por categoría" filas={desglosarPorCategoria(todos, 'ingreso')} tono="verde" />
+      </div>
+
+      <AvisoSinComprobante cantidad={sinComprobante.length} activo={soloSinComprobante} periodo={periodo} />
 
       {/* Punto de equilibrio: la pregunta real del negocio. */}
-      {margenUnitario > 0 && lista.length > 0 && (
+      {margenUnitario > 0 && todos.length > 0 && (
         <section
           aria-label="Punto de equilibrio"
           className="mb-10 rounded-[var(--radius-tarjeta)] bg-papel p-6 ring-1 ring-borde/70"
@@ -122,10 +172,8 @@ export default async function Finanzas() {
 
           {lista.length === 0 ? (
             <div className="rounded-[var(--radius-tarjeta)] bg-papel px-6 py-14 text-center ring-1 ring-borde/70">
-              <p className="text-[15px] text-gris">Nada registrado todavía.</p>
-              <p className="mt-1 text-[13px] text-gris">
-                Parte anotando tu primera importación: unidades y costo.
-              </p>
+              <p className="text-[15px] text-gris">{soloSinComprobante ? 'Todos los egresos tienen comprobante.' : 'Nada registrado en este periodo.'}</p>
+              <p className="mt-1 text-[13px] text-gris">Prueba con otro periodo o anota un movimiento.</p>
             </div>
           ) : (
             <ListaMovimientos
