@@ -107,27 +107,20 @@ export function ResumenPanel({
       {avisos}
 
       {/* ── Saldo ───────────────────────────────────────────────────
-          Una sola cifra manda, enorme; lo demás la acompaña. El cambio frente
+          La plata va DENTRO de la tarjeta: una sola cifra manda, enorme. El cambio frente
           al periodo anterior dice si se vende más o menos, que es lo que se
           quiere saber antes de leer el número. Debajo, como en una app de
           dinero, la tarjeta: al darle la vuelta muestra lo «por cobrar». */}
-      <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-7 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-14">
-      <section aria-label="Ventas recientes" className="entra min-w-0">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[14px] font-medium text-gris">Vendido · últimos {DIAS_TENDENCIA} días</p>
-          <CambioPildora actual={vendido} anterior={vendidoAnterior} />
-        </div>
-
-        <MontoGrande valor={vendido} className="mt-3 text-tinta" />
-
-        <div className="mt-5 text-verde">
-          <Tendencia puntos={serie} etiqueta="Ventas por día" claro />
-        </div>
-      </section>
-
-      <div className="entra" style={{ animationDelay: '60ms' }}>
-        <TarjetaTryvex nombre={nombreIntegrante} porCobrar={clp(porCobrar)} etiquetaPorCobrar="Por cobrar" />
-      </div>
+      <div className="entra mx-auto w-full max-w-[420px] lg:max-w-[460px]">
+        <TarjetaTryvex
+          nombre={nombreIntegrante}
+          etiquetaMonto={`Vendido · últimos ${DIAS_TENDENCIA} días`}
+          monto={<MontoGrande valor={vendido} className="tarjeta-relieve-grande mt-2" tamano="text-[clamp(30px,10.5vw,44px)]" />}
+          cambio={<CambioPildora actual={vendido} anterior={vendidoAnterior} oscuro />}
+          tendencia={<Tendencia puntos={serie} etiqueta="Ventas por día" />}
+          porCobrar={clp(porCobrar)}
+          etiquetaPorCobrar="Por cobrar"
+        />
       </div>
 
       {/* ── Acciones ────────────────────────────────────────────────

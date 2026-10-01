@@ -142,7 +142,7 @@ export default async function Boleta({ params }: { params: Promise<{ id: string 
         <BotonImprimir />
       </div>
 
-      <article id="boleta" className="rounded-[20px] bg-white p-7 text-tinta shadow-[0_1px_3px_rgba(0,0,0,.06),0_12px_32px_rgba(0,0,0,.06)] ring-1 ring-borde/70 sm:p-10">
+      <article id="boleta" data-tema="claro" className="rounded-[20px] bg-white p-7 text-tinta shadow-[0_1px_3px_rgba(0,0,0,.06),0_12px_32px_rgba(0,0,0,.06)] ring-1 ring-borde/70 sm:p-10">
         {/* Encabezado: quién vende y qué documento es. */}
         <header className="flex flex-wrap items-start justify-between gap-6 border-b border-borde pb-6">
           <div>

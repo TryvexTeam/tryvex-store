@@ -1482,19 +1482,27 @@ body {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: 18px;
-  padding: 6.5% 7%;
+  border-radius: 15px;
+  padding: 6% 7%;
   color: #fff;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.14) inset, 0 -1px 0 rgb(0 0 0 / 0.5) inset, 0 22px 44px -10px rgb(0 0 0 / 0.45), 0 6px 14px rgb(0 0 0 / 0.25);
 }
 .tarjeta-frente {
+  /* Metal cepillado: grafito con vetas finas horizontales, un reflejo en
+     diagonal como el de una placa pulida y un toque de rojo Tryvex en la esquina. */
   background:
-    radial-gradient(120% 90% at 100% 100%, rgb(229 57 53 / 0.30), transparent 56%),
-    radial-gradient(80% 60% at 0% 0%, rgb(255 255 255 / 0.11), transparent 55%),
-    repeating-radial-gradient(circle at 82% 18%, rgb(255 255 255 / 0.03) 0 1px, transparent 1px 7px),
-    linear-gradient(135deg, #202023 0%, #0b0b0c 58%, #161618 100%);
+    linear-gradient(112deg, transparent 28%, rgb(255 255 255 / 0.1) 40%, rgb(255 255 255 / 0.03) 48%, transparent 58%),
+    radial-gradient(110% 80% at 100% 100%, rgb(229 57 53 / 0.2), transparent 58%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.028) 0 1px, rgb(0 0 0 / 0.03) 1px 2px, transparent 2px 3px),
+    linear-gradient(135deg, #3b3c41 0%, #1c1d20 46%, #2e2f33 100%);
+}
+/* Texto grabado en el metal: más claro abajo, sombra arriba. */
+.tarjeta-grabado { color: rgb(255 255 255 / 0.82); text-shadow: 0 1px 0 rgb(255 255 255 / 0.12), 0 -1px 0 rgb(0 0 0 / 0.6); }
+.tarjeta-relieve-grande {
+  color: #f4f4f6;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.35), 0 -1px 0 rgb(0 0 0 / 0.7), 0 6px 14px rgb(0 0 0 / 0.35);
 }
 .tarjeta-reverso {
   transform: rotateY(180deg);
@@ -1811,3 +1819,63 @@ body {
     --margen-abajo: 96px;
   }
 }
+
+/* ── Tema oscuro del panel ─────────────────────────────────────────────────────
+   Se oscurece redefiniendo los tokens bajo [data-tema='oscuro'] (lo pone
+   TemaPanel). Todo lo que usa tokens cambia solo; abajo van los casos donde un
+   color fijo choca con el cambio, que es donde se «bugea» el contraste:
+     · `bg-tinta` + `text-white`: tinta pasa a ser CLARO, así que el botón queda
+       claro y su texto debe pasar a oscuro;
+     · bloques `bg-tinta text-papel` con textos `text-white/60` adentro: se
+       quedan como superficie oscura elevada, para que esos blancos se lean;
+     · `bg-verde` / `bg-spark` con texto blanco: los tonos claros del tema
+       oscuro (pensados para texto sobre negro) no dan 4.5:1 con blanco, así
+       que el RELLENO usa los tonos de siempre.
+   Valores medidos contra #1c1c1e (tarjetas) y #000 (fondo). */
+[data-tema='oscuro'] {
+  color-scheme: dark;
+  --color-papel: #1c1c1e;
+  --color-papel-alt: #000000;
+  --color-papel-hondo: #111113;
+  --color-tinta: #f5f5f7;
+  --color-tinta-suave: #c7c7cc;
+  --color-gris: #98989f;
+  --color-borde: #3a3a3c;
+  --color-spark: #ff6b63;
+  --color-spark-hover: #ff857e;
+  --color-spark-suave: rgba(255, 107, 99, 0.16);
+  --color-verde: #32d74b;
+  --color-ambar: #ff9f0a;
+  --color-rojo: #ff6961;
+  --color-vino: #ff8da1;
+  --shadow-sutil: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-alzado: 0 2px 6px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-hoja: 0 -1px 0 rgba(255, 255, 255, 0.06), 0 -12px 40px rgba(0, 0, 0, 0.7);
+}
+/* Un documento o una réplica de la tienda dentro del panel vuelve a ser claro. */
+[data-tema='oscuro'] [data-tema='claro'] {
+  color-scheme: light;
+  --color-papel: #ffffff;
+  --color-papel-alt: #f5f5f7;
+  --color-papel-hondo: #fafafa;
+  --color-tinta: #1d1d1f;
+  --color-tinta-suave: #424245;
+  --color-gris: #6e6e73;
+  --color-borde: #d2d2d7;
+  --color-spark: #e53935;
+  --color-spark-hover: #cf322e;
+  --color-spark-suave: rgba(229, 57, 53, 0.08);
+  --color-verde: #1d9e4b;
+  --color-ambar: #b25000;
+  --color-rojo: #d70015;
+  --color-vino: #8c1c32;
+  color: var(--color-tinta);
+}
+[data-tema='oscuro'] .bg-tinta.text-white,
+[data-tema='oscuro'] [class*='bg-tinta/'].text-white,
+[data-tema='oscuro'] .bg-tinta.text-papel[class*='rounded-full'] { color: #1d1d1f; }
+[data-tema='oscuro'] .bg-tinta.text-papel:not([class*='rounded-full']) { background-color: #2c2c2e; color: #f5f5f7; }
+[data-tema='oscuro'] .bg-verde.text-white { background-color: #1d9e4b; color: #fff; }
+[data-tema='oscuro'] .bg-spark.text-white { background-color: #cf322e; color: #fff; }
+[data-tema='oscuro'] .bg-tinta\/25 { background-color: rgb(0 0 0 / 0.55); }
+html[data-tema-panel='oscuro'] { background: #000; color-scheme: dark; }
