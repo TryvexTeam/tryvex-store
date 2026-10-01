@@ -3,12 +3,10 @@
 import { puedeGestionarFinanzas, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import { categoriaFinancieraValida, etiquetaCategoria, METODOS_PAGO } from '@/lib/finanzas'
+import { categoriaFinancieraValida, etiquetaCategoria } from '@/lib/finanzas'
+import { esquemaMovimiento, primerError } from '@/lib/validacion-panel'
 
 export type Resultado = { ok: true } | { ok: false; error: string }
-
-const TIPOS = ['ingreso', 'egreso'] as const
-const METODOS = METODOS_PAGO.map((metodo) => metodo.valor)
 
 /**
  * Registra un movimiento y, si viene un comprobante, lo sube al bucket privado.
@@ -36,23 +34,19 @@ export async function registrarMovimiento(datos: FormData): Promise<Resultado> {
     return { ok: false, error: 'No tienes permiso para registrar movimientos.' }
   }
 
-  const tipo = String(datos.get('tipo') ?? '')
-  const categoria = String(datos.get('categoria') ?? '').trim()
-  const descripcion = String(datos.get('descripcion') ?? '').trim()
-  const monto = Number(datos.get('monto_clp'))
-  const fecha = String(datos.get('fecha') ?? '')
-  const metodo = String(datos.get('metodo_pago') ?? '')
-  const contraparte = String(datos.get('contraparte') ?? '').trim()
-
-  if (!TIPOS.includes(tipo as (typeof TIPOS)[number]))
-    return { ok: false, error: 'Tipo inválido.' }
-  if (!descripcion) return { ok: false, error: 'Falta la descripción.' }
+  // La frontera se valida con un esquema: un dato imposible se rechaza acá, con motivo.
+  const analizado = esquemaMovimiento.safeParse({
+    tipo: datos.get('tipo'),
+    categoria: datos.get('categoria') ?? '',
+    descripcion: datos.get('descripcion') ?? '',
+    monto_clp: datos.get('monto_clp'),
+    fecha: datos.get('fecha') ?? '',
+    metodo_pago: datos.get('metodo_pago') ?? '',
+    contraparte: datos.get('contraparte') ?? '',
+  })
+  if (!analizado.success) return { ok: false, error: primerError(analizado.error) }
+  const { tipo, categoria, descripcion, monto, fecha, metodo_pago: metodo, contraparte } = { ...analizado.data, monto: analizado.data.monto_clp }
   if (!categoriaFinancieraValida(categoria, tipo)) return { ok: false, error: 'La categoría no corresponde al tipo de movimiento.' }
-  if (!Number.isFinite(monto) || monto <= 0)
-    return { ok: false, error: 'El monto debe ser mayor que cero.' }
-  if (!fecha) return { ok: false, error: 'Falta la fecha.' }
-  if (metodo && !METODOS.includes(metodo as (typeof METODOS)[number]))
-    return { ok: false, error: 'Método de pago inválido.' }
 
   // ── Comprobante (opcional) ──────────────────────────────────────
   let voucher_path: string | null = null

@@ -7,6 +7,7 @@ import { crearPedidoConReserva } from '@/lib/pedidos/crear'
 import { confirmarPagoDePedido } from '@/lib/confirmar-pago'
 import { correoPedidoEnCamino, correoPedidoEntregado } from '@/lib/correo'
 import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
+import { esquemaPedido, primerError } from '@/lib/validacion-panel'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
 import { urlPublica } from '@/lib/imagenes'
 
@@ -77,21 +78,22 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
   const { supabase, yo, error: errSesion } = await contexto()
   if (errSesion || !yo) return { ok: false, error: errSesion ?? 'Sin sesión.' }
 
-  const cliente_nombre = String(datos.get('cliente_nombre') ?? '').trim()
-  const cliente_email = String(datos.get('cliente_email') ?? '').trim()
-  const cliente_fono = String(datos.get('cliente_fono') ?? '').trim()
-  const canal = String(datos.get('canal') ?? 'whatsapp')
-  const metodo_pago = String(datos.get('metodo_pago') ?? '')
-  const notas = String(datos.get('notas') ?? '').trim()
-  const producto_id = String(datos.get('producto_id') ?? '')
-  const cantidad = Number(datos.get('cantidad'))
+  // Texto y cantidad se validan con el esquema; el dinero (precio, envío) conserva su lectura propia.
+  const analizado = esquemaPedido.safeParse({
+    cliente_nombre: datos.get('cliente_nombre') ?? '',
+    cliente_email: String(datos.get('cliente_email') ?? '').trim(),
+    cliente_fono: String(datos.get('cliente_fono') ?? '').trim(),
+    canal: String(datos.get('canal') ?? 'whatsapp'),
+    metodo_pago: String(datos.get('metodo_pago') ?? ''),
+    notas: datos.get('notas') ?? '',
+    producto_id: String(datos.get('producto_id') ?? ''),
+    cantidad: datos.get('cantidad'),
+  })
+  if (!analizado.success) return { ok: false, error: primerError(analizado.error) }
+  const { cliente_nombre, cliente_email, cliente_fono, canal, metodo_pago, notas, producto_id, cantidad } = analizado.data
+
   const precio_unitario = montoDesdeTexto(datos.get('precio_unitario')) ?? NaN
   const envio = montoDesdeTextoODefecto(datos.get('envio_clp'))
-
-  if (!cliente_nombre) return { ok: false, error: 'Falta el nombre del cliente.' }
-  if (!producto_id) return { ok: false, error: 'Falta el producto.' }
-  if (!Number.isInteger(cantidad) || cantidad < 1)
-    return { ok: false, error: 'La cantidad debe ser 1 o más.' }
   if (!Number.isFinite(precio_unitario) || precio_unitario < 0)
     return { ok: false, error: 'El precio unitario no es válido.' }
   if (!Number.isFinite(envio) || envio < 0)

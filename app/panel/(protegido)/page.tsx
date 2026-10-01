@@ -1,5 +1,7 @@
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import { integranteActual } from '@/lib/sesion'
+import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
+import { calcularAtencion } from '@/lib/atencion'
+import { hoyChile, sumarDias } from '@/lib/periodo'
 import { AvisosTelefono } from '@/components/panel/avisos-telefono'
 import { ResumenPanel, DIAS_TENDENCIA, VENDIDOS } from '@/components/panel/resumen-panel'
 
@@ -13,7 +15,8 @@ export default async function Resumen() {
   const desde = new Date(Date.now() - 2 * DIAS_TENDENCIA * 86_400_000).toISOString()
   const inicioActual = Date.now() - DIAS_TENDENCIA * 86_400_000
 
-  const [{ data: stock }, { data: productos }, { data: recientes }, { data: delPeriodo }, { data: actividad }] =
+  const verFinanzas = Boolean(yo.ver_finanzas)
+  const [{ data: stock }, { data: productos }, { data: recientes }, { data: delPeriodo }, { data: actividad }, { data: abiertos }, { data: minimos }, sinComprobante] =
     await Promise.all([
       supabase.from('v_stock_actual').select('producto_id,sku,nombre,stock'),
       supabase.from('productos').select('id,nombre,precio_base,costo_unitario,activo'),
@@ -31,6 +34,18 @@ export default async function Resumen() {
         .select('id,accion,entidad,detalle,created_at,dim_integrantes(nombre)')
         .order('created_at', { ascending: false })
         .limit(8),
+      // Lo que sigue abierto, sin límite de fecha: un pedido pendiente de hace un mes sigue pendiente.
+      supabase.from('pedidos').select('estado,pago_declarado_at').in('estado', ['pendiente', 'pagado', 'preparando']).limit(1000),
+      supabase.from('productos').select('id,stock_minimo').neq('estado', 'archivado'),
+      verFinanzas
+        ? supabase
+            .from('movimientos_financieros')
+            .select('id', { count: 'exact', head: true })
+            .eq('negocio', NEGOCIO_TIENDA)
+            .eq('tipo', 'egreso')
+            .is('voucher_path', null)
+            .gte('fecha', sumarDias(hoyChile(), -29))
+        : Promise.resolve({ count: null }),
     ])
 
   const unidades = (stock ?? []).reduce((a, s) => a + (s.stock ?? 0), 0)
@@ -77,6 +92,17 @@ export default async function Resumen() {
     return { dia: clave, valor }
   })
 
+  const minimoPor = new Map((minimos ?? []).map((m) => [m.id, Number(m.stock_minimo ?? 5)]))
+  const filasStock = stock ?? []
+  const atencion = calcularAtencion({
+    porCobrar: (abiertos ?? []).filter((p) => p.estado === 'pendiente').length,
+    pagoDeclarado: (abiertos ?? []).filter((p) => p.estado === 'pendiente' && p.pago_declarado_at).length,
+    porDespachar: (abiertos ?? []).filter((p) => p.estado === 'pagado' || p.estado === 'preparando').length,
+    sinStock: filasStock.filter((f) => Number(f.stock ?? 0) <= 0).length,
+    stockBajo: filasStock.filter((f) => Number(f.stock ?? 0) > 0 && Number(f.stock ?? 0) <= (minimoPor.get(f.producto_id) ?? 5)).length,
+    egresosSinComprobante: verFinanzas ? (sinComprobante.count ?? 0) : null,
+  })
+
   return (
     <ResumenPanel
       nombre={yo.nombre}
@@ -92,6 +118,7 @@ export default async function Resumen() {
       valorInventario={valorInventario}
       costoInventario={costoInventario}
       avisos={<AvisosTelefono />}
+      atencion={atencion}
     />
   )
 }

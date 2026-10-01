@@ -3,6 +3,8 @@ import { clp } from '@/lib/formato'
 import { Tendencia } from '@/components/tendencia'
 import { IconoMas, IconoStock, IconoProductos, IconoFinanzas } from '@/components/iconos'
 import { TarjetaTryvex } from '@/components/panel/tarjeta-tryvex'
+import { AtencionPanel } from '@/components/panel/atencion-panel'
+import type { ItemAtencion } from '@/lib/atencion'
 import { AccionRedonda, Avatar, CambioPildora, EncabezadoDia, MontoGrande, agruparPorDia, horaCorta } from '@/components/panel/fintech'
 
 /**
@@ -71,6 +73,8 @@ export interface DatosResumen {
   costoInventario: number
   /** Lo que va entre el saludo y el saldo (la tarjeta de avisos del teléfono). */
   avisos?: React.ReactNode
+  /** Lo pendiente, en orden de urgencia. Vacío = no se muestra la sección. */
+  atencion?: ItemAtencion[]
 }
 
 export function ResumenPanel({
@@ -87,6 +91,7 @@ export function ResumenPanel({
   valorInventario,
   costoInventario,
   avisos,
+  atencion = [],
 }: DatosResumen) {
   const atajos = [
     { href: '/panel/pedidos', etiqueta: 'Nuevo pedido', Icono: IconoMas },
@@ -122,6 +127,8 @@ export function ResumenPanel({
           etiquetaPorCobrar="Por cobrar"
         />
       </div>
+
+      <AtencionPanel items={atencion} />
 
       {/* ── Acciones ────────────────────────────────────────────────
           Redondas y con la etiqueta debajo, al alcance del pulgar. */}
