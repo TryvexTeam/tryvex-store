@@ -20,8 +20,8 @@ export function ConfigurarMinimo({ productoId, minimo }: { productoId: string; m
   }
 
   return (
-    <div className="mt-4 flex items-center gap-2">
-      <label className="text-[12px] text-gris" htmlFor={`minimo-${productoId}`}>Reponer desde</label>
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="text-[12.5px] text-tinta-suave" htmlFor={`minimo-${productoId}`}>Avisarme cuando queden</label>
       <input
         id={`minimo-${productoId}`}
         type="number"
@@ -31,10 +31,10 @@ export function ConfigurarMinimo({ productoId, minimo }: { productoId: string; m
         value={valor}
         onChange={(e) => setValor(e.target.value)}
         disabled={guardando}
-        className="cifra h-8 w-16 rounded-md bg-papel px-2 text-center text-[13px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none"
+        className="cifra h-10 w-16 rounded-[10px] bg-papel px-2 text-center text-[14px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none"
       />
       <button type="button" onClick={guardar} disabled={guardando} className="text-[12px] font-medium text-spark hover:underline disabled:opacity-40">
-        {guardando ? 'Guardando…' : 'Guardar'}
+        {guardando ? 'Guardando…' : 'Guardar alerta'}
       </button>
       {mensaje && <span role={mensaje === 'Mínimo actualizado.' ? 'status' : 'alert'} className="sr-only">{mensaje}</span>}
     </div>

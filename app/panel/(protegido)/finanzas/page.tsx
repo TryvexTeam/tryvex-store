@@ -1,13 +1,20 @@
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
-import { clp } from '@/lib/formato'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
-import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
+import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, CapitalSocios, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
 import { agruparPorMetodo } from '@/lib/cuentas'
+import { calcularCapital, CATEGORIA_APORTE } from '@/lib/capital'
+import { calcularResultado } from '@/lib/resultado'
+import { calcularCuadre, stockPropioACosto } from '@/lib/cuadre'
+import { saldosDeEfectivo, totalPorDepositar } from '@/lib/efectivo'
+import { CuadreDeCaja } from '@/components/panel/cuadre-caja'
+import { ResumenDelNegocio } from '@/components/panel/resumen-negocio'
+import { calcularResumenNegocio } from '@/lib/resumen-negocio'
+import { ResultadoNegocio, NosDeben, ValorStock } from '@/components/panel/resultado-negocio'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
-import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
+import { resolverPeriodo, queryDePeriodo, limitesTimestamp } from '@/lib/periodo'
 import FormularioMovimiento from './formulario'
 import Comprobante from './comprobante'
 
@@ -39,21 +46,46 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   if (periodo.desde) consulta = consulta.gte('fecha', periodo.desde)
   if (periodo.hasta) consulta = consulta.lte('fecha', periodo.hasta)
 
-  const consultaAnterior = periodo.anterior
+  // Ventas del periodo anterior del mismo largo, para comparar. Salen de los movimientos de stock,
+  // igual que las del periodo actual: así las dos cifras hablan de lo mismo.
+  const limAnterior = periodo.anterior ? limitesTimestamp(periodo.anterior) : null
+  const consultaVentasAnteriores = limAnterior
     ? supabase
-        .from('movimientos_financieros')
-        .select('tipo,monto_clp')
-        .eq('negocio', NEGOCIO_TIENDA)
-        .gte('fecha', periodo.anterior.desde)
-        .lte('fecha', periodo.anterior.hasta)
-        .limit(LIMITE)
+        .from('stock_movimientos')
+        .select('tipo,total_clp')
+        .in('tipo', ['venta', 'devolucion'])
+        .gte('created_at', limAnterior.desde!)
+        .lt('created_at', limAnterior.hastaExclusivo!)
+        .limit(20000)
     : null
 
-  const [{ data: movs }, { data: movsAnteriores }, { data: stock }, { data: productos }] = await Promise.all([
+  // Movimientos de stock del periodo: el día de Santiago, con el desfase real de cada fecha.
+  const lim = limitesTimestamp(periodo)
+  let consultaStock = supabase
+    .from('stock_movimientos')
+    .select('producto_id,tipo,cantidad,total_clp')
+    .in('tipo', ['venta', 'devolucion', 'merma', 'uso_interno', 'regalo', 'ajuste'])
+    .limit(20000)
+  if (lim.desde) consultaStock = consultaStock.gte('created_at', lim.desde)
+  if (lim.hastaExclusivo) consultaStock = consultaStock.lt('created_at', lim.hastaExclusivo)
+
+  const [{ data: movs }, { data: ventasAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }, { data: retirosSocios }] = await Promise.all([
     consulta,
-    consultaAnterior ?? Promise.resolve({ data: null }),
+    consultaVentasAnteriores ?? Promise.resolve({ data: null }),
+    // El capital es de TODO el historial, no del periodo que se esté mirando.
+    supabase.from('movimientos_financieros').select('contraparte,monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'ingreso').eq('categoria', CATEGORIA_APORTE).limit(2000),
+    supabase.from('movimientos_financieros').select('monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Inventario e insumos').limit(5000),
     supabase.from('v_stock_actual').select('producto_id,stock'),
     supabase.from('productos').select('id,precio_base,costo_unitario'),
+    consultaStock,
+    supabase.from('pedidos').select('numero,cliente_nombre,total_clp').eq('estado', 'pendiente').order('numero', { ascending: true }).limit(200),
+    // Cuadre de caja: lo declarado (cuenta y efectivo), lo que el sistema espera y el stock previo de un integrante.
+    supabase.from('saldo_cuenta').select('monto_clp,fecha,nota').order('created_at', { ascending: false }).limit(1),
+    supabase.from('efectivo_por_depositar').select('id,integrante_id,tipo,monto_clp,fecha,nota').order('fecha', { ascending: false }).order('created_at', { ascending: false }).limit(500),
+    supabase.from('dim_integrantes').select('id,nombre').eq('activo', true).order('nombre'),
+    supabase.from('movimientos_financieros').select('tipo,categoria,monto_clp').eq('negocio', NEGOCIO_TIENDA).limit(20000),
+    supabase.from('stock_movimientos').select('producto_id,cantidad').eq('tipo', 'ingreso').ilike('motivo', 'Stock previo%').limit(1000),
+    supabase.from('movimientos_financieros').select('contraparte,monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Retiro de socio').limit(2000),
   ])
 
   const todos = (movs ?? []) as Movimiento[]
@@ -61,13 +93,11 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
 
   const ingresos = todos.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0)
   const egresos = todos.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0)
-  const balance = ingresos - egresos
-  const anterior = movsAnteriores
-    ? {
-        ingresos: movsAnteriores.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0),
-        egresos: movsAnteriores.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0),
-      }
-    : null
+  const ventasAnterior = ventasAnteriores
+    ? ventasAnteriores.reduce((a, m) => a + (m.tipo === 'venta' ? n(m.total_clp) : -n(m.total_clp)), 0)
+    : undefined
+
+  const capital = calcularCapital(aportesSocios ?? [], (comprasStock ?? []).reduce((a, m) => a + n(m.monto_clp), 0), retirosSocios ?? [])
 
   const sinComprobante = todos.filter((m) => m.tipo === 'egreso' && !m.voucher_path)
   const base = soloSinComprobante ? sinComprobante : todos
@@ -76,18 +106,46 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   const conteoTipos = { todos: todos.length, ingreso: todos.filter((m) => m.tipo === 'ingreso').length, egreso: todos.filter((m) => m.tipo === 'egreso').length }
   const truncado = todos.length >= LIMITE
 
-  // ── Analítica propia: lo que Treinta no muestra ──────────────────
-  // Cuánto falta para recuperar lo invertido, y cuántas unidades son.
-  const unidades = (stock ?? []).reduce((a, s) => a + (s.stock ?? 0), 0)
-  const p = productos?.[0]
-  const precio = n(p?.precio_base ?? 0)
-  const costo = n(p?.costo_unitario ?? 0)
-  const margenUnitario = precio - costo
-  const porRecuperar = Math.max(0, egresos - ingresos)
-  const unidadesParaEquilibrio =
-    margenUnitario > 0 ? Math.ceil(porRecuperar / margenUnitario) : null
+  // ── Resultado: ganancia, lo que nos deben y lo que hay en bodega ─────
+  const costoPor = new Map((productos ?? []).map((p) => [p.id as string, n(p.costo_unitario ?? 0)]))
+  const precioPor = new Map((productos ?? []).map((p) => [p.id as string, n(p.precio_base ?? 0)]))
+  const resultado = calcularResultado(movsStock ?? [], costoPor)
+  const filasStock = (stock ?? []).filter((f) => n(f.stock ?? 0) > 0)
+  const valorStock = {
+    unidades: filasStock.reduce((a, f) => a + n(f.stock), 0),
+    aCosto: filasStock.reduce((a, f) => a + n(f.stock) * (costoPor.get(f.producto_id) ?? 0), 0),
+    aPrecio: filasStock.reduce((a, f) => a + n(f.stock) * (precioPor.get(f.producto_id) ?? 0), 0),
+    productos: filasStock.length,
+  }
+  const todosPorCategoria = new Map<string, number>()
+  for (const m of todosLosMovs ?? []) if (m.tipo === 'egreso') todosPorCategoria.set(m.categoria, (todosPorCategoria.get(m.categoria) ?? 0) + n(m.monto_clp))
+  // ── Cuadre de caja ────────────────────────────────────────────────
+  const esperado = (todosLosMovs ?? []).reduce((a, m) => a + (m.tipo === 'ingreso' ? n(m.monto_clp) : -n(m.monto_clp)), 0)
+  const saldoVigente = saldoRows?.[0] ? { monto: n(saldoRows[0].monto_clp), fecha: String(saldoRows[0].fecha), nota: (saldoRows[0].nota as string | null) ?? null } : null
+  const saldosEfectivo = saldosDeEfectivo(efectivoRows ?? [])
+  const cuadre = calcularCuadre({ esperado, enCuenta: saldoVigente?.monto ?? 0, enEfectivo: totalPorDepositar(saldosEfectivo) })
+  const nombreDe = new Map((integrantes ?? []).map((i) => [i.id as string, i.nombre as string]))
+  const personasEfectivo = (integrantes ?? []).map((i) => ({ id: i.id as string, nombre: i.nombre as string, saldo: saldosEfectivo.find((s) => s.integranteId === i.id)?.saldo ?? 0 }))
+  const historialEfectivo = (efectivoRows ?? []).slice(0, 20).map((m) => ({ id: m.id as string, persona: nombreDe.get(m.integrante_id) ?? 'Alguien', tipo: m.tipo as 'recibe' | 'deposita', monto: n(m.monto_clp), fecha: String(m.fecha), nota: (m.nota as string | null) ?? null }))
+  const previas = new Map<string, number>()
+  for (const m of previasStock ?? []) previas.set(m.producto_id, (previas.get(m.producto_id) ?? 0) + n(m.cantidad))
+  const stockPropio = stockPropioACosto(filasStock.map((f) => ({ producto_id: f.producto_id, stock: n(f.stock), costo: costoPor.get(f.producto_id) ?? 0 })), previas)
+  const totalPorCobrar = (porCobrarPedidos ?? []).reduce((a, p) => a + n(p.total_clp), 0)
 
-  const alcanzable = unidadesParaEquilibrio !== null && unidadesParaEquilibrio <= unidades
+  // ── Cómo vamos: invertido, generado y stock sin vender ─────────────
+  const gastoEn = (categoria: string) => (todosPorCategoria.get(categoria) ?? 0)
+  const resumenNegocio = calcularResumenNegocio({
+    aportado: capital.totalAportado,
+    hay: cuadre.hay,
+    stockPropioACosto: stockPropio,
+    porCobrar: totalPorCobrar,
+    retirado: capital.totalRetirado,
+    sobrante: -cuadre.diferencia,
+    stockTotalACosto: valorStock.aCosto,
+    stockAPrecio: valorStock.aPrecio,
+  })
+
+  const pedidosPorCobrar = (porCobrarPedidos ?? []).map((p) => ({ numero: p.numero, cliente: p.cliente_nombre ?? 'Sin nombre', total: n(p.total_clp) }))
 
   return (
     <>
@@ -108,70 +166,49 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         </div>
       </header>
 
+      <ResumenDelNegocio
+        resumen={resumenNegocio}
+        socios={capital.socios.filter((x) => x.aportado > 0).map((x) => ({ nombre: x.nombre, monto: x.aportado }))}
+        plataQueHay={cuadre.hay}
+        stockPropioACosto={stockPropio}
+        porCobrar={totalPorCobrar}
+        retirado={capital.totalRetirado}
+        mercaderiaComprada={gastoEn('Inventario e insumos')}
+        traslados={gastoEn('Transporte y logística')}
+        unidadesEnStock={valorStock.unidades}
+        productosEnStock={valorStock.productos}
+      />
+
       <SelectorPeriodo periodo={periodo} conservarSin={soloSinComprobante} />
 
       {/*
-        Jerarquía numérica: UNA cifra manda.
-        Antes las tres cifras medían lo mismo (2rem) y el ojo no sabía dónde
-        posarse: el balance, que es la pregunta real, competía con sus propios
-        sumandos. Ahora el balance domina y los sumandos quedan subordinados.
-
-        Y el signo va escrito, no solo pintado: distinguir ingreso de egreso
-        únicamente por el color deja fuera a quien no lo percibe, y en dinero
-        esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
+        Arriba, solo lo VENDIDO: una cifra manda. Los aportes de los socios, las compras de stock,
+        los gastos y los retiros son movimientos de dinero y se ven más abajo (cuadre de caja,
+        capital y desgloses por categoría): mezclados acá hacían que «Entró» pareciera mucho más
+        de lo que se había vendido.
       */}
-      <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
+      <ResumenFinanzas ventas={resultado.ventas} ventasAnterior={ventasAnterior} ganancia={resultado.ganancia} margenPct={resultado.margenPct} unidades={resultado.unidadesVendidas} etiquetaPeriodo={periodo.etiqueta} />
+
+      <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <ResultadoNegocio resultado={resultado} etiquetaPeriodo={periodo.etiqueta} />
+        <div className="grid gap-4 content-start">
+          <NosDeben pedidos={pedidosPorCobrar} />
+          <ValorStock {...valorStock} />
+        </div>
+      </div>
+
+      <CuadreDeCaja cuadre={cuadre} cuenta={saldoVigente} personas={personasEfectivo} historial={historialEfectivo} puedeGestionar={Boolean(yo.gestionar_finanzas)} />
+
+      <CapitalSocios capital={capital} />
 
       <CuentasPorMetodo cuentas={cuentas} />
 
       <div className="mb-8 grid gap-4 md:grid-cols-2">
-        <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" />
-        <DesgloseCategorias titulo="Entró por categoría" filas={desglosarPorCategoria(todos, 'ingreso')} tono="verde" />
+        <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" total={egresos} />
+        <DesgloseCategorias titulo="Entró por categoría" filas={desglosarPorCategoria(todos, 'ingreso')} tono="verde" total={ingresos} />
       </div>
 
       <AvisoSinComprobante cantidad={sinComprobante.length} activo={soloSinComprobante} periodo={periodo} />
-
-      {/* Punto de equilibrio: la pregunta real del negocio. */}
-      {margenUnitario > 0 && todos.length > 0 && (
-        <section
-          aria-label="Punto de equilibrio"
-          className="mb-10 rounded-[var(--radius-tarjeta)] bg-papel p-6 ring-1 ring-borde/70"
-        >
-          <h2 className="text-[15px] font-semibold">Punto de equilibrio</h2>
-          {egresos === 0 ? (
-            <p className="mt-2 text-[15px] leading-relaxed text-tinta-suave">
-              Todavía no hay egresos registrados, así que no hay inversión que
-              recuperar. Anota la importación para que el cálculo tenga sentido.
-            </p>
-          ) : porRecuperar === 0 ? (
-            <p className="mt-2 text-[15px] text-verde">
-              Inversión recuperada. Todo lo que vendas desde acá es ganancia.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-[15px] leading-relaxed text-tinta-suave">
-                Faltan <strong className="cifra text-tinta">{clp(porRecuperar)}</strong> para
-                recuperar lo invertido, o sea{' '}
-                <strong className="cifra text-tinta">{unidadesParaEquilibrio}</strong>{' '}
-                unidades a {clp(precio)} con margen de {clp(margenUnitario)} c/u.
-              </p>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-papel-alt">
-                <div
-                  className="h-full rounded-full bg-spark transition-[width] duration-500"
-                  style={{
-                    width: `${Math.min(100, egresos > 0 ? (ingresos / egresos) * 100 : 0)}%`,
-                  }}
-                />
-              </div>
-              <p className="mt-2 text-[13px] text-gris">
-                {alcanzable
-                  ? `Alcanza con el stock actual (${unidades} unidades).`
-                  : `Con las ${unidades} unidades en bodega no alcanza: hay que reponer.`}
-              </p>
-            </>
-          )}
-        </section>
-      )}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section aria-label="Movimientos" className="min-w-0">

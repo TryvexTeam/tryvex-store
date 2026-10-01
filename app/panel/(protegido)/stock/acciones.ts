@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { exigirIntegrante } from '@/lib/autorizacion'
 import { varianteValida, stockDisponible } from '@/lib/variantes'
+import { UUID } from '@/lib/catalogo'
+import { esquemaConteo, primerError } from '@/lib/validacion-panel'
+import { planificarConteo } from '@/lib/conteo'
 
 export type Resultado = { ok: true; aviso?: string } | { ok: false; error: string }
 
@@ -207,4 +210,65 @@ export async function registrarStock(datos: FormData): Promise<Resultado> {
   revalidatePath('/panel/finanzas')
   revalidatePath('/panel')
   return { ok: true, aviso }
+}
+
+export type ResultadoConteo =
+  | { ok: true; cambios: { variante: string | null; antes: number; despues: number }[] }
+  | { ok: false; error: string }
+
+/**
+ * Pone el stock disponible en el número que el equipo contó.
+ *
+ * El stock es la suma de los movimientos y no se edita: acá se calcula la
+ * diferencia contra lo que dice el sistema y se registra UN ajuste por esa
+ * diferencia, con el motivo escrito. Si el producto tiene variantes, cada una
+ * se cuenta por separado (cada línea es una variante).
+ */
+export async function fijarStock(datos: FormData): Promise<ResultadoConteo> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+
+  let crudas: unknown
+  try {
+    crudas = JSON.parse(String(datos.get('lineas') ?? '[]'))
+  } catch {
+    return { ok: false, error: 'El conteo no es válido.' }
+  }
+  const analizado = esquemaConteo.safeParse({ producto_id: String(datos.get('producto_id') ?? ''), lineas: crudas })
+  if (!analizado.success) return { ok: false, error: primerError(analizado.error) }
+  const { producto_id, lineas } = analizado.data
+  if (!UUID.test(producto_id)) return { ok: false, error: 'Producto no válido.' }
+
+  const vistas = new Set<string>()
+  const cambios: { variante: string | null; antes: number; despues: number }[] = []
+  for (const l of lineas) {
+    const clave = l.variante_id ?? ''
+    if (vistas.has(clave)) return { ok: false, error: 'Una variante vino repetida en el conteo.' }
+    vistas.add(clave)
+
+    const variante = await varianteValida(sesion.supabase, producto_id, clave)
+    if (!variante.ok) return variante
+    const antes = await stockDisponible(sesion.supabase, producto_id, variante.id)
+    const plan = planificarConteo(antes, l.real)
+    if (!plan) continue
+
+    const { error } = await sesion.supabase.from('stock_movimientos').insert({
+      producto_id,
+      variante_id: variante.id,
+      tipo: 'ajuste',
+      cantidad: plan.delta,
+      motivo: plan.motivo,
+      precio_unitario: null,
+      total_clp: null,
+      precio_negociado: false,
+      creado_por: sesion.integranteId,
+    })
+    if (error) return { ok: false, error: error.message }
+    cambios.push({ variante: variante.id, antes, despues: l.real })
+  }
+
+  revalidatePath('/panel/stock')
+  revalidatePath('/panel')
+  revalidatePath('/')
+  return { ok: true, cambios }
 }

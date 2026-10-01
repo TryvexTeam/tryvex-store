@@ -4,6 +4,7 @@ import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
 import { ATAJOS, queryDePeriodo, type Periodo } from '@/lib/periodo'
 import type { Movimiento } from '@/components/panel/finanzas-vista'
 import type { Cuenta } from '@/lib/cuentas'
+import type { Capital } from '@/lib/capital'
 
 /**
  * Piezas de Finanzas que Revolut Business resuelve en su analítica: periodo
@@ -82,10 +83,13 @@ export function desglosarPorCategoria(lista: Movimiento[], tipo: 'ingreso' | 'eg
 }
 
 /** Barras horizontales con monto y porcentaje ESCRITOS: la barra acompaña, no es el dato. */
-export function DesgloseCategorias({ titulo, filas, tono }: { titulo: string; filas: FilaDesglose[]; tono: 'verde' | 'spark' }) {
+export function DesgloseCategorias({ titulo, filas, tono, total }: { titulo: string; filas: FilaDesglose[]; tono: 'verde' | 'spark'; total?: number }) {
   return (
     <section aria-label={titulo} className="rounded-[var(--radius-widget)] bg-papel p-5 ring-1 ring-borde/60">
-      <h2 className="text-[15px] font-semibold">{titulo}</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-semibold">{titulo}</h2>
+        {total !== undefined && <p className="cifra text-[13.5px] font-semibold text-tinta-suave">{clp(total)}</p>}
+      </div>
       {filas.length === 0 ? (
         <p className="mt-3 text-[13px] text-gris">Sin movimientos en este periodo.</p>
       ) : (
@@ -185,5 +189,63 @@ export function PestanasMovimientos({ periodo, activa, cuentas }: { periodo: Per
         )
       })}
     </nav>
+  )
+}
+
+/**
+ * Capital por integrante: cuánto puso cada uno y qué parte del capital de socios
+ * es. Lo reinvertido de ventas se muestra aparte: es de Tryvex, no de nadie.
+ */
+export function CapitalSocios({ capital }: { capital: Capital }) {
+  if (capital.socios.length === 0) return null
+  return (
+    <section aria-label="Capital por integrante" className="mb-8 rounded-[var(--radius-widget)] bg-papel p-5 ring-1 ring-borde/60">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[15px] font-semibold">Quién puso la plata</h2>
+        <p className="cifra text-[13px] text-gris">{clp(capital.totalAportado)} aportados por socios</p>
+      </div>
+
+      <ul className="mt-4 space-y-4">
+        {capital.socios.map((s) => (
+          <li key={s.nombre}>
+            <div className="flex items-baseline justify-between gap-3 text-[14.5px]">
+              <span className="min-w-0 truncate font-medium">{s.nombre}</span>
+              <span className="cifra shrink-0 font-semibold">
+                {clp(s.aportado)} <span className="font-normal text-gris">· {String(s.porcentaje).replace('.', ',')} %</span>
+              </span>
+            </div>
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-papel-alt" role="presentation">
+              <div className="h-full rounded-full bg-tinta" style={{ width: `${Math.max(2, s.porcentaje)}%` }} />
+            </div>
+            {s.retirado > 0 && <p className="cifra mt-1.5 text-[12.5px] text-gris">Retiró {clp(s.retirado)} para gastos personales</p>}
+          </li>
+        ))}
+      </ul>
+
+      <dl className="mt-5 grid gap-3 border-t border-borde/60 pt-4 text-[13.5px] sm:grid-cols-3">
+        <div>
+          <dt className="text-gris">Invertido en stock</dt>
+          <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.invertidoEnStock)}</dd>
+        </div>
+        {capital.totalRetirado > 0 && (
+          <div>
+            <dt className="text-gris">Retirado por socios</dt>
+            <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.totalRetirado)}</dd>
+            <dd className="mt-0.5 text-[12px] text-gris">No cambia el porcentaje de nadie.</dd>
+          </div>
+        )}
+        <div>
+          <dt className="text-gris">Reinvertido de ventas</dt>
+          <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.reinvertidoDeVentas)}</dd>
+          <dd className="mt-0.5 text-[12px] text-gris">Es de Tryvex, no suma al capital de nadie.</dd>
+        </div>
+        {capital.aportadoSinGastar > 0 && (
+          <div>
+            <dt className="text-gris">Aportado sin gastar</dt>
+            <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.aportadoSinGastar)}</dd>
+          </div>
+        )}
+      </dl>
+    </section>
   )
 }

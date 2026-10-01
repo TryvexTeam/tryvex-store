@@ -78,3 +78,53 @@ export type LineaVentaValidada = z.infer<typeof esquemaLineasVenta>[number]
 
 /** Encabezado de una venta con varios productos: lo del pedido, sin producto ni cantidad sueltos. */
 export const esquemaEncabezadoVenta = esquemaPedido.omit({ producto_id: true, cantidad: true })
+
+/** Conteo de stock: el número real de un producto, o de cada una de sus variantes. */
+export const esquemaConteo = z.object({
+  producto_id: z.string().min(1, 'Falta el producto.'),
+  lineas: z
+    .array(
+      z.object({
+        variante_id: z.union([z.string(), z.null()]).optional().transform((v) => (v ? v : null)),
+        // Un campo vacío NO es cero: `Number('')` da 0 y pondría el stock en nada sin querer.
+        real: z
+          .union([z.number(), z.string().trim().min(1, 'Escribe el stock real.')])
+          .transform((v) => Number(v))
+          .pipe(z.number({ error: 'El stock debe ser un número.' }).int('El stock va en unidades enteras.').min(0, 'El stock no puede ser negativo.').max(1_000_000, 'El stock es demasiado alto.')),
+      }),
+      { error: 'El conteo no es válido.' }
+    )
+    .min(1, 'No hay nada que guardar.')
+    .max(100, 'Demasiadas variantes en un solo conteo.'),
+})
+
+/** Pesos enteros no negativos; vacío NO es cero (un campo en blanco no debe dejar un saldo en nada). */
+const pesosEnteros = (etiqueta: string) =>
+  z
+    .union([z.number(), z.string().trim().min(1, `Escribe ${etiqueta}.`)])
+    .transform((v) => Number(typeof v === 'string' ? v.replace(/[.\s$]/g, '') : v))
+    .pipe(z.number({ error: `${etiqueta[0].toUpperCase()}${etiqueta.slice(1)} no es un número.` }).int('Los pesos van enteros.').min(0, 'No puede ser negativo.').max(10_000_000_000, 'El monto es demasiado alto.'))
+
+/** Efectivo que un integrante recibió o depositó. */
+export const esquemaEfectivo = z.object({
+  integrante_id: z.string().min(1, 'Elige a la persona.'),
+  tipo: z.enum(['recibe', 'deposita'], { error: 'El movimiento no es válido.' }),
+  monto_clp: pesosEnteros('el monto').refine((n) => n > 0, 'El monto debe ser mayor que cero.'),
+  fecha: z.string().regex(FECHA, 'Falta la fecha.'),
+  nota: texto(240, 'La nota').default(''),
+})
+
+/** «Tiene ahora»: el efectivo que alguien dice tener en la mano. Cero es válido. */
+export const esquemaConteoEfectivo = z.object({
+  integrante_id: z.string().min(1, 'Elige a la persona.'),
+  real: pesosEnteros('cuánto efectivo tiene'),
+  fecha: z.string().regex(FECHA, 'Falta la fecha.'),
+  nota: texto(240, 'La nota').default(''),
+})
+
+/** Saldo que el equipo declara tener en la cuenta. */
+export const esquemaSaldoCuenta = z.object({
+  monto_clp: pesosEnteros('el saldo'),
+  fecha: z.string().regex(FECHA, 'Falta la fecha.'),
+  nota: texto(240, 'La nota').default(''),
+})
