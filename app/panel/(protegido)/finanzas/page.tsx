@@ -6,9 +6,11 @@ import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMet
 import { agruparPorMetodo } from '@/lib/cuentas'
 import { calcularCapital, CATEGORIA_APORTE } from '@/lib/capital'
 import { calcularResultado } from '@/lib/resultado'
-import { calcularCuadre, calcularRecuperacion, stockPropioACosto } from '@/lib/cuadre'
+import { calcularCuadre, stockPropioACosto } from '@/lib/cuadre'
 import { saldosDeEfectivo, totalPorDepositar } from '@/lib/efectivo'
 import { CuadreDeCaja } from '@/components/panel/cuadre-caja'
+import { ResumenDelNegocio } from '@/components/panel/resumen-negocio'
+import { calcularResumenNegocio } from '@/lib/resumen-negocio'
 import { ResultadoNegocio, NosDeben, ValorStock } from '@/components/panel/resultado-negocio'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
@@ -79,7 +81,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     supabase.from('saldo_cuenta').select('monto_clp,fecha,nota').order('created_at', { ascending: false }).limit(1),
     supabase.from('efectivo_por_depositar').select('id,integrante_id,tipo,monto_clp,fecha,nota').order('fecha', { ascending: false }).order('created_at', { ascending: false }).limit(500),
     supabase.from('dim_integrantes').select('id,nombre').eq('activo', true).order('nombre'),
-    supabase.from('movimientos_financieros').select('tipo,monto_clp').eq('negocio', NEGOCIO_TIENDA).limit(20000),
+    supabase.from('movimientos_financieros').select('tipo,categoria,monto_clp').eq('negocio', NEGOCIO_TIENDA).limit(20000),
     supabase.from('stock_movimientos').select('producto_id,cantidad').eq('tipo', 'ingreso').ilike('motivo', 'Stock previo%').limit(1000),
     supabase.from('movimientos_financieros').select('contraparte,monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Retiro de socio').limit(2000),
   ])
@@ -113,6 +115,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     aPrecio: filasStock.reduce((a, f) => a + n(f.stock) * (precioPor.get(f.producto_id) ?? 0), 0),
     productos: filasStock.length,
   }
+  const todosPorCategoria = new Map<string, number>()
+  for (const m of todosLosMovs ?? []) if (m.tipo === 'egreso') todosPorCategoria.set(m.categoria, (todosPorCategoria.get(m.categoria) ?? 0) + n(m.monto_clp))
   // ── Cuadre de caja ────────────────────────────────────────────────
   const esperado = (todosLosMovs ?? []).reduce((a, m) => a + (m.tipo === 'ingreso' ? n(m.monto_clp) : -n(m.monto_clp)), 0)
   const saldoVigente = saldoRows?.[0] ? { monto: n(saldoRows[0].monto_clp), fecha: String(saldoRows[0].fecha), nota: (saldoRows[0].nota as string | null) ?? null } : null
@@ -125,7 +129,19 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   for (const m of previasStock ?? []) previas.set(m.producto_id, (previas.get(m.producto_id) ?? 0) + n(m.cantidad))
   const stockPropio = stockPropioACosto(filasStock.map((f) => ({ producto_id: f.producto_id, stock: n(f.stock), costo: costoPor.get(f.producto_id) ?? 0 })), previas)
   const totalPorCobrar = (porCobrarPedidos ?? []).reduce((a, p) => a + n(p.total_clp), 0)
-  const recuperacion = calcularRecuperacion({ aportado: capital.totalAportado, hay: cuadre.hay, stockPropioACosto: stockPropio, porCobrar: totalPorCobrar })
+
+  // ── Cómo vamos: invertido, generado y stock sin vender ─────────────
+  const gastoEn = (categoria: string) => (todosPorCategoria.get(categoria) ?? 0)
+  const resumenNegocio = calcularResumenNegocio({
+    aportado: capital.totalAportado,
+    hay: cuadre.hay,
+    stockPropioACosto: stockPropio,
+    porCobrar: totalPorCobrar,
+    retirado: capital.totalRetirado,
+    sobrante: -cuadre.diferencia,
+    stockTotalACosto: valorStock.aCosto,
+    stockAPrecio: valorStock.aPrecio,
+  })
 
   const pedidosPorCobrar = (porCobrarPedidos ?? []).map((p) => ({ numero: p.numero, cliente: p.cliente_nombre ?? 'Sin nombre', total: n(p.total_clp) }))
 
@@ -148,6 +164,19 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         </div>
       </header>
 
+      <ResumenDelNegocio
+        resumen={resumenNegocio}
+        socios={capital.socios.filter((x) => x.aportado > 0).map((x) => ({ nombre: x.nombre, monto: x.aportado }))}
+        plataQueHay={cuadre.hay}
+        stockPropioACosto={stockPropio}
+        porCobrar={totalPorCobrar}
+        retirado={capital.totalRetirado}
+        mercaderiaComprada={gastoEn('Inventario e insumos')}
+        traslados={gastoEn('Transporte y logística')}
+        unidadesEnStock={valorStock.unidades}
+        productosEnStock={valorStock.productos}
+      />
+
       <SelectorPeriodo periodo={periodo} conservarSin={soloSinComprobante} />
 
       {/*
@@ -166,7 +195,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         </div>
       </div>
 
-      <CuadreDeCaja cuadre={cuadre} recuperacion={recuperacion} cuenta={saldoVigente} personas={personasEfectivo} historial={historialEfectivo} puedeGestionar={Boolean(yo.gestionar_finanzas)} />
+      <CuadreDeCaja cuadre={cuadre} cuenta={saldoVigente} personas={personasEfectivo} historial={historialEfectivo} puedeGestionar={Boolean(yo.gestionar_finanzas)} />
 
       <CapitalSocios capital={capital} />
 

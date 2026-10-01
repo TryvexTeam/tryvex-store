@@ -7,7 +7,7 @@ import { MantenerParaConfirmar } from '@/components/panel/mantener-para-confirma
 import { notificar } from '@/lib/notificar'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
 import { hoyChile } from '@/lib/periodo'
-import type { Cuadre, Recuperacion } from '@/lib/cuadre'
+import type { Cuadre } from '@/lib/cuadre'
 import { registrarEfectivo, fijarEfectivo, borrarEfectivo, declararSaldoCuenta } from '@/app/panel/(protegido)/finanzas/acciones'
 
 /**
@@ -41,14 +41,12 @@ const corto = (nombre: string) => nombre.trim().split(/\s+/)[0]
 
 export function CuadreDeCaja({
   cuadre,
-  recuperacion,
   cuenta,
   personas,
   historial,
   puedeGestionar,
 }: {
   cuadre: Cuadre
-  recuperacion: Recuperacion
   cuenta: { monto: number; fecha: string; nota: string | null } | null
   personas: PersonaEfectivo[]
   historial: MovimientoEfectivoVista[]
@@ -159,24 +157,6 @@ export function CuadreDeCaja({
             </ul>
           </details>
         )}
-      </div>
-
-      {/* ── Recuperación de lo aportado ────────────────────────── */}
-      <div className="mt-6 border-t border-borde/60 pt-5">
-        <h3 className="text-[15px] font-semibold">Para recuperar lo aportado</h3>
-        <dl className="mt-3 space-y-2 text-[14px]">
-          <Fila rotulo="Aportado por los socios" valor={clp(recuperacion.aportado)} />
-          <Fila rotulo="Plata que hay" nota="cuenta + efectivo" valor={clp(recuperacion.hay)} />
-          <Fila rotulo="Stock a costo" nota="sin lo que Joseph ya tenía antes" valor={clp(recuperacion.stockPropioACosto)} />
-          <Fila rotulo="Nos deben" nota="pedidos por pagar" valor={clp(recuperacion.porCobrar)} />
-          <div className="flex justify-between gap-3 border-t border-borde/50 pt-2 font-semibold">
-            <dt>Valor hoy</dt>
-            <dd className="cifra">{clp(recuperacion.valorActual)}</dd>
-          </div>
-        </dl>
-        <p className={`mt-3 text-[14.5px] font-semibold ${recuperacion.recuperado ? 'text-verde' : 'text-ambar'}`}>
-          {recuperacion.recuperado ? 'Ya se recuperó lo aportado.' : <>Faltan <span className="cifra">{clp(recuperacion.falta)}</span> para recuperar lo aportado.</>}
-        </p>
       </div>
 
       <Hoja
