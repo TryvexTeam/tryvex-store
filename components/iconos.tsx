@@ -110,8 +110,18 @@ export function IconoEstrella({ size = 24, className, activo }: Props) {
 export function IconoBolsa({ size = 24, className }: Props) {
   return (
     <svg {...base(size)} className={className}>
-      <path d="M6 8h12l1 12H5L6 8Z" />
-      <path d="M9 8V7a3 3 0 0 1 6 0v1" />
+      {/* Mismo trazo que el ícono de la bolsa de la cabecera (BotonBolsa). */}
+      <path d="M5 8h14l-1 12H6L5 8ZM9 8V6a3 3 0 0 1 6 0v2" />
+    </svg>
+  )
+}
+
+export function IconoPersonas({ size = 24, className }: Props) {
+  return (
+    <svg {...base(size)} className={className}>
+      <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
+      <circle cx="10" cy="8" r="3.2" />
+      <path d="M20 20v-1.4a3.4 3.4 0 0 0-2.5-3.3M15.5 4.9a3.2 3.2 0 0 1 0 6.2" />
     </svg>
   )
 }

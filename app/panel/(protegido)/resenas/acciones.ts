@@ -1,5 +1,6 @@
 'use server'
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath, updateTag } from 'next/cache'
 import { exigirIntegrante, fallo, type Fallo, type Resultado } from '@/lib/autorizacion'
 import { UUID } from '@/lib/catalogo'
@@ -23,33 +24,92 @@ function leerCalificacion(datos: FormData): number | Fallo {
   return calificacion
 }
 
-/** Crea una reseña para cualquier producto del catálogo. */
+/**
+ * Producto de la reseña. Vacío = reseña de la portada, sin producto (null).
+ * Si viene, tiene que ser un producto que exista: el formulario lo ofrece de
+ * una lista, pero una Server Action se puede invocar sin pasar por el formulario.
+ */
+async function leerProducto(supabase: SupabaseClient, datos: FormData): Promise<Resultado<{ productoId: string | null }>> {
+  const crudo = String(datos.get('producto_id') ?? '').trim()
+  if (!crudo) return { ok: true, productoId: null }
+  if (!UUID.test(crudo)) return fallo('Elige un producto válido.')
+
+  const { data, error } = await supabase.from('productos').select('id').eq('id', crudo).maybeSingle()
+  if (error) return fallo(error.message)
+  if (!data) return fallo('Ese producto no existe.')
+  return { ok: true, productoId: crudo }
+}
+
+/** La foto es opcional: sin archivo no hay nada que validar. */
+function validarFoto(archivo: FormDataEntryValue | null): Fallo | null {
+  if (!(archivo instanceof File) || archivo.size === 0) return null
+  if (!(TIPOS_FOTO_RESENA as readonly string[]).includes(archivo.type))
+    return fallo('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
+  if (archivo.size > PESO_MAXIMO_FOTO_RESENA)
+    return fallo(`La foto pesa ${(archivo.size / 1024 / 1024).toFixed(1)} MB y el máximo son 5 MB.`)
+  return null
+}
+
+type Medidas = { ancho: number; alto: number } | null
+
+/**
+ * Medidas que tomó el navegador al elegir la foto. Son solo para dibujar el marco
+ * de la tarjeta, así que un valor raro no bloquea nada: se descarta y la foto se
+ * muestra con el marco de siempre.
+ */
+function leerMedidas(datos: FormData): Medidas {
+  const ancho = Number(datos.get('foto_ancho'))
+  const alto = Number(datos.get('foto_alto'))
+  const valido = (n: number) => Number.isInteger(n) && n >= 1 && n <= 20000
+  return valido(ancho) && valido(alto) ? { ancho, alto } : null
+}
+
+/** Sube la foto y la deja asociada a la reseña; borra la anterior si tenía otra ruta. */
+async function guardarFoto(supabase: SupabaseClient, id: string, archivo: File, rutaAnterior: string | null, medidas: Medidas): Promise<Resultado> {
+  const ruta = nombreFotoResena(id, archivo.name)
+  const { error: errorSubida } = await supabase.storage
+    .from(BUCKET_RESENAS)
+    .upload(ruta, archivo, { cacheControl: '31536000', upsert: true })
+  if (errorSubida) return fallo(`No se pudo subir la foto: ${errorSubida.message}`)
+
+  const { error: errorUpdate } = await supabase
+    .from('resenas_tienda')
+    .update({ foto_path: ruta, foto_ancho: medidas?.ancho ?? null, foto_alto: medidas?.alto ?? null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (errorUpdate) return fallo(errorUpdate.message)
+
+  if (rutaAnterior && rutaAnterior !== ruta) await supabase.storage.from(BUCKET_RESENAS).remove([rutaAnterior])
+  return { ok: true }
+}
+
+/**
+ * Crea una reseña para un producto del catálogo o para la portada (sin producto).
+ * La foto es opcional y viaja en el mismo envío.
+ */
 export async function crearResena(datos: FormData): Promise<Resultado<{ id: string }>> {
   const sesion = await exigirIntegrante()
   if (!sesion.ok) return sesion
 
-  const productoId = String(datos.get('producto_id') ?? '')
   const cliente = String(datos.get('cliente_nombre') ?? '').trim()
   const texto = String(datos.get('texto') ?? '').trim()
   const calificacion = leerCalificacion(datos)
+  const archivo = datos.get('archivo')
 
-  if (!UUID.test(productoId)) return fallo('Elige un producto válido.')
   if (!cliente || cliente.length > 120) return fallo('Indica el nombre del cliente (máximo 120 caracteres).')
   if (!texto || texto.length > 1200) return fallo('La reseña debe tener entre 1 y 1.200 caracteres.')
   if (typeof calificacion !== 'number') return calificacion
 
-  const { data: producto, error: errorProducto } = await sesion.supabase
-    .from('productos')
-    .select('id')
-    .eq('id', productoId)
-    .maybeSingle()
-  if (errorProducto) return fallo(errorProducto.message)
-  if (!producto) return fallo('Ese producto no existe.')
+  // La foto se valida antes de insertar: así un archivo malo no deja una reseña a medias.
+  const falloFoto = validarFoto(archivo)
+  if (falloFoto) return falloFoto
+
+  const producto = await leerProducto(sesion.supabase, datos)
+  if (!producto.ok) return producto
 
   const { data, error } = await sesion.supabase
     .from('resenas_tienda')
     .insert({
-      producto_id: productoId,
+      producto_id: producto.productoId,
       cliente_nombre: cliente,
       texto,
       calificacion,
@@ -60,11 +120,22 @@ export async function crearResena(datos: FormData): Promise<Resultado<{ id: stri
     .single()
 
   if (error) return fallo(error.message)
+
+  if (archivo instanceof File && archivo.size > 0) {
+    const r = await guardarFoto(sesion.supabase, data.id, archivo, null, leerMedidas(datos))
+    if (!r.ok) {
+      // Sin foto la reseña sigue siendo válida, pero quien la crea espera verla
+      // completa: se deshace para que reintente desde cero en vez de duplicarla.
+      await sesion.supabase.from('resenas_tienda').delete().eq('id', data.id)
+      return r
+    }
+  }
+
   revalidar()
   return { ok: true, id: data.id }
 }
 
-/** Edita el texto, la calificación y el nombre de una reseña ya creada. */
+/** Edita el texto, la calificación, el nombre y el producto (o la portada) de una reseña. */
 export async function editarResena(datos: FormData): Promise<Resultado> {
   const sesion = await exigirIntegrante()
   if (!sesion.ok) return sesion
@@ -79,9 +150,12 @@ export async function editarResena(datos: FormData): Promise<Resultado> {
   if (!texto || texto.length > 1200) return fallo('La reseña debe tener entre 1 y 1.200 caracteres.')
   if (typeof calificacion !== 'number') return calificacion
 
+  const producto = await leerProducto(sesion.supabase, datos)
+  if (!producto.ok) return producto
+
   const { data: filas, error } = await sesion.supabase
     .from('resenas_tienda')
-    .update({ cliente_nombre: cliente, texto, calificacion, updated_at: new Date().toISOString() })
+    .update({ producto_id: producto.productoId, cliente_nombre: cliente, texto, calificacion, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select('id')
   if (error) return fallo(error.message)
@@ -100,10 +174,8 @@ export async function subirFotoResena(datos: FormData): Promise<Resultado> {
   const archivo = datos.get('archivo')
   if (!UUID.test(id)) return fallo('Reseña no válida.')
   if (!(archivo instanceof File) || archivo.size === 0) return fallo('Elige una foto para subir.')
-  if (!(TIPOS_FOTO_RESENA as readonly string[]).includes(archivo.type))
-    return fallo('Formato no admitido. Usa JPG, PNG, WebP, AVIF o HEIC.')
-  if (archivo.size > PESO_MAXIMO_FOTO_RESENA)
-    return fallo(`La foto pesa ${(archivo.size / 1024 / 1024).toFixed(1)} MB y el máximo son 5 MB.`)
+  const falloFoto = validarFoto(archivo)
+  if (falloFoto) return falloFoto
 
   const { data: resena, error: errorLectura } = await sesion.supabase
     .from('resenas_tienda')
@@ -113,20 +185,34 @@ export async function subirFotoResena(datos: FormData): Promise<Resultado> {
   if (errorLectura) return fallo(errorLectura.message)
   if (!resena) return fallo('La reseña ya no existe.')
 
-  const ruta = nombreFotoResena(id, archivo.name)
-  const { error: errorSubida } = await sesion.supabase.storage
-    .from(BUCKET_RESENAS)
-    .upload(ruta, archivo, { cacheControl: '31536000', upsert: true })
-  if (errorSubida) return fallo(`No se pudo subir la foto: ${errorSubida.message}`)
+  const r = await guardarFoto(sesion.supabase, id, archivo, resena.foto_path, leerMedidas(datos))
+  if (!r.ok) return r
 
-  const { error: errorUpdate } = await sesion.supabase
+  revalidar()
+  return { ok: true }
+}
+
+/** Quita la foto de una reseña: la reseña queda sin imagen, que es válido. */
+export async function quitarFotoResena(id: string): Promise<Resultado> {
+  const sesion = await exigirIntegrante()
+  if (!sesion.ok) return sesion
+  if (!UUID.test(id)) return fallo('Reseña no válida.')
+
+  const { data: resena, error: errorLectura } = await sesion.supabase
     .from('resenas_tienda')
-    .update({ foto_path: ruta, updated_at: new Date().toISOString() })
+    .select('foto_path')
     .eq('id', id)
-  if (errorUpdate) return fallo(errorUpdate.message)
+    .maybeSingle()
+  if (errorLectura) return fallo(errorLectura.message)
+  if (!resena) return fallo('La reseña ya no existe.')
+  if (!resena.foto_path) return { ok: true }
 
-  if (resena.foto_path && resena.foto_path !== ruta)
-    await sesion.supabase.storage.from(BUCKET_RESENAS).remove([resena.foto_path])
+  const { error } = await sesion.supabase
+    .from('resenas_tienda')
+    .update({ foto_path: null, foto_ancho: null, foto_alto: null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) return fallo(error.message)
+  await sesion.supabase.storage.from(BUCKET_RESENAS).remove([resena.foto_path])
 
   revalidar()
   return { ok: true }
