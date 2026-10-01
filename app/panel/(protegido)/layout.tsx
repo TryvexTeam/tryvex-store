@@ -6,7 +6,8 @@ import { Marca } from '@/app/marca'
 import { BarraInferior, type Destino } from '@/components/barra-inferior'
 import { ProveedorAvisos } from '@/components/avisos'
 import { CampanaVentas } from '@/components/panel/campana-ventas'
-import { BotonTema, TemaPanel, leerTema } from '@/components/panel/tema-panel'
+import { BotonTema, TemaPanel } from '@/components/panel/tema-panel'
+import { COOKIE_TEMA_PANEL, leerTema } from '@/lib/tema-panel'
 
 export const metadata = {
   title: { default: 'Panel', template: '%s — Panel Tryvex' },
@@ -15,7 +16,7 @@ export const metadata = {
 
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const yo = await integranteActual()
-  const tema = leerTema((await cookies()).get('panel-tema')?.value)
+  const tema = leerTema((await cookies()).get(COOKIE_TEMA_PANEL)?.value)
 
   // Finanzas solo aparece si el permiso existe. Ocultar el enlace no protege
   // nada por sí solo: la página lo comprueba y, por debajo, manda el RLS.

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { COOKIE_TEMA_PANEL, type Tema } from '@/lib/tema-panel'
 
 /**
  * Tema claro u oscuro del panel.
@@ -11,12 +12,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
  * tema correcto en la primera respuesta: guardarla en localStorage dejaría ver
  * un destello blanco antes de que corra el JavaScript.
  */
-export type Tema = 'claro' | 'oscuro'
-
-const COOKIE = 'panel-tema'
 const Contexto = createContext<{ tema: Tema; alternar: () => void }>({ tema: 'claro', alternar: () => {} })
-
-export const leerTema = (valor: string | undefined): Tema => (valor === 'oscuro' ? 'oscuro' : 'claro')
 
 export function TemaPanel({ inicial, children }: { inicial: Tema; children: ReactNode }) {
   const [tema, setTema] = useState<Tema>(inicial)
@@ -32,7 +28,7 @@ export function TemaPanel({ inicial, children }: { inicial: Tema; children: Reac
 
   function alternar() {
     const siguiente: Tema = tema === 'oscuro' ? 'claro' : 'oscuro'
-    document.cookie = `${COOKIE}=${siguiente}; path=/panel; max-age=31536000; samesite=lax`
+    document.cookie = `${COOKIE_TEMA_PANEL}=${siguiente}; path=/panel; max-age=31536000; samesite=lax`
     setTema(siguiente)
   }
 
