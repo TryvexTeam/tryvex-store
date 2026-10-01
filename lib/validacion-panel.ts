@@ -78,3 +78,22 @@ export type LineaVentaValidada = z.infer<typeof esquemaLineasVenta>[number]
 
 /** Encabezado de una venta con varios productos: lo del pedido, sin producto ni cantidad sueltos. */
 export const esquemaEncabezadoVenta = esquemaPedido.omit({ producto_id: true, cantidad: true })
+
+/** Conteo de stock: el número real de un producto, o de cada una de sus variantes. */
+export const esquemaConteo = z.object({
+  producto_id: z.string().min(1, 'Falta el producto.'),
+  lineas: z
+    .array(
+      z.object({
+        variante_id: z.union([z.string(), z.null()]).optional().transform((v) => (v ? v : null)),
+        // Un campo vacío NO es cero: `Number('')` da 0 y pondría el stock en nada sin querer.
+        real: z
+          .union([z.number(), z.string().trim().min(1, 'Escribe el stock real.')])
+          .transform((v) => Number(v))
+          .pipe(z.number({ error: 'El stock debe ser un número.' }).int('El stock va en unidades enteras.').min(0, 'El stock no puede ser negativo.').max(1_000_000, 'El stock es demasiado alto.')),
+      }),
+      { error: 'El conteo no es válido.' }
+    )
+    .min(1, 'No hay nada que guardar.')
+    .max(100, 'Demasiadas variantes en un solo conteo.'),
+})

@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
-import { clp } from '@/lib/formato'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
 import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, CapitalSocios, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
 import { agruparPorMetodo } from '@/lib/cuentas'
 import { calcularCapital, CATEGORIA_APORTE } from '@/lib/capital'
+import { calcularResultado } from '@/lib/resultado'
+import { ResultadoNegocio, NosDeben, ValorStock } from '@/components/panel/resultado-negocio'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
 import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
@@ -50,7 +51,16 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         .limit(LIMITE)
     : null
 
-  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }] = await Promise.all([
+  // Movimientos de stock del periodo (en hora de Santiago: -04:00 al inicio y -03:00 al final cubren el cambio de horario).
+  let consultaStock = supabase
+    .from('stock_movimientos')
+    .select('producto_id,tipo,cantidad,total_clp')
+    .in('tipo', ['venta', 'devolucion', 'merma', 'uso_interno', 'regalo', 'ajuste'])
+    .limit(20000)
+  if (periodo.desde) consultaStock = consultaStock.gte('created_at', `${periodo.desde}T00:00:00-04:00`)
+  if (periodo.hasta) consultaStock = consultaStock.lte('created_at', `${periodo.hasta}T23:59:59-03:00`)
+
+  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }] = await Promise.all([
     consulta,
     consultaAnterior ?? Promise.resolve({ data: null }),
     // El capital es de TODO el historial, no del periodo que se esté mirando.
@@ -58,6 +68,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     supabase.from('movimientos_financieros').select('monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Inventario e insumos').limit(5000),
     supabase.from('v_stock_actual').select('producto_id,stock'),
     supabase.from('productos').select('id,precio_base,costo_unitario'),
+    consultaStock,
+    supabase.from('pedidos').select('numero,cliente_nombre,total_clp').eq('estado', 'pendiente').order('numero', { ascending: true }).limit(200),
   ])
 
   const todos = (movs ?? []) as Movimiento[]
@@ -82,21 +94,18 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   const conteoTipos = { todos: todos.length, ingreso: todos.filter((m) => m.tipo === 'ingreso').length, egreso: todos.filter((m) => m.tipo === 'egreso').length }
   const truncado = todos.length >= LIMITE
 
-  // ── Analítica propia: lo que Treinta no muestra ──────────────────
-  // Cuánto falta para recuperar lo invertido, y cuántas unidades son.
-  const unidades = (stock ?? []).reduce((a, s) => a + (s.stock ?? 0), 0)
-  const p = productos?.[0]
-  const precio = n(p?.precio_base ?? 0)
-  const costo = n(p?.costo_unitario ?? 0)
-  const margenUnitario = precio - costo
-  // Un aporte de socio no es una venta: no recupera la inversión, la financia.
-  const aportesDelPeriodo = todos.filter((m) => m.tipo === 'ingreso' && m.categoria === CATEGORIA_APORTE).reduce((a, m) => a + n(m.monto_clp), 0)
-  const ingresosPorVentas = ingresos - aportesDelPeriodo
-  const porRecuperar = Math.max(0, egresos - ingresosPorVentas)
-  const unidadesParaEquilibrio =
-    margenUnitario > 0 ? Math.ceil(porRecuperar / margenUnitario) : null
-
-  const alcanzable = unidadesParaEquilibrio !== null && unidadesParaEquilibrio <= unidades
+  // ── Resultado: ganancia, lo que nos deben y lo que hay en bodega ─────
+  const costoPor = new Map((productos ?? []).map((p) => [p.id as string, n(p.costo_unitario ?? 0)]))
+  const precioPor = new Map((productos ?? []).map((p) => [p.id as string, n(p.precio_base ?? 0)]))
+  const resultado = calcularResultado(movsStock ?? [], costoPor)
+  const filasStock = (stock ?? []).filter((f) => n(f.stock ?? 0) > 0)
+  const valorStock = {
+    unidades: filasStock.reduce((a, f) => a + n(f.stock), 0),
+    aCosto: filasStock.reduce((a, f) => a + n(f.stock) * (costoPor.get(f.producto_id) ?? 0), 0),
+    aPrecio: filasStock.reduce((a, f) => a + n(f.stock) * (precioPor.get(f.producto_id) ?? 0), 0),
+    productos: filasStock.length,
+  }
+  const pedidosPorCobrar = (porCobrarPedidos ?? []).map((p) => ({ numero: p.numero, cliente: p.cliente_nombre ?? 'Sin nombre', total: n(p.total_clp) }))
 
   return (
     <>
@@ -131,6 +140,14 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       */}
       <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
 
+      <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <ResultadoNegocio resultado={resultado} etiquetaPeriodo={periodo.etiqueta} />
+        <div className="grid gap-4 content-start">
+          <NosDeben pedidos={pedidosPorCobrar} />
+          <ValorStock {...valorStock} />
+        </div>
+      </div>
+
       <CapitalSocios capital={capital} />
 
       <CuentasPorMetodo cuentas={cuentas} />
@@ -141,48 +158,6 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       </div>
 
       <AvisoSinComprobante cantidad={sinComprobante.length} activo={soloSinComprobante} periodo={periodo} />
-
-      {/* Punto de equilibrio: la pregunta real del negocio. */}
-      {margenUnitario > 0 && todos.length > 0 && (
-        <section
-          aria-label="Punto de equilibrio"
-          className="mb-10 rounded-[var(--radius-tarjeta)] bg-papel p-6 ring-1 ring-borde/70"
-        >
-          <h2 className="text-[15px] font-semibold">Punto de equilibrio</h2>
-          {egresos === 0 ? (
-            <p className="mt-2 text-[15px] leading-relaxed text-tinta-suave">
-              Todavía no hay egresos registrados, así que no hay inversión que
-              recuperar. Anota la importación para que el cálculo tenga sentido.
-            </p>
-          ) : porRecuperar === 0 ? (
-            <p className="mt-2 text-[15px] text-verde">
-              Inversión recuperada. Todo lo que vendas desde acá es ganancia.
-            </p>
-          ) : (
-            <>
-              <p className="mt-2 text-[15px] leading-relaxed text-tinta-suave">
-                Faltan <strong className="cifra text-tinta">{clp(porRecuperar)}</strong> para
-                recuperar lo invertido, o sea{' '}
-                <strong className="cifra text-tinta">{unidadesParaEquilibrio}</strong>{' '}
-                unidades a {clp(precio)} con margen de {clp(margenUnitario)} c/u.
-              </p>
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-papel-alt">
-                <div
-                  className="h-full rounded-full bg-spark transition-[width] duration-500"
-                  style={{
-                    width: `${Math.min(100, egresos > 0 ? (ingresosPorVentas / egresos) * 100 : 0)}%`,
-                  }}
-                />
-              </div>
-              <p className="mt-2 text-[13px] text-gris">
-                {alcanzable
-                  ? `Alcanza con el stock actual (${unidades} unidades).`
-                  : `Con las ${unidades} unidades en bodega no alcanza: hay que reponer.`}
-              </p>
-            </>
-          )}
-        </section>
-      )}
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section aria-label="Movimientos" className="min-w-0">

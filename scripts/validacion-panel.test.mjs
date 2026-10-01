@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { MAX_LINEAS_VENTA as TOPE_CLIENTE } from '../lib/venta.ts'
-import { esquemaMovimiento, esquemaPedido, esquemaLineasVenta, esquemaEncabezadoVenta, MAX_LINEAS_VENTA, primerError } from '../lib/validacion-panel.ts'
+import { esquemaMovimiento, esquemaPedido, esquemaLineasVenta, esquemaEncabezadoVenta, esquemaConteo, MAX_LINEAS_VENTA, primerError } from '../lib/validacion-panel.ts'
 
 const mov = { tipo: 'egreso', categoria: 'marketing', descripcion: 'Anuncios', monto_clp: '45000', fecha: '2026-09-30', metodo_pago: 'tarjeta', contraparte: '' }
 const ped = { cliente_nombre: 'María', producto_id: 'abc', cantidad: '2' }
@@ -74,4 +74,15 @@ test('venta: encabezado con todo opcional salvo el nombre por defecto', () => {
 
 test('el tope de líneas del cliente y el del servidor coinciden', () => {
   assert.equal(TOPE_CLIENTE, MAX_LINEAS_VENTA)
+})
+
+test('conteo: número real válido, vacío o con variantes', () => {
+  const r = esquemaConteo.safeParse({ producto_id: 'p1', lineas: [{ variante_id: '', real: '10' }, { variante_id: 'v1', real: 0 }] })
+  assert.equal(r.success, true)
+  assert.deepEqual(r.data.lineas.map((l) => [l.variante_id, l.real]), [[null, 10], ['v1', 0]])
+})
+test('conteo: negativo, decimal, texto o sin líneas se rechazan con motivo', () => {
+  for (const real of [-1, 1.5, 'x', '']) assert.equal(esquemaConteo.safeParse({ producto_id: 'p1', lineas: [{ real }] }).success, false, `real ${real}`)
+  assert.match(primerError(esquemaConteo.safeParse({ producto_id: 'p1', lineas: [] }).error), /nada que guardar/)
+  assert.match(primerError(esquemaConteo.safeParse({ producto_id: 'p1', lineas: [{ real: -3 }] }).error), /negativo/)
 })

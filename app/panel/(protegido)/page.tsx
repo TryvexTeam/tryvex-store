@@ -2,8 +2,9 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { calcularAtencion } from '@/lib/atencion'
 import { hoyChile, sumarDias } from '@/lib/periodo'
+import { ventasPorPeriodo } from '@/lib/ventas-periodo'
 import { AvisosTelefono } from '@/components/panel/avisos-telefono'
-import { ResumenPanel, DIAS_TENDENCIA, VENDIDOS } from '@/components/panel/resumen-panel'
+import { ResumenPanel, DIAS_TENDENCIA } from '@/components/panel/resumen-panel'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,11 +13,11 @@ export default async function Resumen() {
   const supabase = await crearClienteServidor()
 
   // Se piden DOS periodos: el actual y el anterior del mismo largo, para decir si se vende más o menos.
-  const desde = new Date(Date.now() - 2 * DIAS_TENDENCIA * 86_400_000).toISOString()
-  const inicioActual = Date.now() - DIAS_TENDENCIA * 86_400_000
+  // Con un día de margen: los límites de cada día se resuelven en hora de Santiago, no de UTC.
+  const desde = new Date(Date.now() - (2 * DIAS_TENDENCIA + 1) * 86_400_000).toISOString()
 
   const verFinanzas = Boolean(yo.ver_finanzas)
-  const [{ data: stock }, { data: productos }, { data: recientes }, { data: delPeriodo }, { data: actividad }, { data: abiertos }, { data: minimos }, sinComprobante] =
+  const [{ data: stock }, { data: productos }, { data: recientes }, { data: ventasMovs }, { data: actividad }, { data: abiertos }, { data: minimos }, sinComprobante] =
     await Promise.all([
       supabase.from('v_stock_actual').select('producto_id,sku,nombre,stock'),
       supabase.from('productos').select('id,nombre,precio_base,costo_unitario,activo'),
@@ -25,9 +26,11 @@ export default async function Resumen() {
         .select('id,numero,cliente_nombre,estado,total_clp,created_at')
         .order('created_at', { ascending: false })
         .limit(10),
+      // Todas las ventas dejan un movimiento `venta` (pedidos pagados, ventas a mano y las anteriores al panel).
       supabase
-        .from('pedidos')
-        .select('estado,total_clp,created_at')
+        .from('stock_movimientos')
+        .select('tipo,total_clp,created_at')
+        .in('tipo', ['venta', 'devolucion'])
         .gte('created_at', desde),
       supabase
         .from('actividad_tienda')
@@ -36,7 +39,7 @@ export default async function Resumen() {
         .limit(8),
       // Lo que sigue abierto, sin límite de fecha: un pedido pendiente de hace un mes sigue pendiente.
       supabase.from('pedidos').select('numero,cliente_nombre,estado,pago_declarado_at,total_clp').in('estado', ['pendiente', 'pagado', 'preparando']).order('numero', { ascending: true }).limit(1000),
-      supabase.from('productos').select('id,stock_minimo').neq('estado', 'archivado'),
+      supabase.from('productos').select('id,stock_minimo,estado').neq('estado', 'archivado'),
       verFinanzas
         ? supabase
             .from('movimientos_financieros')
@@ -65,34 +68,14 @@ export default async function Resumen() {
     0
   )
 
-  const dosPeriodos = delPeriodo ?? []
-  const esActual = (p: { created_at: string }) => new Date(p.created_at).getTime() >= inicioActual
-  const periodo = dosPeriodos.filter(esActual)
-  const vendido = periodo
-    .filter((p) => VENDIDOS.includes(p.estado))
-    .reduce((a, p) => a + Number(p.total_clp ?? 0), 0)
-  const vendidoAnterior = dosPeriodos
-    .filter((p) => !esActual(p) && VENDIDOS.includes(p.estado))
-    .reduce((a, p) => a + Number(p.total_clp ?? 0), 0)
-  const porCobrar = periodo
-    .filter((p) => p.estado === 'pendiente')
-    .reduce((a, p) => a + Number(p.total_clp ?? 0), 0)
-  const pendientes = periodo.filter((p) => p.estado === 'pendiente').length
-
-  // Serie por día: se parte de los días, no de los pedidos, para que un día
-  // sin ventas valga cero en vez de desaparecer y falsear la curva.
-  const serie = Array.from({ length: DIAS_TENDENCIA }, (_, i) => {
-    const d = new Date(Date.now() - (DIAS_TENDENCIA - 1 - i) * 86_400_000)
-    const clave = d.toISOString().slice(0, 10)
-    const valor = periodo
-      .filter(
-        (p) => VENDIDOS.includes(p.estado) && p.created_at?.slice(0, 10) === clave
-      )
-      .reduce((a, p) => a + Number(p.total_clp ?? 0), 0)
-    return { dia: clave, valor }
-  })
+  const { vendido, vendidoAnterior, serie } = ventasPorPeriodo(ventasMovs ?? [], DIAS_TENDENCIA)
+  // Lo que nos deben: todo pedido pendiente, sin importar de qué fecha sea.
+  const pendientesAbiertos = (abiertos ?? []).filter((p) => p.estado === 'pendiente')
+  const porCobrar = pendientesAbiertos.reduce((a, p) => a + Number(p.total_clp ?? 0), 0)
+  const pendientes = pendientesAbiertos.length
 
   const minimoPor = new Map((minimos ?? []).map((m) => [m.id, Number(m.stock_minimo ?? 5)]))
+  const publicado = new Set((minimos ?? []).filter((m) => m.estado === 'publicado').map((m) => m.id))
   const filasStock = stock ?? []
   const atencion = calcularAtencion({
     pedidos: (abiertos ?? []).map((p) => ({
@@ -102,7 +85,8 @@ export default async function Resumen() {
       pagoDeclarado: Boolean(p.pago_declarado_at),
       total: Number(p.total_clp ?? 0),
     })),
-    sinStock: filasStock.filter((f) => Number(f.stock ?? 0) <= 0).length,
+    // «Sin stock» solo importa si el producto está a la venta: lo oculto a propósito no es una urgencia.
+    sinStock: filasStock.filter((f) => Number(f.stock ?? 0) <= 0 && publicado.has(f.producto_id)).length,
     stockBajo: filasStock.filter((f) => Number(f.stock ?? 0) > 0 && Number(f.stock ?? 0) <= (minimoPor.get(f.producto_id) ?? 5)).length,
     egresosSinComprobante: verFinanzas ? (sinComprobante.count ?? 0) : null,
   })
