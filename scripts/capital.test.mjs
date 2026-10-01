@@ -37,3 +37,14 @@ test('sin aportes: sin socios, sin porcentajes y sin dividir por cero', () => {
 test('contraparte vacía queda como «Sin nombre»', () => {
   assert.equal(calcularCapital([{ contraparte: null, monto_clp: 10 }], 0).socios[0].nombre, 'Sin nombre')
 })
+
+test('los retiros se suman a quien aportó con ese nombre, aunque venga abreviado, y no cambian el porcentaje', () => {
+  const socios = [{ contraparte: 'Ignacio Andres Navarrete Silva', monto_clp: 300000 }, { contraparte: 'Joseph Maillens', monto_clp: 30000 }]
+  const c = calcularCapital(socios, 0, [{ contraparte: 'Ignacio', monto_clp: 30000 }, { contraparte: 'Joseph Maillens', monto_clp: 45000 }])
+  assert.deepEqual(c.socios.map((s) => [s.nombre, s.aportado, s.retirado, s.porcentaje]), [['Ignacio Andres Navarrete Silva', 300000, 30000, 90.9], ['Joseph Maillens', 30000, 45000, 9.1]])
+  assert.equal(c.totalRetirado, 75000)
+})
+test('«Ana» no es «Anabel»; quien retira sin haber aportado queda aparte con aporte 0', () => {
+  const c = calcularCapital([{ contraparte: 'Anabel', monto_clp: 100 }], 0, [{ contraparte: 'Ana', monto_clp: 10 }])
+  assert.deepEqual(c.socios.map((s) => [s.nombre, s.aportado, s.retirado]), [['Anabel', 100, 0], ['Ana', 0, 10]])
+})

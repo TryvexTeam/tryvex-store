@@ -104,7 +104,13 @@ export function CuadreDeCaja({
 
       {cuadre.estado === 'falta' && (
         <p className="mt-4 rounded-[var(--radius-anidado)] bg-papel-alt px-3.5 py-3 text-[13px] leading-snug text-tinta-suave">
-          Los gastos (hosting, suscripciones, retiros) todavía no están registrados. Cuando se carguen, esta cifra baja; lo que quede sin explicar es lo que hay que buscar.
+          Falta registrar gastos o retiros. Cuando se carguen, esta cifra baja; lo que quede sin explicar es lo que hay que buscar.
+        </p>
+      )}
+
+      {cuadre.estado === 'sobra' && (
+        <p className="mt-4 rounded-[var(--radius-anidado)] bg-papel-alt px-3.5 py-3 text-[13px] leading-snug text-tinta-suave">
+          Hay más plata de la que el sistema espera. Suele ser una venta que falta anotar, o una compra que costó menos de lo registrado (por ejemplo, plata de la compra de stock que no se llegó a gastar).
         </p>
       )}
 
@@ -121,13 +127,13 @@ export function CuadreDeCaja({
             {conEfectivo.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
                 <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-tinta text-[13px] font-semibold text-white">{p.nombre.trim().slice(0, 1).toUpperCase()}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14.5px] font-medium">{corto(p.nombre)}</span>
+                <span className="min-w-[6.5rem] flex-1">
+                  <span className="block text-[14.5px] font-medium">{corto(p.nombre)}</span>
                   <span className="block text-[12px] text-gris">tiene en la mano</span>
                 </span>
                 <span className="cifra text-[16px] font-semibold">{clp(p.saldo)}</span>
                 {puedeGestionar && (
-                  <Boton variante="suave" tamano="sm" onClick={() => setHoja({ modo: 'efectivo', personaId: p.id, accion: 'deposita' })}>Depositó</Boton>
+                  <Boton variante="suave" tamano="sm" className="ml-auto" onClick={() => setHoja({ modo: 'efectivo', personaId: p.id, accion: 'deposita' })}>Depositó</Boton>
                 )}
               </li>
             ))}

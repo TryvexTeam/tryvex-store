@@ -19,6 +19,7 @@ export const CATEGORIAS_FINANCIERAS = [
   { codigo: 'equipamiento', tipo: 'egreso', etiqueta: 'Muebles, equipos y maquinaria' },
   { codigo: 'comisiones_medios_pago', tipo: 'egreso', etiqueta: 'Comisiones y medios de pago' },
   { codigo: 'impuestos', tipo: 'egreso', etiqueta: 'Impuestos' },
+  { codigo: 'retiro_socio', tipo: 'egreso', etiqueta: 'Retiro de socio' },
   { codigo: 'otros_gastos', tipo: 'egreso', etiqueta: 'Otros gastos' },
 ] as const
 
@@ -48,6 +49,10 @@ export function etiquetaCategoria(codigo: string, alternativa?: string): string 
 /** Normaliza nombres históricos antes de que todos los movimientos tengan código. */
 export function categoriaHistorica(categoria: string, tipo: string): CategoriaFinanciera {
   const normalizada = categoria.trim().toLocaleLowerCase('es-CL')
+  // Si el nombre ya es la etiqueta de una categoría vigente («Aporte de socio», «Gastos administrativos»…), esa es:
+  // las reglas de abajo son solo para nombres históricos y mandaban todo lo demás a «Otros».
+  const exacta = CATEGORIAS_FINANCIERAS.find((c) => c.tipo === tipo && c.etiqueta.toLocaleLowerCase('es-CL') === normalizada)
+  if (exacta) return exacta.codigo
   if (tipo === 'ingreso') {
     if (normalizada.includes('venta')) return 'ventas'
     if (normalizada.includes('devolución') && normalizada.includes('proveedor')) return 'devolucion_proveedor'

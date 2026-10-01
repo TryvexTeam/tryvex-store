@@ -63,7 +63,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   if (periodo.desde) consultaStock = consultaStock.gte('created_at', `${periodo.desde}T00:00:00-04:00`)
   if (periodo.hasta) consultaStock = consultaStock.lte('created_at', `${periodo.hasta}T23:59:59-03:00`)
 
-  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }] = await Promise.all([
+  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }, { data: retirosSocios }] = await Promise.all([
     consulta,
     consultaAnterior ?? Promise.resolve({ data: null }),
     // El capital es de TODO el historial, no del periodo que se esté mirando.
@@ -79,6 +79,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     supabase.from('dim_integrantes').select('id,nombre').eq('activo', true).order('nombre'),
     supabase.from('movimientos_financieros').select('tipo,monto_clp').eq('negocio', NEGOCIO_TIENDA).limit(20000),
     supabase.from('stock_movimientos').select('producto_id,cantidad').eq('tipo', 'ingreso').ilike('motivo', 'Stock previo%').limit(1000),
+    supabase.from('movimientos_financieros').select('contraparte,monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Retiro de socio').limit(2000),
   ])
 
   const todos = (movs ?? []) as Movimiento[]
@@ -94,7 +95,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       }
     : null
 
-  const capital = calcularCapital(aportesSocios ?? [], (comprasStock ?? []).reduce((a, m) => a + n(m.monto_clp), 0))
+  const capital = calcularCapital(aportesSocios ?? [], (comprasStock ?? []).reduce((a, m) => a + n(m.monto_clp), 0), retirosSocios ?? [])
 
   const sinComprobante = todos.filter((m) => m.tipo === 'egreso' && !m.voucher_path)
   const base = soloSinComprobante ? sinComprobante : todos

@@ -21,6 +21,8 @@ export interface AporteSocio {
 export interface Socio {
   nombre: string
   aportado: number
+  /** Lo que retiró para gastos personales (categoría «Retiro de socio»). No cambia su porcentaje. */
+  retirado: number
   /** Parte del capital puesto por socios, 0 a 100 (un decimal). */
   porcentaje: number
 }
@@ -28,6 +30,7 @@ export interface Socio {
 export interface Capital {
   socios: Socio[]
   totalAportado: number
+  totalRetirado: number
   /** Egresos en stock (compras de inventario). */
   invertidoEnStock: number
   /** Lo comprado que no salió de aportes: vino de ventas reinvertidas. Nunca negativo. */
@@ -38,19 +41,37 @@ export interface Capital {
 
 const n = (v: string | number) => Number(v) || 0
 
-export function calcularCapital(aportes: AporteSocio[], invertidoEnStock: number): Capital {
+/** «Ignacio» y «Ignacio Andres Navarrete Silva» son la misma persona; «Ana» y «Anabel» no. */
+function mismaPersona(a: string, b: string): boolean {
+  const x = a.trim().toLocaleLowerCase('es-CL')
+  const y = b.trim().toLocaleLowerCase('es-CL')
+  return x === y || x.startsWith(`${y} `) || y.startsWith(`${x} `)
+}
+
+export function calcularCapital(aportes: AporteSocio[], invertidoEnStock: number, retiros: AporteSocio[] = []): Capital {
   const porNombre = new Map<string, number>()
   for (const a of aportes) {
     const nombre = a.contraparte?.trim() || 'Sin nombre'
     porNombre.set(nombre, (porNombre.get(nombre) ?? 0) + n(a.monto_clp))
   }
   const totalAportado = [...porNombre.values()].reduce((suma, v) => suma + v, 0)
+
+  // Cada retiro se suma a quien aportó con ese nombre; si nadie coincide, queda como una persona sin aporte.
+  const retiradoPor = new Map<string, number>()
+  for (const r of retiros) {
+    const nombre = r.contraparte?.trim() || 'Sin nombre'
+    const socio = [...porNombre.keys()].find((k) => mismaPersona(k, nombre)) ?? nombre
+    retiradoPor.set(socio, (retiradoPor.get(socio) ?? 0) + n(r.monto_clp))
+    if (!porNombre.has(socio)) porNombre.set(socio, 0)
+  }
+
   const socios = [...porNombre.entries()]
-    .map(([nombre, aportado]) => ({ nombre, aportado, porcentaje: totalAportado > 0 ? Math.round((aportado / totalAportado) * 1000) / 10 : 0 }))
+    .map(([nombre, aportado]) => ({ nombre, aportado, retirado: retiradoPor.get(nombre) ?? 0, porcentaje: totalAportado > 0 ? Math.round((aportado / totalAportado) * 1000) / 10 : 0 }))
     .sort((a, b) => b.aportado - a.aportado || a.nombre.localeCompare(b.nombre, 'es'))
   return {
     socios,
     totalAportado,
+    totalRetirado: [...retiradoPor.values()].reduce((suma, v) => suma + v, 0),
     invertidoEnStock,
     reinvertidoDeVentas: Math.max(0, invertidoEnStock - totalAportado),
     aportadoSinGastar: Math.max(0, totalAportado - invertidoEnStock),

@@ -214,6 +214,7 @@ export function CapitalSocios({ capital }: { capital: Capital }) {
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-papel-alt" role="presentation">
               <div className="h-full rounded-full bg-tinta" style={{ width: `${Math.max(2, s.porcentaje)}%` }} />
             </div>
+            {s.retirado > 0 && <p className="cifra mt-1.5 text-[12.5px] text-gris">Retiró {clp(s.retirado)} para gastos personales</p>}
           </li>
         ))}
       </ul>
@@ -223,6 +224,13 @@ export function CapitalSocios({ capital }: { capital: Capital }) {
           <dt className="text-gris">Invertido en stock</dt>
           <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.invertidoEnStock)}</dd>
         </div>
+        {capital.totalRetirado > 0 && (
+          <div>
+            <dt className="text-gris">Retirado por socios</dt>
+            <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.totalRetirado)}</dd>
+            <dd className="mt-0.5 text-[12px] text-gris">No cambia el porcentaje de nadie.</dd>
+          </div>
+        )}
         <div>
           <dt className="text-gris">Reinvertido de ventas</dt>
           <dd className="cifra mt-0.5 text-[16px] font-semibold">{clp(capital.reinvertidoDeVentas)}</dd>
