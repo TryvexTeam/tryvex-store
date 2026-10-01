@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { Pildora } from '@/components/panel/ui'
 import { ConfigurarMinimo } from '@/app/panel/(protegido)/stock/configurar-minimo'
@@ -22,6 +23,7 @@ export interface FilaInventario {
   nombre: string
   stock: number
   minimo: number
+  imagen: string | null
   variantes: { id: string; nombre: string; stock: number }[]
 }
 
@@ -32,8 +34,8 @@ const estadoDe = (f: FilaInventario): Estado => (f.stock <= 0 ? 'sin' : f.stock 
 const sinTildes = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const POR_PAGINA = 24
 
-export function InventarioStock({ filas }: { filas: FilaInventario[] }) {
-  const [filtro, setFiltro] = useState<Filtro>('reponer')
+export function InventarioStock({ filas, filtroInicial }: { filas: FilaInventario[]; filtroInicial?: Filtro }) {
+  const [filtro, setFiltro] = useState<Filtro>(filtroInicial ?? 'reponer')
   const [busqueda, setBusqueda] = useState('')
   const [visibles, setVisibles] = useState(POR_PAGINA)
 
@@ -143,16 +145,26 @@ export function InventarioStock({ filas }: { filas: FilaInventario[] }) {
                   className={`rounded-[var(--radius-widget)] bg-papel p-4 ring-1 ${e === 'sin' ? 'ring-rojo/35' : e === 'bajo' ? 'ring-ambar/35' : 'ring-borde/60'}`}
                 >
                   <div className="flex items-start gap-3.5">
-                    <p className="cifra w-14 shrink-0 text-center text-[2rem] leading-none font-semibold" aria-label={`${f.stock} unidades`}>
-                      {f.stock}
-                    </p>
+                    <span className="relative size-16 shrink-0 overflow-hidden rounded-[12px] bg-papel-alt">
+                      {f.imagen ? (
+                        <Image src={f.imagen} alt="" fill sizes="64px" className={`object-contain p-1.5 ${e === 'sin' ? 'opacity-60' : ''}`} />
+                      ) : (
+                        <span aria-hidden className="grid size-full place-items-center text-[11px] text-gris">Sin foto</span>
+                      )}
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-[14.5px] leading-snug font-medium">{f.nombre}</p>
-                      <p className="mt-1 truncate text-[12px] text-gris">{f.sku}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="line-clamp-2 text-[14.5px] leading-snug font-medium">{f.nombre}</p>
+                        <Pildora tono={e === 'sin' ? 'rojo' : e === 'bajo' ? 'ambar' : 'verde'} className="shrink-0">
+                          {e === 'sin' ? 'Sin stock' : e === 'bajo' ? 'Bajo' : 'Al día'}
+                        </Pildora>
+                      </div>
+                      <p className="mt-0.5 truncate text-[12px] text-gris">{f.sku}</p>
+                      <p className="cifra mt-2 flex items-baseline gap-1.5">
+                        <span className="text-[1.7rem] leading-none font-semibold" aria-label={`${f.stock} unidades`}>{f.stock}</span>
+                        <span className="text-[12px] text-gris">{f.stock === 1 ? 'unidad' : 'unidades'} · mínimo {f.minimo}</span>
+                      </p>
                     </div>
-                    <Pildora tono={e === 'sin' ? 'rojo' : e === 'bajo' ? 'ambar' : 'verde'} className="shrink-0">
-                      {e === 'sin' ? 'Sin stock' : e === 'bajo' ? 'Bajo' : 'Al día'}
-                    </Pildora>
                   </div>
                   {f.variantes.length > 0 && (
                     <ul className="mt-3 flex flex-wrap gap-1.5 text-[12px] text-tinta-suave">

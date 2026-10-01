@@ -15,7 +15,7 @@ export default function BotonSalir() {
   return (
     <button
       onClick={salir}
-      className="inline-flex min-h-11 items-center rounded-full px-3.5 text-[14px] text-gris transition-colors hover:bg-papel-alt hover:text-tinta"
+      className="ml-1 inline-flex min-h-10 items-center rounded-full px-3.5 text-[13.5px] font-medium text-gris transition-colors hover:bg-papel-alt hover:text-tinta"
     >
       Salir
     </button>

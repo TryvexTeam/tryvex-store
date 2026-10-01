@@ -1,5 +1,6 @@
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual } from '@/lib/sesion'
+import { urlPublica } from '@/lib/imagenes'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
 import FormularioStock from './formulario'
 import { productosConVariantes } from '@/lib/variantes-cliente'
@@ -14,14 +15,15 @@ const ROTULO: Record<string, string> = {
   ajuste: 'Ajuste', reserva: 'Reserva', liberacion: 'Liberación',
 }
 
-export default async function Stock() {
+export default async function Stock({ searchParams }: { searchParams: Promise<{ filtro?: string }> }) {
+  const { filtro } = await searchParams
   await integranteActual()
   const supabase = await crearClienteServidor()
 
   const [{ data: stock }, { data: productos }, { data: minimos }, { data: movs }] = await Promise.all([
     supabase.from('v_stock_actual').select('producto_id,sku,nombre,stock'),
     productosConVariantes(supabase).then((data) => ({ data })),
-    supabase.from('productos').select('id,stock_minimo').neq('estado', 'archivado'),
+    supabase.from('productos').select('id,stock_minimo,imagen_url').neq('estado', 'archivado'),
     supabase
       .from('stock_movimientos')
       .select('id,tipo,cantidad,motivo,total_clp,precio_unitario,created_at,producto_id,producto_variantes(nombre),dim_integrantes(nombre)')
@@ -30,6 +32,7 @@ export default async function Stock() {
   ])
 
   const minimoPorId = new Map((minimos ?? []).map((p) => [p.id, Number(p.stock_minimo ?? 5)]))
+  const imagenPorId = new Map((minimos ?? []).map((p) => [p.id, p.imagen_url ? urlPublica(String(p.imagen_url)) : null]))
   const filas = stock ?? []
   const minimoDe = (productoId: string) => minimoPorId.get(productoId) ?? 5
   const nombrePorId = new Map(filas.map((f) => [f.producto_id, f.nombre]))
@@ -40,6 +43,7 @@ export default async function Stock() {
     nombre: f.nombre,
     stock: Number(f.stock ?? 0),
     minimo: minimoDe(f.producto_id),
+    imagen: imagenPorId.get(f.producto_id) ?? null,
     variantes: variantesDe.get(f.producto_id) ?? [],
   }))
 
@@ -52,7 +56,7 @@ export default async function Stock() {
         </p>
       </header>
 
-      <InventarioStock filas={inventario} />
+      <InventarioStock filas={inventario} filtroInicial={filtro === 'sin' || filtro === 'bajo' || filtro === 'aldia' || filtro === 'todos' ? filtro : undefined} />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section aria-label="Historial" className="min-w-0">

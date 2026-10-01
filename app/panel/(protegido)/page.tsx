@@ -35,7 +35,7 @@ export default async function Resumen() {
         .order('created_at', { ascending: false })
         .limit(8),
       // Lo que sigue abierto, sin límite de fecha: un pedido pendiente de hace un mes sigue pendiente.
-      supabase.from('pedidos').select('estado,pago_declarado_at').in('estado', ['pendiente', 'pagado', 'preparando']).limit(1000),
+      supabase.from('pedidos').select('numero,cliente_nombre,estado,pago_declarado_at,total_clp').in('estado', ['pendiente', 'pagado', 'preparando']).order('numero', { ascending: true }).limit(1000),
       supabase.from('productos').select('id,stock_minimo').neq('estado', 'archivado'),
       verFinanzas
         ? supabase
@@ -95,9 +95,13 @@ export default async function Resumen() {
   const minimoPor = new Map((minimos ?? []).map((m) => [m.id, Number(m.stock_minimo ?? 5)]))
   const filasStock = stock ?? []
   const atencion = calcularAtencion({
-    porCobrar: (abiertos ?? []).filter((p) => p.estado === 'pendiente').length,
-    pagoDeclarado: (abiertos ?? []).filter((p) => p.estado === 'pendiente' && p.pago_declarado_at).length,
-    porDespachar: (abiertos ?? []).filter((p) => p.estado === 'pagado' || p.estado === 'preparando').length,
+    pedidos: (abiertos ?? []).map((p) => ({
+      numero: p.numero,
+      cliente: p.cliente_nombre,
+      estado: p.estado,
+      pagoDeclarado: Boolean(p.pago_declarado_at),
+      total: Number(p.total_clp ?? 0),
+    })),
     sinStock: filasStock.filter((f) => Number(f.stock ?? 0) <= 0).length,
     stockBajo: filasStock.filter((f) => Number(f.stock ?? 0) > 0 && Number(f.stock ?? 0) <= (minimoPor.get(f.producto_id) ?? 5)).length,
     egresosSinComprobante: verFinanzas ? (sinComprobante.count ?? 0) : null,
