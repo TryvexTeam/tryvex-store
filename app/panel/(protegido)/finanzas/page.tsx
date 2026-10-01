@@ -14,7 +14,7 @@ import { calcularResumenNegocio } from '@/lib/resumen-negocio'
 import { ResultadoNegocio, NosDeben, ValorStock } from '@/components/panel/resultado-negocio'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
-import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
+import { resolverPeriodo, queryDePeriodo, limitesTimestamp } from '@/lib/periodo'
 import FormularioMovimiento from './formulario'
 import Comprobante from './comprobante'
 
@@ -48,24 +48,26 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
 
   // Ventas del periodo anterior del mismo largo, para comparar. Salen de los movimientos de stock,
   // igual que las del periodo actual: así las dos cifras hablan de lo mismo.
-  const consultaVentasAnteriores = periodo.anterior
+  const limAnterior = periodo.anterior ? limitesTimestamp(periodo.anterior) : null
+  const consultaVentasAnteriores = limAnterior
     ? supabase
         .from('stock_movimientos')
         .select('tipo,total_clp')
         .in('tipo', ['venta', 'devolucion'])
-        .gte('created_at', `${periodo.anterior.desde}T00:00:00-04:00`)
-        .lte('created_at', `${periodo.anterior.hasta}T23:59:59-03:00`)
+        .gte('created_at', limAnterior.desde!)
+        .lt('created_at', limAnterior.hastaExclusivo!)
         .limit(20000)
     : null
 
-  // Movimientos de stock del periodo (en hora de Santiago: -04:00 al inicio y -03:00 al final cubren el cambio de horario).
+  // Movimientos de stock del periodo: el día de Santiago, con el desfase real de cada fecha.
+  const lim = limitesTimestamp(periodo)
   let consultaStock = supabase
     .from('stock_movimientos')
     .select('producto_id,tipo,cantidad,total_clp')
     .in('tipo', ['venta', 'devolucion', 'merma', 'uso_interno', 'regalo', 'ajuste'])
     .limit(20000)
-  if (periodo.desde) consultaStock = consultaStock.gte('created_at', `${periodo.desde}T00:00:00-04:00`)
-  if (periodo.hasta) consultaStock = consultaStock.lte('created_at', `${periodo.hasta}T23:59:59-03:00`)
+  if (lim.desde) consultaStock = consultaStock.gte('created_at', lim.desde)
+  if (lim.hastaExclusivo) consultaStock = consultaStock.lt('created_at', lim.hastaExclusivo)
 
   const [{ data: movs }, { data: ventasAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }, { data: retirosSocios }] = await Promise.all([
     consulta,
