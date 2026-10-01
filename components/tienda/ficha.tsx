@@ -216,7 +216,7 @@ export function Ficha({
                         <span className="block text-[13px] text-gris">{t.etiqueta}</span>
                         <span className="cifra block text-[16px] font-semibold">{clp(t.precio)} c/u</span>
                         {t.min > 1 && <span className="cifra mt-0.5 block text-[12px] text-tinta-suave">{clp(t.precio * t.min)} por {t.min}</span>}
-                        {ahorro > 0 && <span className="cifra mt-auto pt-2 text-[12px] font-semibold text-verde">Ahorras {clp(ahorro)}</span>}
+                        {ahorro > 0 && <span key={activo ? 'activo' : 'reposo'} className={`cifra mt-auto pt-2 text-[12px] font-semibold text-verde ${activo ? 'texto-brillo' : ''}`}>Ahorras {clp(ahorro)}</span>}
                       </button>
                     </li>
                   )
