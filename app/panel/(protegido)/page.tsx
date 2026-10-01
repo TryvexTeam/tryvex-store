@@ -3,6 +3,7 @@ import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { calcularAtencion } from '@/lib/atencion'
 import { hoyChile, sumarDias } from '@/lib/periodo'
 import { ventasPorPeriodo } from '@/lib/ventas-periodo'
+import { saldosDeEfectivo } from '@/lib/efectivo'
 import { AvisosTelefono } from '@/components/panel/avisos-telefono'
 import { ResumenPanel, DIAS_TENDENCIA } from '@/components/panel/resumen-panel'
 
@@ -17,7 +18,7 @@ export default async function Resumen() {
   const desde = new Date(Date.now() - (2 * DIAS_TENDENCIA + 1) * 86_400_000).toISOString()
 
   const verFinanzas = Boolean(yo.ver_finanzas)
-  const [{ data: stock }, { data: productos }, { data: recientes }, { data: ventasMovs }, { data: actividad }, { data: abiertos }, { data: minimos }, sinComprobante] =
+  const [{ data: stock }, { data: productos }, { data: recientes }, { data: ventasMovs }, { data: actividad }, { data: abiertos }, { data: minimos }, sinComprobante, { data: efectivoRows }, { data: integrantes }] =
     await Promise.all([
       supabase.from('v_stock_actual').select('producto_id,sku,nombre,stock'),
       supabase.from('productos').select('id,nombre,precio_base,costo_unitario,activo'),
@@ -49,6 +50,8 @@ export default async function Resumen() {
             .is('voucher_path', null)
             .gte('fecha', sumarDias(hoyChile(), -29))
         : Promise.resolve({ count: null }),
+      verFinanzas ? supabase.from('efectivo_por_depositar').select('integrante_id,tipo,monto_clp').limit(5000) : Promise.resolve({ data: null }),
+      verFinanzas ? supabase.from('dim_integrantes').select('id,nombre').eq('activo', true) : Promise.resolve({ data: null }),
     ])
 
   const unidades = (stock ?? []).reduce((a, s) => a + (s.stock ?? 0), 0)
@@ -89,6 +92,13 @@ export default async function Resumen() {
     sinStock: filasStock.filter((f) => Number(f.stock ?? 0) <= 0 && publicado.has(f.producto_id)).length,
     stockBajo: filasStock.filter((f) => Number(f.stock ?? 0) > 0 && Number(f.stock ?? 0) <= (minimoPor.get(f.producto_id) ?? 5)).length,
     egresosSinComprobante: verFinanzas ? (sinComprobante.count ?? 0) : null,
+    efectivo: verFinanzas
+      ? (() => {
+          const nombres = new Map((integrantes ?? []).map((i) => [i.id as string, String(i.nombre).trim().split(/\s+/)[0]]))
+          const personas = saldosDeEfectivo(efectivoRows ?? []).filter((x) => x.saldo > 0).map((x) => ({ nombre: nombres.get(x.integranteId) ?? 'Alguien', monto: x.saldo }))
+          return { total: personas.reduce((a, x) => a + x.monto, 0), personas }
+        })()
+      : null,
   })
 
   return (

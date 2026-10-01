@@ -51,3 +51,15 @@ test('quien no ve finanzas no recibe el aviso de comprobantes', () => {
   assert.equal(calcularAtencion({ ...base, egresosSinComprobante: 0 }).length, 0)
   assert.equal(calcularAtencion({ ...base, egresosSinComprobante: 4 })[0].href, '/panel/finanzas?periodo=30d&sin=1')
 })
+
+test('el efectivo por depositar aparece con quién lo tiene y enlaza al cuadre', () => {
+  const r = calcularAtencion({ ...base, efectivo: { total: 150000, personas: [{ nombre: 'Vicente', monto: 100000 }, { nombre: 'Joseph', monto: 50000 }] } })
+  assert.equal(r[0].clave, 'efectivo')
+  assert.match(r[0].titulo, /^Efectivo por depositar · \$150\.000/)
+  assert.equal(r[0].detalle, 'Vicente $100.000 · Joseph $50.000')
+  assert.equal(r[0].href, '/panel/finanzas#efectivo')
+})
+test('sin efectivo (o para quien no ve finanzas) no hay aviso', () => {
+  assert.equal(calcularAtencion({ ...base, efectivo: { total: 0, personas: [] } }).length, 0)
+  assert.equal(calcularAtencion({ ...base, efectivo: null }).length, 0)
+})

@@ -23,6 +23,8 @@ export interface EntradaAtencion {
   stockBajo: number
   /** `null` si la persona no ve finanzas. */
   egresosSinComprobante: number | null
+  /** Efectivo que alguien del equipo tiene en la mano; `null` si la persona no ve finanzas. */
+  efectivo?: { total: number; personas: { nombre: string; monto: number }[] } | null
 }
 
 export interface ItemAtencion {
@@ -61,6 +63,9 @@ export function calcularAtencion(e: EntradaAtencion): ItemAtencion[] {
   const resto = ordenados.length - visibles.length
   if (resto > 0)
     items.push({ clave: 'pedidos-mas', titulo: `${plural(resto, 'pedido más', 'pedidos más')} abiertos`, detalle: 'Míralos todos en Pedidos.', href: '/panel/pedidos', tono: 'neutro' })
+
+  if (e.efectivo && e.efectivo.total > 0)
+    items.push({ clave: 'efectivo', titulo: `Efectivo por depositar · $${Math.round(e.efectivo.total).toLocaleString('es-CL')}`, detalle: e.efectivo.personas.map((p) => `${p.nombre} $${Math.round(p.monto).toLocaleString('es-CL')}`).join(' · '), href: '/panel/finanzas#efectivo', tono: 'ambar' })
 
   if (e.sinStock > 0)
     items.push({ clave: 'sin-stock', titulo: plural(e.sinStock, 'producto sin stock', 'productos sin stock'), detalle: 'No se pueden vender hasta reponer.', href: '/panel/stock?filtro=sin', tono: 'rojo' })

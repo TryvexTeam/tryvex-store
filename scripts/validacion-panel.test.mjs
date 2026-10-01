@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { MAX_LINEAS_VENTA as TOPE_CLIENTE } from '../lib/venta.ts'
-import { esquemaMovimiento, esquemaPedido, esquemaLineasVenta, esquemaEncabezadoVenta, esquemaConteo, MAX_LINEAS_VENTA, primerError } from '../lib/validacion-panel.ts'
+import { esquemaMovimiento, esquemaPedido, esquemaLineasVenta, esquemaEncabezadoVenta, esquemaConteo, esquemaEfectivo, esquemaConteoEfectivo, esquemaSaldoCuenta, MAX_LINEAS_VENTA, primerError } from '../lib/validacion-panel.ts'
 
 const mov = { tipo: 'egreso', categoria: 'marketing', descripcion: 'Anuncios', monto_clp: '45000', fecha: '2026-09-30', metodo_pago: 'tarjeta', contraparte: '' }
 const ped = { cliente_nombre: 'María', producto_id: 'abc', cantidad: '2' }
@@ -85,4 +85,28 @@ test('conteo: negativo, decimal, texto o sin líneas se rechazan con motivo', ()
   for (const real of [-1, 1.5, 'x', '']) assert.equal(esquemaConteo.safeParse({ producto_id: 'p1', lineas: [{ real }] }).success, false, `real ${real}`)
   assert.match(primerError(esquemaConteo.safeParse({ producto_id: 'p1', lineas: [] }).error), /nada que guardar/)
   assert.match(primerError(esquemaConteo.safeParse({ producto_id: 'p1', lineas: [{ real: -3 }] }).error), /negativo/)
+})
+
+const ef = { integrante_id: 'v', tipo: 'recibe', monto_clp: '50.000', fecha: '2026-10-01', nota: '' }
+test('efectivo: acepta pesos con puntos o con $ y convierte a número', () => {
+  assert.equal(esquemaEfectivo.safeParse(ef).data.monto_clp, 50000)
+  assert.equal(esquemaEfectivo.safeParse({ ...ef, monto_clp: '$ 1.250.000' }).data.monto_clp, 1250000)
+})
+test('efectivo: cero, vacío, negativo o texto se rechazan con motivo', () => {
+  for (const monto_clp of ['0', '', '-5', 'abc', 1.5]) assert.equal(esquemaEfectivo.safeParse({ ...ef, monto_clp }).success, false, `monto ${monto_clp}`)
+  assert.match(primerError(esquemaEfectivo.safeParse({ ...ef, monto_clp: '0' }).error), /mayor que cero/)
+  assert.equal(esquemaEfectivo.safeParse({ ...ef, tipo: 'regala' }).success, false)
+  assert.equal(esquemaEfectivo.safeParse({ ...ef, integrante_id: '' }).success, false)
+})
+test('«tiene ahora»: cero es válido pero un campo vacío no', () => {
+  const base = { integrante_id: 'v', fecha: '2026-10-01' }
+  assert.equal(esquemaConteoEfectivo.safeParse({ ...base, real: '0' }).success, true)
+  assert.equal(esquemaConteoEfectivo.safeParse({ ...base, real: '' }).success, false)
+  assert.match(primerError(esquemaConteoEfectivo.safeParse({ ...base, real: '' }).error), /Escribe/)
+})
+test('saldo de cuenta: 63.162 vale y un campo vacío no deja el saldo en cero', () => {
+  assert.equal(esquemaSaldoCuenta.safeParse({ monto_clp: '63.162', fecha: '2026-10-01' }).data.monto_clp, 63162)
+  assert.equal(esquemaSaldoCuenta.safeParse({ monto_clp: '', fecha: '2026-10-01' }).success, false)
+  assert.equal(esquemaSaldoCuenta.safeParse({ monto_clp: '0', fecha: '2026-10-01' }).success, true)
+  assert.equal(esquemaSaldoCuenta.safeParse({ monto_clp: '5', fecha: 'ayer' }).success, false)
 })

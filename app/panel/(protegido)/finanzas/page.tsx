@@ -6,6 +6,9 @@ import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMet
 import { agruparPorMetodo } from '@/lib/cuentas'
 import { calcularCapital, CATEGORIA_APORTE } from '@/lib/capital'
 import { calcularResultado } from '@/lib/resultado'
+import { calcularCuadre, calcularRecuperacion, stockPropioACosto } from '@/lib/cuadre'
+import { saldosDeEfectivo, totalPorDepositar } from '@/lib/efectivo'
+import { CuadreDeCaja } from '@/components/panel/cuadre-caja'
 import { ResultadoNegocio, NosDeben, ValorStock } from '@/components/panel/resultado-negocio'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
@@ -60,7 +63,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   if (periodo.desde) consultaStock = consultaStock.gte('created_at', `${periodo.desde}T00:00:00-04:00`)
   if (periodo.hasta) consultaStock = consultaStock.lte('created_at', `${periodo.hasta}T23:59:59-03:00`)
 
-  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }] = await Promise.all([
+  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }] = await Promise.all([
     consulta,
     consultaAnterior ?? Promise.resolve({ data: null }),
     // El capital es de TODO el historial, no del periodo que se esté mirando.
@@ -70,6 +73,12 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     supabase.from('productos').select('id,precio_base,costo_unitario'),
     consultaStock,
     supabase.from('pedidos').select('numero,cliente_nombre,total_clp').eq('estado', 'pendiente').order('numero', { ascending: true }).limit(200),
+    // Cuadre de caja: lo declarado (cuenta y efectivo), lo que el sistema espera y el stock previo de un integrante.
+    supabase.from('saldo_cuenta').select('monto_clp,fecha,nota').order('created_at', { ascending: false }).limit(1),
+    supabase.from('efectivo_por_depositar').select('id,integrante_id,tipo,monto_clp,fecha,nota').order('fecha', { ascending: false }).order('created_at', { ascending: false }).limit(500),
+    supabase.from('dim_integrantes').select('id,nombre').eq('activo', true).order('nombre'),
+    supabase.from('movimientos_financieros').select('tipo,monto_clp').eq('negocio', NEGOCIO_TIENDA).limit(20000),
+    supabase.from('stock_movimientos').select('producto_id,cantidad').eq('tipo', 'ingreso').ilike('motivo', 'Stock previo%').limit(1000),
   ])
 
   const todos = (movs ?? []) as Movimiento[]
@@ -105,6 +114,20 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     aPrecio: filasStock.reduce((a, f) => a + n(f.stock) * (precioPor.get(f.producto_id) ?? 0), 0),
     productos: filasStock.length,
   }
+  // ── Cuadre de caja ────────────────────────────────────────────────
+  const esperado = (todosLosMovs ?? []).reduce((a, m) => a + (m.tipo === 'ingreso' ? n(m.monto_clp) : -n(m.monto_clp)), 0)
+  const saldoVigente = saldoRows?.[0] ? { monto: n(saldoRows[0].monto_clp), fecha: String(saldoRows[0].fecha), nota: (saldoRows[0].nota as string | null) ?? null } : null
+  const saldosEfectivo = saldosDeEfectivo(efectivoRows ?? [])
+  const cuadre = calcularCuadre({ esperado, enCuenta: saldoVigente?.monto ?? 0, enEfectivo: totalPorDepositar(saldosEfectivo) })
+  const nombreDe = new Map((integrantes ?? []).map((i) => [i.id as string, i.nombre as string]))
+  const personasEfectivo = (integrantes ?? []).map((i) => ({ id: i.id as string, nombre: i.nombre as string, saldo: saldosEfectivo.find((s) => s.integranteId === i.id)?.saldo ?? 0 }))
+  const historialEfectivo = (efectivoRows ?? []).slice(0, 20).map((m) => ({ id: m.id as string, persona: nombreDe.get(m.integrante_id) ?? 'Alguien', tipo: m.tipo as 'recibe' | 'deposita', monto: n(m.monto_clp), fecha: String(m.fecha), nota: (m.nota as string | null) ?? null }))
+  const previas = new Map<string, number>()
+  for (const m of previasStock ?? []) previas.set(m.producto_id, (previas.get(m.producto_id) ?? 0) + n(m.cantidad))
+  const stockPropio = stockPropioACosto(filasStock.map((f) => ({ producto_id: f.producto_id, stock: n(f.stock), costo: costoPor.get(f.producto_id) ?? 0 })), previas)
+  const totalPorCobrar = (porCobrarPedidos ?? []).reduce((a, p) => a + n(p.total_clp), 0)
+  const recuperacion = calcularRecuperacion({ aportado: capital.totalAportado, hay: cuadre.hay, stockPropioACosto: stockPropio, porCobrar: totalPorCobrar })
+
   const pedidosPorCobrar = (porCobrarPedidos ?? []).map((p) => ({ numero: p.numero, cliente: p.cliente_nombre ?? 'Sin nombre', total: n(p.total_clp) }))
 
   return (
@@ -147,6 +170,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
           <ValorStock {...valorStock} />
         </div>
       </div>
+
+      <CuadreDeCaja cuadre={cuadre} recuperacion={recuperacion} cuenta={saldoVigente} personas={personasEfectivo} historial={historialEfectivo} puedeGestionar={Boolean(yo.gestionar_finanzas)} />
 
       <CapitalSocios capital={capital} />
 
