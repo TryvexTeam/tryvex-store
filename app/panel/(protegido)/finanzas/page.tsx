@@ -3,8 +3,9 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { clp } from '@/lib/formato'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
-import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
+import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, CapitalSocios, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
 import { agruparPorMetodo } from '@/lib/cuentas'
+import { calcularCapital, CATEGORIA_APORTE } from '@/lib/capital'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
 import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
@@ -49,9 +50,12 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         .limit(LIMITE)
     : null
 
-  const [{ data: movs }, { data: movsAnteriores }, { data: stock }, { data: productos }] = await Promise.all([
+  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }] = await Promise.all([
     consulta,
     consultaAnterior ?? Promise.resolve({ data: null }),
+    // El capital es de TODO el historial, no del periodo que se esté mirando.
+    supabase.from('movimientos_financieros').select('contraparte,monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'ingreso').eq('categoria', CATEGORIA_APORTE).limit(2000),
+    supabase.from('movimientos_financieros').select('monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Inventario e insumos').limit(5000),
     supabase.from('v_stock_actual').select('producto_id,stock'),
     supabase.from('productos').select('id,precio_base,costo_unitario'),
   ])
@@ -69,6 +73,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       }
     : null
 
+  const capital = calcularCapital(aportesSocios ?? [], (comprasStock ?? []).reduce((a, m) => a + n(m.monto_clp), 0))
+
   const sinComprobante = todos.filter((m) => m.tipo === 'egreso' && !m.voucher_path)
   const base = soloSinComprobante ? sinComprobante : todos
   const lista = (filtroTipo === 'todos' || soloSinComprobante ? base : base.filter((m) => m.tipo === filtroTipo)).slice(0, 200)
@@ -83,7 +89,10 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   const precio = n(p?.precio_base ?? 0)
   const costo = n(p?.costo_unitario ?? 0)
   const margenUnitario = precio - costo
-  const porRecuperar = Math.max(0, egresos - ingresos)
+  // Un aporte de socio no es una venta: no recupera la inversión, la financia.
+  const aportesDelPeriodo = todos.filter((m) => m.tipo === 'ingreso' && m.categoria === CATEGORIA_APORTE).reduce((a, m) => a + n(m.monto_clp), 0)
+  const ingresosPorVentas = ingresos - aportesDelPeriodo
+  const porRecuperar = Math.max(0, egresos - ingresosPorVentas)
   const unidadesParaEquilibrio =
     margenUnitario > 0 ? Math.ceil(porRecuperar / margenUnitario) : null
 
@@ -122,6 +131,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       */}
       <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
 
+      <CapitalSocios capital={capital} />
+
       <CuentasPorMetodo cuentas={cuentas} />
 
       <div className="mb-8 grid gap-4 md:grid-cols-2">
@@ -159,7 +170,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
                 <div
                   className="h-full rounded-full bg-spark transition-[width] duration-500"
                   style={{
-                    width: `${Math.min(100, egresos > 0 ? (ingresos / egresos) * 100 : 0)}%`,
+                    width: `${Math.min(100, egresos > 0 ? (ingresosPorVentas / egresos) * 100 : 0)}%`,
                   }}
                 />
               </div>

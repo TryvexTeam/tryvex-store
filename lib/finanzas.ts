@@ -6,6 +6,7 @@
 export const CATEGORIAS_FINANCIERAS = [
   { codigo: 'ventas', tipo: 'ingreso', etiqueta: 'Ventas' },
   { codigo: 'otros_ingresos', tipo: 'ingreso', etiqueta: 'Otros ingresos' },
+  { codigo: 'aporte_socio', tipo: 'ingreso', etiqueta: 'Aporte de socio' },
   { codigo: 'devolucion_proveedor', tipo: 'ingreso', etiqueta: 'Devolución de proveedor' },
   { codigo: 'servicios_basicos', tipo: 'egreso', etiqueta: 'Servicios básicos' },
   { codigo: 'inventario_insumos', tipo: 'egreso', etiqueta: 'Inventario e insumos' },
