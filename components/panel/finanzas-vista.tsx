@@ -26,58 +26,56 @@ export interface Movimiento {
 
 const n = (v: string | number) => Number(v) || 0
 
-/** Balance enorme y, debajo, lo que entró y lo que salió, en dos píldoras. */
+/**
+ * Lo primero que se ve en Finanzas: lo VENDIDO, nada más.
+ *
+ * Aportes de los socios, compras de stock, gastos y retiros son movimientos de dinero, no
+ * ventas: juntarlos acá hacía que «Entró» pareciera casi un millón cuando se había vendido
+ * menos de la mitad. Ellos viven más abajo (cuadre de caja, capital y desgloses).
+ */
 export function ResumenFinanzas({
-  balance,
-  ingresos,
-  egresos,
-  anterior,
+  ventas,
+  ventasAnterior,
+  ganancia,
+  margenPct,
+  unidades,
   etiquetaPeriodo,
-  detalleEntro,
-  detalleSalio,
 }: {
-  balance: number
-  ingresos: number
-  egresos: number
-  /** Totales del periodo anterior del mismo largo, para decir si sube o baja. */
-  anterior?: { ingresos: number; egresos: number } | null
+  ventas: number
+  /** Ventas del periodo anterior del mismo largo, para decir si sube o baja. */
+  ventasAnterior?: number
+  ganancia: number
+  margenPct: number | null
+  unidades: number
   etiquetaPeriodo?: string
-  /** De qué se compone «Entró» y «Salió» (por ejemplo «Ventas $436.000 · Aporte de socio $480.000»). */
-  detalleEntro?: string
-  detalleSalio?: string
 }) {
   return (
-    <section aria-label="Resumen" className="entra mb-8 overflow-hidden rounded-[var(--radius-popup)] bg-tinta p-6 text-papel shadow-[var(--shadow-alzado)]">
-      <p className="text-[14px] font-medium text-white/60">Balance{etiquetaPeriodo ? ` · ${etiquetaPeriodo}` : ''}</p>
-      <MontoGrande valor={balance} signo={balance < 0 ? '−' : undefined} className="mt-4" />
-      <p className="mt-3 text-[13px] text-white/55">{balance >= 0 ? 'a favor' : 'en rojo'}</p>
+    <section aria-label="Ventas" className="entra mb-8 overflow-hidden rounded-[var(--radius-popup)] bg-tinta p-6 text-papel shadow-[var(--shadow-alzado)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[14px] font-medium text-white/60">Vendido{etiquetaPeriodo ? ` · ${etiquetaPeriodo}` : ''}</p>
+        {ventasAnterior !== undefined && <CambioPildora actual={ventas} anterior={ventasAnterior} oscuro />}
+      </div>
+      <MontoGrande valor={ventas} className="mt-4" />
+      <p className="mt-3 text-[13px] text-white/55">
+        {unidades} {unidades === 1 ? 'unidad vendida' : 'unidades vendidas'}
+      </p>
 
       <dl className="mt-6 grid grid-cols-2 gap-2.5">
         <div className="rounded-[var(--radius-widget)] bg-white/[0.08] p-3.5">
-          <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
-            <span aria-hidden className="grid size-5 place-items-center rounded-full bg-verde/25 text-[11px] text-[#7be39e]">↓</span>
-            Entró
-            {anterior && <span className="ml-auto"><CambioPildora actual={ingresos} anterior={anterior.ingresos} oscuro /></span>}
-          </dt>
+          <dt className="text-[12.5px] font-medium text-white/60">Ganancia</dt>
           <dd className="cifra mt-2 text-[clamp(1.05rem,4.6vw,1.4rem)] leading-none font-semibold text-[#7be39e]">
-            <span aria-hidden>+</span>
-            <span className="sr-only">más </span>
-            {clp(ingresos)}
+            {ganancia < 0 ? <span aria-hidden>−</span> : <span aria-hidden>+</span>}
+            <span className="sr-only">{ganancia < 0 ? 'menos ' : 'más '}</span>
+            {clp(Math.abs(ganancia))}
           </dd>
-          {detalleEntro && <dd className="mt-2 text-[11.5px] leading-snug text-white/60">{detalleEntro}</dd>}
+          <dd className="mt-2 text-[11.5px] leading-snug text-white/60">lo vendido menos lo que costó</dd>
         </div>
         <div className="rounded-[var(--radius-widget)] bg-white/[0.08] p-3.5">
-          <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
-            <span aria-hidden className="grid size-5 place-items-center rounded-full bg-white/15 text-[11px] text-white/80">↑</span>
-            Salió
-            {anterior && <span className="ml-auto"><CambioPildora actual={egresos} anterior={anterior.egresos} oscuro /></span>}
-          </dt>
+          <dt className="text-[12.5px] font-medium text-white/60">Margen</dt>
           <dd className="cifra mt-2 text-[clamp(1.05rem,4.6vw,1.4rem)] leading-none font-semibold text-white">
-            <span aria-hidden>−</span>
-            <span className="sr-only">menos </span>
-            {clp(egresos)}
+            {margenPct === null ? '—' : `${String(margenPct).replace('.', ',')} %`}
           </dd>
-          {detalleSalio && <dd className="mt-2 text-[11.5px] leading-snug text-white/60">{detalleSalio}</dd>}
+          <dd className="mt-2 text-[11.5px] leading-snug text-white/60">de cada peso vendido</dd>
         </div>
       </dl>
     </section>

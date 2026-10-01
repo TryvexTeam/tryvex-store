@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { clp } from '@/lib/formato'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
@@ -19,12 +18,6 @@ import Comprobante from './comprobante'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Finanzas' }
-
-/** «Ventas $436.000 · Aporte de socio $480.000»: las tres categorías más grandes y cuántas más hay. */
-function resumirCategorias(filas: { etiqueta: string; total: number }[]): string {
-  const principales = filas.slice(0, 3).map((f) => `${f.etiqueta} ${clp(f.total)}`).join(' · ')
-  return filas.length > 3 ? `${principales} · y ${filas.length - 3} más` : principales
-}
 
 export default async function Finanzas({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string; sin?: string; tipo?: string }> }) {
   const yo = await integranteActual()
@@ -51,14 +44,16 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   if (periodo.desde) consulta = consulta.gte('fecha', periodo.desde)
   if (periodo.hasta) consulta = consulta.lte('fecha', periodo.hasta)
 
-  const consultaAnterior = periodo.anterior
+  // Ventas del periodo anterior del mismo largo, para comparar. Salen de los movimientos de stock,
+  // igual que las del periodo actual: así las dos cifras hablan de lo mismo.
+  const consultaVentasAnteriores = periodo.anterior
     ? supabase
-        .from('movimientos_financieros')
-        .select('tipo,monto_clp')
-        .eq('negocio', NEGOCIO_TIENDA)
-        .gte('fecha', periodo.anterior.desde)
-        .lte('fecha', periodo.anterior.hasta)
-        .limit(LIMITE)
+        .from('stock_movimientos')
+        .select('tipo,total_clp')
+        .in('tipo', ['venta', 'devolucion'])
+        .gte('created_at', `${periodo.anterior.desde}T00:00:00-04:00`)
+        .lte('created_at', `${periodo.anterior.hasta}T23:59:59-03:00`)
+        .limit(20000)
     : null
 
   // Movimientos de stock del periodo (en hora de Santiago: -04:00 al inicio y -03:00 al final cubren el cambio de horario).
@@ -70,9 +65,9 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
   if (periodo.desde) consultaStock = consultaStock.gte('created_at', `${periodo.desde}T00:00:00-04:00`)
   if (periodo.hasta) consultaStock = consultaStock.lte('created_at', `${periodo.hasta}T23:59:59-03:00`)
 
-  const [{ data: movs }, { data: movsAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }, { data: retirosSocios }] = await Promise.all([
+  const [{ data: movs }, { data: ventasAnteriores }, { data: aportesSocios }, { data: comprasStock }, { data: stock }, { data: productos }, { data: movsStock }, { data: porCobrarPedidos }, { data: saldoRows }, { data: efectivoRows }, { data: integrantes }, { data: todosLosMovs }, { data: previasStock }, { data: retirosSocios }] = await Promise.all([
     consulta,
-    consultaAnterior ?? Promise.resolve({ data: null }),
+    consultaVentasAnteriores ?? Promise.resolve({ data: null }),
     // El capital es de TODO el historial, no del periodo que se esté mirando.
     supabase.from('movimientos_financieros').select('contraparte,monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'ingreso').eq('categoria', CATEGORIA_APORTE).limit(2000),
     supabase.from('movimientos_financieros').select('monto_clp').eq('negocio', NEGOCIO_TIENDA).eq('tipo', 'egreso').eq('categoria', 'Inventario e insumos').limit(5000),
@@ -94,13 +89,9 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
 
   const ingresos = todos.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0)
   const egresos = todos.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0)
-  const balance = ingresos - egresos
-  const anterior = movsAnteriores
-    ? {
-        ingresos: movsAnteriores.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0),
-        egresos: movsAnteriores.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0),
-      }
-    : null
+  const ventasAnterior = ventasAnteriores
+    ? ventasAnteriores.reduce((a, m) => a + (m.tipo === 'venta' ? n(m.total_clp) : -n(m.total_clp)), 0)
+    : undefined
 
   const capital = calcularCapital(aportesSocios ?? [], (comprasStock ?? []).reduce((a, m) => a + n(m.monto_clp), 0), retirosSocios ?? [])
 
@@ -160,24 +151,12 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       <SelectorPeriodo periodo={periodo} conservarSin={soloSinComprobante} />
 
       {/*
-        Jerarquía numérica: UNA cifra manda.
-        Antes las tres cifras medían lo mismo (2rem) y el ojo no sabía dónde
-        posarse: el balance, que es la pregunta real, competía con sus propios
-        sumandos. Ahora el balance domina y los sumandos quedan subordinados.
-
-        Y el signo va escrito, no solo pintado: distinguir ingreso de egreso
-        únicamente por el color deja fuera a quien no lo percibe, y en dinero
-        esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
+        Arriba, solo lo VENDIDO: una cifra manda. Los aportes de los socios, las compras de stock,
+        los gastos y los retiros son movimientos de dinero y se ven más abajo (cuadre de caja,
+        capital y desgloses por categoría): mezclados acá hacían que «Entró» pareciera mucho más
+        de lo que se había vendido.
       */}
-      <ResumenFinanzas
-        balance={balance}
-        ingresos={ingresos}
-        egresos={egresos}
-        anterior={anterior}
-        etiquetaPeriodo={periodo.etiqueta}
-        detalleEntro={resumirCategorias(desglosarPorCategoria(todos, 'ingreso'))}
-        detalleSalio={resumirCategorias(desglosarPorCategoria(todos, 'egreso'))}
-      />
+      <ResumenFinanzas ventas={resultado.ventas} ventasAnterior={ventasAnterior} ganancia={resultado.ganancia} margenPct={resultado.margenPct} unidades={resultado.unidadesVendidas} etiquetaPeriodo={periodo.etiqueta} />
 
       <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <ResultadoNegocio resultado={resultado} etiquetaPeriodo={periodo.etiqueta} />
@@ -194,8 +173,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       <CuentasPorMetodo cuentas={cuentas} />
 
       <div className="mb-8 grid gap-4 md:grid-cols-2">
-        <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" />
-        <DesgloseCategorias titulo="Entró por categoría" filas={desglosarPorCategoria(todos, 'ingreso')} tono="verde" />
+        <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" total={egresos} />
+        <DesgloseCategorias titulo="Entró por categoría" filas={desglosarPorCategoria(todos, 'ingreso')} tono="verde" total={ingresos} />
       </div>
 
       <AvisoSinComprobante cantidad={sinComprobante.length} activo={soloSinComprobante} periodo={periodo} />

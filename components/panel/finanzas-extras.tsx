@@ -83,10 +83,13 @@ export function desglosarPorCategoria(lista: Movimiento[], tipo: 'ingreso' | 'eg
 }
 
 /** Barras horizontales con monto y porcentaje ESCRITOS: la barra acompaña, no es el dato. */
-export function DesgloseCategorias({ titulo, filas, tono }: { titulo: string; filas: FilaDesglose[]; tono: 'verde' | 'spark' }) {
+export function DesgloseCategorias({ titulo, filas, tono, total }: { titulo: string; filas: FilaDesglose[]; tono: 'verde' | 'spark'; total?: number }) {
   return (
     <section aria-label={titulo} className="rounded-[var(--radius-widget)] bg-papel p-5 ring-1 ring-borde/60">
-      <h2 className="text-[15px] font-semibold">{titulo}</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-semibold">{titulo}</h2>
+        {total !== undefined && <p className="cifra text-[13.5px] font-semibold text-tinta-suave">{clp(total)}</p>}
+      </div>
       {filas.length === 0 ? (
         <p className="mt-3 text-[13px] text-gris">Sin movimientos en este periodo.</p>
       ) : (
