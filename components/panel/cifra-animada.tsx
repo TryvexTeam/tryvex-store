@@ -81,7 +81,10 @@ export function CifraAnimada({
   return (
     <span className={className}>
       <span className="sr-only">{texto}</span>
-      <span aria-hidden ref={ref}>
+      {/* `key`: al cambiar el valor (otro periodo) React crea el elemento de nuevo. Sin esto, la limpieza del
+          efecto escribía el texto viejo a mano y React, creyendo el nodo intacto, no lo actualizaba: quedaba
+          «436.000» visible aunque el valor ya fuera 0. */}
+      <span key={texto} aria-hidden ref={ref}>
         {texto}
       </span>
     </span>
