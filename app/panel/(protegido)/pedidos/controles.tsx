@@ -198,8 +198,8 @@ export function NuevoPedido({
       <div className="grid gap-2.5 sm:grid-cols-2">
         <input name="cliente_nombre" required placeholder="Nombre del cliente"
                disabled={enviando} className={campo} aria-label="Nombre del cliente" />
-        <input name="cliente_fono" placeholder="Teléfono" inputMode="tel"
-               disabled={enviando} className={campo} aria-label="Teléfono" />
+        <input name="cliente_fono" placeholder="Teléfono (opcional)" inputMode="tel"
+               disabled={enviando} className={campo} aria-label="Teléfono, opcional" />
         <input name="cliente_email" type="email" placeholder="Correo (opcional)"
                disabled={enviando} className={campo} aria-label="Correo" />
         <Selector

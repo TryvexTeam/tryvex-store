@@ -3,7 +3,7 @@ import { integranteActual } from '@/lib/sesion'
 import { clp, fecha as fmtFecha } from '@/lib/formato'
 import FormularioStock from './formulario'
 import { productosConVariantes } from '@/lib/variantes-cliente'
-import { ConfigurarMinimo } from './configurar-minimo'
+import { InventarioStock, type FilaInventario } from '@/components/panel/inventario-stock'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Stock' }
@@ -33,8 +33,15 @@ export default async function Stock() {
   const filas = stock ?? []
   const minimoDe = (productoId: string) => minimoPorId.get(productoId) ?? 5
   const nombrePorId = new Map(filas.map((f) => [f.producto_id, f.nombre]))
-  const bajos = filas.filter((f) => Number(f.stock ?? 0) <= minimoDe(f.producto_id))
   const variantesDe = new Map((productos ?? []).map((p) => [p.id, p.variantes]))
+  const inventario: FilaInventario[] = filas.map((f) => ({
+    producto_id: f.producto_id,
+    sku: f.sku,
+    nombre: f.nombre,
+    stock: Number(f.stock ?? 0),
+    minimo: minimoDe(f.producto_id),
+    variantes: variantesDe.get(f.producto_id) ?? [],
+  }))
 
   return (
     <>
@@ -45,42 +52,7 @@ export default async function Stock() {
         </p>
       </header>
 
-      {bajos.length > 0 && (
-        <p role="status" className="mb-6 rounded-[var(--radius-anidado)] bg-spark-suave px-4 py-3 text-[14px] text-rojo">
-          {bajos.map((b) => `${b.nombre}: quedan ${b.stock} (mínimo ${minimoDe(b.producto_id)})`).join(' · ')}. Conviene reponer.
-        </p>
-      )}
-
-      <section aria-label="Inventario" className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filas.map((f) => (
-          <div
-            key={f.producto_id}
-            className={`rounded-[var(--radius-tarjeta)] p-6 ${
-              Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'bg-papel ring-1 ring-rojo/30' : 'bg-tinta text-papel'
-            }`}
-          >
-            <p className={`text-[12px] font-semibold uppercase tracking-[0.05em] ${
-              Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'text-gris' : 'text-white/60'
-            }`}>
-              {f.sku}
-            </p>
-            <p className="cifra mt-3 text-[2.4rem] leading-none font-semibold">{f.stock}</p>
-            <p className={`mt-2 text-[13px] ${Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'text-gris' : 'text-white/55'}`}>
-              unidades · {f.nombre}
-            </p>
-            <ConfigurarMinimo productoId={f.producto_id} minimo={minimoDe(f.producto_id)} />
-            {(variantesDe.get(f.producto_id) ?? []).length > 0 && (
-              <ul className={`mt-4 flex flex-wrap gap-1.5 text-[12px] ${Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'text-tinta-suave' : 'text-white/75'}`}>
-                {(variantesDe.get(f.producto_id) ?? []).map((v) => (
-                  <li key={v.id} className={`rounded-full px-2.5 py-1 ${Number(f.stock ?? 0) <= minimoDe(f.producto_id) ? 'bg-papel-alt' : 'bg-white/10'}`}>
-                    {v.nombre} <span className="cifra font-semibold">{v.stock}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
-      </section>
+      <InventarioStock filas={inventario} />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section aria-label="Historial" className="min-w-0">

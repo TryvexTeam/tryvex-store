@@ -139,6 +139,8 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
  */
 export async function crearVentaRapida(datos: FormData): Promise<Resultado> {
   datos.set('canal', 'presencial')
+  // En un mostrador no siempre se pide el nombre: sin él, la venta no se frena.
+  if (!String(datos.get('cliente_nombre') ?? '').trim()) datos.set('cliente_nombre', 'Venta en mostrador')
   const creado = await crearPedido(datos)
   if (!creado.ok || !creado.id) return creado
   if (creado.aviso) return { ok: false, error: creado.aviso }
