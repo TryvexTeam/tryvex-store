@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { esquemaMovimiento, esquemaPedido, primerError } from '../lib/validacion-panel.ts'
+import { MAX_LINEAS_VENTA as TOPE_CLIENTE } from '../lib/venta.ts'
+import { esquemaMovimiento, esquemaPedido, esquemaLineasVenta, esquemaEncabezadoVenta, MAX_LINEAS_VENTA, primerError } from '../lib/validacion-panel.ts'
 
 const mov = { tipo: 'egreso', categoria: 'marketing', descripcion: 'Anuncios', monto_clp: '45000', fecha: '2026-09-30', metodo_pago: 'tarjeta', contraparte: '' }
 const ped = { cliente_nombre: 'María', producto_id: 'abc', cantidad: '2' }
@@ -40,4 +41,37 @@ test('pedido sin nombre se rechaza', () => {
   const r = esquemaPedido.safeParse({ ...ped, cliente_nombre: '   ' })
   assert.equal(r.success, false)
   assert.match(primerError(r.error), /nombre/)
+})
+
+const linea = { producto_id: 'p1', variante_id: '', cantidad: 2, precio_unitario: '25000' }
+test('venta: varias líneas válidas, variante vacía pasa a null', () => {
+  const r = esquemaLineasVenta.safeParse([linea, { ...linea, producto_id: 'p2', variante_id: 'v9' }])
+  assert.equal(r.success, true)
+  assert.equal(r.data[0].variante_id, null)
+  assert.equal(r.data[1].variante_id, 'v9')
+  assert.equal(r.data[0].precio_unitario, 25000)
+})
+test('venta: sin líneas se rechaza con motivo', () => {
+  const r = esquemaLineasVenta.safeParse([])
+  assert.equal(r.success, false)
+  assert.match(primerError(r.error), /al menos un producto/)
+})
+test('venta: tope de líneas', () => {
+  const muchas = Array.from({ length: MAX_LINEAS_VENTA + 1 }, () => linea)
+  assert.equal(esquemaLineasVenta.safeParse(muchas).success, false)
+  assert.equal(esquemaLineasVenta.safeParse(muchas.slice(0, MAX_LINEAS_VENTA)).success, true)
+})
+test('venta: cantidad y precio inválidos', () => {
+  for (const c of [0, -1, 1.5, 'x']) assert.equal(esquemaLineasVenta.safeParse([{ ...linea, cantidad: c }]).success, false, `cantidad ${c}`)
+  assert.equal(esquemaLineasVenta.safeParse([{ ...linea, precio_unitario: -1 }]).success, false)
+  assert.equal(esquemaLineasVenta.safeParse([{ ...linea, precio_unitario: 'abc' }]).success, false)
+  assert.equal(esquemaLineasVenta.safeParse('no es lista').success, false)
+})
+test('venta: encabezado con todo opcional salvo el nombre por defecto', () => {
+  assert.equal(esquemaEncabezadoVenta.safeParse({ cliente_nombre: 'Venta en mostrador', canal: 'presencial', metodo_pago: 'efectivo' }).success, true)
+  assert.equal(esquemaEncabezadoVenta.safeParse({ cliente_nombre: 'Ana', cliente_fono: 'hola' }).success, false)
+})
+
+test('el tope de líneas del cliente y el del servidor coinciden', () => {
+  assert.equal(TOPE_CLIENTE, MAX_LINEAS_VENTA)
 })

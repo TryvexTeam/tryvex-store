@@ -57,3 +57,24 @@ export const esquemaPedido = z.object({
 })
 
 export type PedidoValidado = z.infer<typeof esquemaPedido>
+
+/** Debe valer lo mismo que `MAX_LINEAS_VENTA` en lib/venta.ts (lo comprueba un test: acá no se importa para poder probar el módulo solo). */
+export const MAX_LINEAS_VENTA = 30
+
+export const esquemaLineasVenta = z
+  .array(
+    z.object({
+      producto_id: z.string().min(1, 'Falta el producto.'),
+      variante_id: z.union([z.string(), z.null()]).optional().transform((v) => (v ? v : null)),
+      cantidad: z.coerce.number({ error: 'La cantidad debe ser 1 o más.' }).int('La cantidad debe ser un número entero.').min(1, 'La cantidad debe ser 1 o más.').max(100_000, 'La cantidad es demasiado alta.'),
+      precio_unitario: monto('El precio').refine((n) => n >= 0, 'El precio no puede ser negativo.').refine((n) => n <= 1_000_000_000, 'El precio es demasiado alto.'),
+    }),
+    { error: 'Las líneas de la venta no son válidas.' }
+  )
+  .min(1, 'Agrega al menos un producto.')
+  .max(MAX_LINEAS_VENTA, `Máximo ${MAX_LINEAS_VENTA} productos por venta.`)
+
+export type LineaVentaValidada = z.infer<typeof esquemaLineasVenta>[number]
+
+/** Encabezado de una venta con varios productos: lo del pedido, sin producto ni cantidad sueltos. */
+export const esquemaEncabezadoVenta = esquemaPedido.omit({ producto_id: true, cantidad: true })
