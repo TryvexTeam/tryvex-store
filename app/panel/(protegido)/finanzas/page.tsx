@@ -3,7 +3,8 @@ import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
 import { clp } from '@/lib/formato'
 import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
-import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, desglosarPorCategoria } from '@/components/panel/finanzas-extras'
+import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
+import { agruparPorMetodo } from '@/lib/cuentas'
 import { BotonImprimir } from '@/components/panel/boton-imprimir'
 import { BotonEnlace } from '@/components/panel/ui'
 import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
@@ -13,11 +14,12 @@ import Comprobante from './comprobante'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Finanzas' }
 
-export default async function Finanzas({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string; sin?: string }> }) {
+export default async function Finanzas({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string; sin?: string; tipo?: string }> }) {
   const yo = await integranteActual()
   const params = await searchParams
   const periodo = resolverPeriodo(params)
   const soloSinComprobante = params.sin === '1'
+  const filtroTipo: FiltroTipo = params.tipo === 'ingreso' || params.tipo === 'egreso' ? params.tipo : 'todos'
 
   // El enlace ya se oculta en el layout, pero alguien puede escribir la URL.
   // Por debajo el RLS también lo bloquearía; esto da un desvío limpio.
@@ -68,7 +70,10 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
     : null
 
   const sinComprobante = todos.filter((m) => m.tipo === 'egreso' && !m.voucher_path)
-  const lista = (soloSinComprobante ? sinComprobante : todos).slice(0, 200)
+  const base = soloSinComprobante ? sinComprobante : todos
+  const lista = (filtroTipo === 'todos' || soloSinComprobante ? base : base.filter((m) => m.tipo === filtroTipo)).slice(0, 200)
+  const cuentas = agruparPorMetodo(todos)
+  const conteoTipos = { todos: todos.length, ingreso: todos.filter((m) => m.tipo === 'ingreso').length, egreso: todos.filter((m) => m.tipo === 'egreso').length }
   const truncado = todos.length >= LIMITE
 
   // ── Analítica propia: lo que Treinta no muestra ──────────────────
@@ -116,6 +121,8 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
         esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
       */}
       <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
+
+      <CuentasPorMetodo cuentas={cuentas} />
 
       <div className="mb-8 grid gap-4 md:grid-cols-2">
         <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" />
@@ -169,6 +176,7 @@ export default async function Finanzas({ searchParams }: { searchParams: Promise
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section aria-label="Movimientos" className="min-w-0">
           <h2 className="mb-4 text-[1.35rem] font-semibold tracking-[-0.015em]">Movimientos</h2>
+          {!soloSinComprobante && <PestanasMovimientos periodo={periodo} activa={filtroTipo} cuentas={conteoTipos} />}
 
           {lista.length === 0 ? (
             <div className="rounded-[var(--radius-tarjeta)] bg-papel px-6 py-14 text-center ring-1 ring-borde/70">

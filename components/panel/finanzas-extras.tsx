@@ -3,6 +3,7 @@ import { clp } from '@/lib/formato'
 import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
 import { ATAJOS, queryDePeriodo, type Periodo } from '@/lib/periodo'
 import type { Movimiento } from '@/components/panel/finanzas-vista'
+import type { Cuenta } from '@/lib/cuentas'
 
 /**
  * Piezas de Finanzas que Revolut Business resuelve en su analítica: periodo
@@ -123,5 +124,66 @@ export function AvisoSinComprobante({ cantidad, activo, periodo }: { cantidad: n
         {activo ? 'Ver todos' : 'Revisarlos'}
       </Link>
     </div>
+  )
+}
+
+/**
+ * Una tarjeta por método de pago, como las cuentas por moneda de Revolut. El neto
+ * manda; lo que entró y salió queda debajo, con el signo escrito además del color.
+ */
+export function CuentasPorMetodo({ cuentas }: { cuentas: Cuenta[] }) {
+  if (cuentas.length === 0) return null
+  return (
+    <section aria-label="Cuentas por método de pago" className="mb-8">
+      <h2 className="mb-3 text-[15px] font-semibold">Dónde está la plata</h2>
+      <ul className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))]">
+        {cuentas.map((c) => (
+          <li key={c.clave} className="rounded-[var(--radius-widget)] bg-papel p-4 ring-1 ring-borde/60">
+            <p className="truncate text-[13px] font-medium text-gris">{c.etiqueta}</p>
+            <p className={`cifra mt-2 text-[clamp(1.15rem,4.8vw,1.55rem)] leading-none font-semibold tracking-[-0.02em] ${c.neto < 0 ? 'text-rojo' : ''}`}>
+              {c.neto < 0 && <span aria-hidden>−</span>}
+              {c.neto < 0 && <span className="sr-only">menos </span>}
+              {clp(Math.abs(c.neto))}
+            </p>
+            <p className="cifra mt-2.5 flex flex-wrap gap-x-2 text-[12px] leading-snug text-gris">
+              {c.entro > 0 && <span className="text-verde">+{clp(c.entro)}</span>}
+              {c.salio > 0 && <span>−{clp(c.salio)}</span>}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+export type FiltroTipo = 'todos' | 'ingreso' | 'egreso'
+
+/** Pestañas subrayadas (Todos / Entradas / Salidas), como «Accounts / Transactions» de Revolut. */
+export function PestanasMovimientos({ periodo, activa, cuentas }: { periodo: Periodo; activa: FiltroTipo; cuentas: { todos: number; ingreso: number; egreso: number } }) {
+  const base = `/panel/finanzas?${queryDePeriodo(periodo)}`
+  const pestanas: { id: FiltroTipo; etiqueta: string; n: number }[] = [
+    { id: 'todos', etiqueta: 'Todos', n: cuentas.todos },
+    { id: 'ingreso', etiqueta: 'Entradas', n: cuentas.ingreso },
+    { id: 'egreso', etiqueta: 'Salidas', n: cuentas.egreso },
+  ]
+  return (
+    <nav aria-label="Tipo de movimiento" className="no-imprimir mb-4 flex gap-6 border-b border-borde/60">
+      {pestanas.map((t) => {
+        const activo = activa === t.id
+        return (
+          <Link
+            key={t.id}
+            href={t.id === 'todos' ? base : `${base}&tipo=${t.id}`}
+            aria-current={activo ? 'page' : undefined}
+            className={`-mb-px inline-flex min-h-11 items-center gap-1.5 border-b-2 text-[14px] font-medium transition-colors ${
+              activo ? 'border-tinta text-tinta' : 'border-transparent text-gris hover:text-tinta'
+            }`}
+          >
+            {t.etiqueta}
+            <span className="cifra text-[12px] text-gris">{t.n}</span>
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
