@@ -7,7 +7,7 @@ import { useAvisos } from '@/components/avisos'
 import { guardarConfiguracion } from './acciones'
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 
@@ -88,7 +88,7 @@ export function FormularioAjustes({
   return (
     <form onSubmit={enviar} className="space-y-4">
       {!puedeEditar && (
-        <p role="status" className="rounded-[12px] bg-spark-suave px-4 py-3 text-[13px] text-ambar">
+        <p role="status" className="rounded-[var(--radius-anidado)] bg-spark-suave px-4 py-3 text-[13px] text-ambar">
           Puedes ver los ajustes, pero solo administración o finanzas los cambia.
         </p>
       )}
@@ -133,7 +133,7 @@ export function FormularioAjustes({
       {puedeEditar && (
         <div className="sticky bottom-[calc(84px+env(safe-area-inset-bottom))] md:bottom-4">
           <button type="submit" disabled={guardando}
-                  className="presionable w-full rounded-[12px] bg-tinta py-3.5 text-[15px] font-semibold text-white
+                  className="presionable w-full rounded-[var(--radius-anidado)] bg-tinta py-3.5 text-[15px] font-semibold text-white
                              shadow-[var(--shadow-alzado)] hover:bg-tinta/85 disabled:opacity-60">
             {guardando ? 'Guardando…' : 'Guardar ajustes'}
           </button>

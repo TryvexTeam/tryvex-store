@@ -7,6 +7,7 @@ import { crearPedidoConReserva } from '@/lib/pedidos/crear'
 import { confirmarPagoDePedido } from '@/lib/confirmar-pago'
 import { correoPedidoEnCamino, correoPedidoEntregado } from '@/lib/correo'
 import { montoDesdeTexto, montoDesdeTextoODefecto } from '@/lib/monto'
+import { esquemaPedido, esquemaLineasVenta, esquemaEncabezadoVenta, primerError } from '@/lib/validacion-panel'
 import { urlDeSeguimiento } from '@/lib/seguimiento'
 import { urlPublica } from '@/lib/imagenes'
 
@@ -77,21 +78,22 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
   const { supabase, yo, error: errSesion } = await contexto()
   if (errSesion || !yo) return { ok: false, error: errSesion ?? 'Sin sesión.' }
 
-  const cliente_nombre = String(datos.get('cliente_nombre') ?? '').trim()
-  const cliente_email = String(datos.get('cliente_email') ?? '').trim()
-  const cliente_fono = String(datos.get('cliente_fono') ?? '').trim()
-  const canal = String(datos.get('canal') ?? 'whatsapp')
-  const metodo_pago = String(datos.get('metodo_pago') ?? '')
-  const notas = String(datos.get('notas') ?? '').trim()
-  const producto_id = String(datos.get('producto_id') ?? '')
-  const cantidad = Number(datos.get('cantidad'))
+  // Texto y cantidad se validan con el esquema; el dinero (precio, envío) conserva su lectura propia.
+  const analizado = esquemaPedido.safeParse({
+    cliente_nombre: datos.get('cliente_nombre') ?? '',
+    cliente_email: String(datos.get('cliente_email') ?? '').trim(),
+    cliente_fono: String(datos.get('cliente_fono') ?? '').trim(),
+    canal: String(datos.get('canal') ?? 'whatsapp'),
+    metodo_pago: String(datos.get('metodo_pago') ?? ''),
+    notas: datos.get('notas') ?? '',
+    producto_id: String(datos.get('producto_id') ?? ''),
+    cantidad: datos.get('cantidad'),
+  })
+  if (!analizado.success) return { ok: false, error: primerError(analizado.error) }
+  const { cliente_nombre, cliente_email, cliente_fono, canal, metodo_pago, notas, producto_id, cantidad } = analizado.data
+
   const precio_unitario = montoDesdeTexto(datos.get('precio_unitario')) ?? NaN
   const envio = montoDesdeTextoODefecto(datos.get('envio_clp'))
-
-  if (!cliente_nombre) return { ok: false, error: 'Falta el nombre del cliente.' }
-  if (!producto_id) return { ok: false, error: 'Falta el producto.' }
-  if (!Number.isInteger(cantidad) || cantidad < 1)
-    return { ok: false, error: 'La cantidad debe ser 1 o más.' }
   if (!Number.isFinite(precio_unitario) || precio_unitario < 0)
     return { ok: false, error: 'El precio unitario no es válido.' }
   if (!Number.isFinite(envio) || envio < 0)
@@ -131,25 +133,20 @@ export async function crearPedido(datos: FormData): Promise<Resultado> {
 }
 
 /**
- * Venta presencial de una sola línea.
+ * Confirma el pago de un pedido presencial recién reservado.
  *
- * Primero se crea la reserva como cualquier pedido y luego se confirma por la
- * RPC transaccional usada por Mercado Pago. La referencia local única hace que
- * un reintento no pueda duplicar ni el ingreso ni la salida de inventario.
+ * Se usa la misma RPC transaccional que Mercado Pago. La referencia local es
+ * única, así que un reintento no puede duplicar ni el ingreso ni la salida de
+ * inventario.
  */
-export async function crearVentaRapida(datos: FormData): Promise<Resultado> {
-  datos.set('canal', 'presencial')
-  const creado = await crearPedido(datos)
-  if (!creado.ok || !creado.id) return creado
-  if (creado.aviso) return { ok: false, error: creado.aviso }
-
+async function cobrarPedidoPresencial(pedidoId: string): Promise<Resultado> {
   const { supabase, error: errSesion } = await contexto()
   if (errSesion) return { ok: false, error: `La venta quedó creada pero requiere confirmar pago: ${errSesion}` }
 
   const { data: pedido, error: errPedido } = await supabase
     .from('pedidos')
     .select('numero,total_clp,metodo_pago')
-    .eq('id', creado.id)
+    .eq('id', pedidoId)
     .maybeSingle()
   if (errPedido || !pedido)
     return { ok: false, error: 'La venta quedó creada pero requiere confirmar pago. Abre el pedido y márcalo como pagado.' }
@@ -165,7 +162,85 @@ export async function crearVentaRapida(datos: FormData): Promise<Resultado> {
     return { ok: false, error: `La venta quedó creada pero requiere confirmar pago: ${pagado.error}` }
 
   revalidar()
-  return { ok: true, id: creado.id }
+  return { ok: true, id: pedidoId }
+}
+
+/**
+ * Venta presencial de una sola línea.
+ *
+ * Primero se crea la reserva como cualquier pedido y luego se confirma el pago.
+ */
+export async function crearVentaRapida(datos: FormData): Promise<Resultado> {
+  datos.set('canal', 'presencial')
+  // En un mostrador no siempre se pide el nombre: sin él, la venta no se frena.
+  if (!String(datos.get('cliente_nombre') ?? '').trim()) datos.set('cliente_nombre', 'Venta en mostrador')
+  const creado = await crearPedido(datos)
+  if (!creado.ok || !creado.id) return creado
+  if (creado.aviso) return { ok: false, error: creado.aviso }
+  return cobrarPedidoPresencial(creado.id)
+}
+
+/**
+ * Venta presencial con varios productos (el carrito de la venta rápida).
+ *
+ * Las líneas llegan como JSON en `lineas`. Todas se reservan en UNA sola llamada
+ * transaccional: o entra la venta completa o no entra nada, así no queda un
+ * pedido a medias si a mitad de camino se agota una de las unidades.
+ */
+export async function crearVentaRapidaCarrito(datos: FormData): Promise<Resultado> {
+  const { yo, error: errSesion } = await contexto()
+  if (errSesion || !yo) return { ok: false, error: errSesion ?? 'Sin sesión.' }
+
+  let crudas: unknown
+  try {
+    crudas = JSON.parse(String(datos.get('lineas') ?? '[]'))
+  } catch {
+    return { ok: false, error: 'Las líneas de la venta no son válidas.' }
+  }
+  const lineas = esquemaLineasVenta.safeParse(crudas)
+  if (!lineas.success) return { ok: false, error: primerError(lineas.error) }
+
+  const encabezado = esquemaEncabezadoVenta.safeParse({
+    cliente_nombre: String(datos.get('cliente_nombre') ?? '').trim() || 'Venta en mostrador',
+    cliente_email: String(datos.get('cliente_email') ?? '').trim(),
+    cliente_fono: String(datos.get('cliente_fono') ?? '').trim(),
+    canal: 'presencial',
+    metodo_pago: String(datos.get('metodo_pago') ?? ''),
+    notas: datos.get('notas') ?? '',
+  })
+  if (!encabezado.success) return { ok: false, error: primerError(encabezado.error) }
+  const e = encabezado.data
+
+  const items = lineas.data.map((l) => ({
+    productoId: l.producto_id,
+    varianteId: l.variante_id,
+    cantidad: l.cantidad,
+    precioUnitario: l.precio_unitario,
+    subtotalClp: l.cantidad * l.precio_unitario,
+  }))
+  const subtotal = items.reduce((suma, i) => suma + i.subtotalClp, 0)
+
+  const creado = await crearPedidoConReserva({
+    encabezado: {
+      clienteNombre: e.cliente_nombre,
+      clienteEmail: e.cliente_email || null,
+      clienteFono: e.cliente_fono || null,
+      canal: e.canal,
+      metodoPago: e.metodo_pago || null,
+      subtotalClp: subtotal,
+      envioClp: 0,
+      totalClp: subtotal,
+      notas: e.notas || null,
+      atendidoPor: yo.id,
+    },
+    items,
+  })
+  if (!creado.ok) {
+    const disponibles = typeof creado.disponible === 'number' ? ` Solo hay ${creado.disponible} unidades disponibles.` : ''
+    return { ok: false, error: `${creado.error}.${disponibles}` }
+  }
+
+  return cobrarPedidoPresencial(creado.id)
 }
 
 /** Mueve el pedido de estado y aplica los efectos de ese cambio. */

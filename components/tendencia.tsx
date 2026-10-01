@@ -20,9 +20,12 @@ interface Punto {
 export function Tendencia({
   puntos,
   etiqueta,
+  claro = false,
 }: {
   puntos: Punto[]
   etiqueta: string
+  /** Para fondo claro: los mensajes de «sin datos» dejan de ser blancos. */
+  claro?: boolean
 }) {
   const ANCHO = 240
   const ALTO = 56
@@ -30,7 +33,7 @@ export function Tendencia({
   if (puntos.length < 2) {
     return (
       <div
-        className="h-14 rounded-[10px] bg-white/5"
+        className={`h-14 rounded-[10px] ${claro ? 'bg-tinta/5' : 'bg-white/5'}`}
         aria-label={`${etiqueta}: sin datos suficientes para una tendencia`}
         role="img"
       />
@@ -44,7 +47,7 @@ export function Tendencia({
   // Se dice con palabras.
   if (valores.every((v) => v === 0)) {
     return (
-      <p className="flex h-14 items-center text-[13px] text-white/45">
+      <p className={`flex h-14 items-center text-[13px] ${claro ? 'text-gris' : 'text-white/45'}`}>
         Sin ventas cerradas en estos días. La curva aparece con la primera.
       </p>
     )

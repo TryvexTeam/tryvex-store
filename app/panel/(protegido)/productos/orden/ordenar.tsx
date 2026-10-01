@@ -100,7 +100,7 @@ export function Ordenar({ productos, loNuevo }: { productos: ProductoOrden[]; lo
 
   return (
     <div>
-      <div role="tablist" aria-label="Qué ordenar" className="mb-5 grid grid-cols-2 gap-1 rounded-[14px] bg-papel-alt p-1 ring-1 ring-borde/60">
+      <div role="tablist" aria-label="Qué ordenar" className="mb-5 grid grid-cols-2 gap-1 rounded-[var(--radius-anidado)] bg-papel-alt p-1 ring-1 ring-borde/60">
         {pestanas.map((p) => (
           <button
             key={p.id}
@@ -108,7 +108,7 @@ export function Ordenar({ productos, loNuevo }: { productos: ProductoOrden[]; lo
             role="tab"
             aria-selected={pestana === p.id}
             onClick={() => setPestana(p.id)}
-            className={`presionable min-h-11 rounded-[10px] text-[14px] font-semibold transition-colors ${
+            className={`presionable min-h-11 rounded-[var(--radius-anidado)] text-[14px] font-semibold transition-colors ${
               pestana === p.id ? 'bg-papel text-tinta shadow-[0_1px_4px_rgb(0_0_0/10%)]' : 'text-tinta-suave hover:text-tinta'
             }`}
           >
@@ -123,7 +123,7 @@ export function Ordenar({ productos, loNuevo }: { productos: ProductoOrden[]; lo
             Es la fila «Todo lo nuevo» de la portada, en este orden. Hasta {MAX_LO_NUEVO} productos.
           </p>
           {nuevo.length === 0 ? (
-            <p className="rounded-[14px] bg-papel px-4 py-8 text-center text-[14px] text-tinta-suave ring-1 ring-borde/70">
+            <p className="rounded-[var(--radius-anidado)] bg-papel px-4 py-8 text-center text-[14px] text-tinta-suave ring-1 ring-borde/70">
               No hay productos elegidos: la portada muestra los 8 publicados más recientes. Agrega abajo los que quieras destacar.
             </p>
           ) : (
@@ -146,9 +146,9 @@ export function Ordenar({ productos, loNuevo }: { productos: ProductoOrden[]; lo
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar producto…"
-              className="mt-3 w-full rounded-[12px] bg-papel px-4 py-3 text-[15px] ring-1 ring-borde placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none"
+              className="mt-3 w-full rounded-[var(--radius-anidado)] bg-papel px-4 py-3 text-[15px] ring-1 ring-borde placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none"
             />
-            <ul className="mt-3 divide-y divide-borde/60 overflow-hidden rounded-[14px] bg-papel ring-1 ring-borde/70">
+            <ul className="mt-3 divide-y divide-borde/60 overflow-hidden rounded-[var(--radius-anidado)] bg-papel ring-1 ring-borde/70">
               {disponibles.length === 0 && <li className="px-4 py-5 text-center text-[14px] text-tinta-suave">Nada que agregar.</li>}
               {disponibles.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 px-3 py-2">
@@ -234,7 +234,7 @@ function Fila({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative flex items-center gap-2 rounded-[14px] bg-papel py-2 pr-2 pl-1 ring-1 ${
+      className={`relative flex items-center gap-2 rounded-[var(--radius-anidado)] bg-papel py-2 pr-2 pl-1 ring-1 ${
         isDragging ? 'z-10 shadow-[0_12px_32px_rgb(0_0_0/18%)] ring-2 ring-tinta' : 'ring-borde/70'
       }`}
     >
@@ -244,7 +244,7 @@ function Fila({
         {...attributes}
         {...listeners}
         aria-label={`${producto.nombre}, posición ${posicion} de ${total}. Mantén presionado o usa espacio y flechas para mover.`}
-        className="grid min-h-11 w-10 shrink-0 cursor-grab touch-none place-items-center rounded-[10px] text-gris hover:bg-papel-alt hover:text-tinta active:cursor-grabbing"
+        className="grid min-h-11 w-10 shrink-0 cursor-grab touch-none place-items-center rounded-[var(--radius-anidado)] text-gris hover:bg-papel-alt hover:text-tinta active:cursor-grabbing"
       >
         <svg aria-hidden width="14" height="20" viewBox="0 0 14 20" fill="currentColor">
           <circle cx="4" cy="4" r="1.6" /><circle cx="10" cy="4" r="1.6" />
@@ -277,7 +277,7 @@ function Fila({
 
 function Miniatura({ producto }: { producto: ProductoOrden }) {
   return (
-    <span className="relative size-11 shrink-0 overflow-hidden rounded-[10px] bg-papel-alt">
+    <span className="relative size-11 shrink-0 overflow-hidden rounded-[var(--radius-anidado)] bg-papel-alt">
       {producto.imagen && <Image src={producto.imagen} alt="" fill sizes="44px" className="object-contain p-1" />}
     </span>
   )

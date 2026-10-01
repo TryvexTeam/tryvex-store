@@ -5,6 +5,7 @@ import { Selector } from '@/components/selector'
 import { registrarStock, precioParaCantidad } from './acciones'
 import { clp } from '@/lib/formato'
 import type { ProductoConVariantes } from '@/lib/variantes-cliente'
+import { Boton } from '@/components/panel/ui'
 
 const MOTIVOS = [
   { v: 'ingreso', t: 'Ingreso', ayuda: 'Llegó mercadería que compramos', signo: '+' },
@@ -20,7 +21,7 @@ const MOTIVOS = [
 const CON_VALOR = ['venta', 'devolucion']
 
 const campo =
-  'w-full min-h-11 rounded-[10px] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
+  'w-full min-h-11 rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 
 export default function FormularioStock({
@@ -194,7 +195,7 @@ export default function FormularioStock({
             </div>
 
             {total > 0 && (
-              <div className={`rounded-[10px] px-3.5 py-2.5 text-[14px] ${
+              <div className={`rounded-[var(--radius-anidado)] px-3.5 py-2.5 text-[14px] ${
                 bajoCosto ? 'bg-spark-suave' : 'bg-papel-alt'
               }`}>
                 <p className="text-tinta-suave">
@@ -233,13 +234,9 @@ export default function FormularioStock({
         </p>
       )}
 
-      <button
-        type="submit" disabled={enviando}
-        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-tinta px-5 text-[15px] font-medium text-white
-                   transition-colors hover:bg-tinta/85 disabled:opacity-40"
-      >
+      <Boton type="submit" disabled={enviando} tamano="lg" className="mt-4">
         {enviando ? 'Guardando…' : mueveDinero && total > 0 ? `Guardar y anotar ${clp(total)}` : 'Guardar'}
-      </button>
+      </Boton>
 
       {mueveDinero && (
         <p className="mt-2.5 text-center text-[12px] text-gris">

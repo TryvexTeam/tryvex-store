@@ -3,10 +3,12 @@
 import { useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
 import { useAvisos } from '@/components/avisos'
+import { MantenerParaConfirmar } from '@/components/panel/mantener-para-confirmar'
 import { cambiarEstado, crearPedido, crearVentaRapida } from './acciones'
 import { precioParaCantidad } from '../stock/acciones'
 import { clp } from '@/lib/formato'
 import type { ProductoConVariantes } from '@/lib/variantes-cliente'
+import { Boton } from '@/components/panel/ui'
 
 const ROTULO: Record<string, string> = {
   pendiente: 'Pendiente',
@@ -70,7 +72,6 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
   const cancelable = opciones.includes('cancelado')
 
   function mover(nuevo: string) {
-    if (nuevo === 'cancelado' && !confirm('¿Cancelar el pedido? El stock vuelve a bodega.')) return
     setError(null); setAviso(null)
     iniciar(async () => {
       const r = await cambiarEstado(id, nuevo)
@@ -99,16 +100,17 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
           </button>
         ))}
         {cancelable && (
-          <button
-            type="button"
-            onClick={() => mover('cancelado')}
+          // Cancelar no se deshace (el stock vuelve a bodega): en vez del cuadro
+          // nativo del navegador, hay que mantener presionado.
+          <MantenerParaConfirmar
+            etiqueta="Mantén para cancelar"
+            ayuda="El pedido se cancela y el stock vuelve a bodega."
+            onConfirmar={() => mover('cancelado')}
             disabled={trabajando}
-            className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 text-[13px] font-medium text-gris transition-colors hover:bg-rojo/10 hover:text-rojo disabled:opacity-40 ${
+            className={`inline-flex min-h-11 items-center justify-center rounded-full px-3 text-[13px] font-medium text-gris hover:text-rojo disabled:opacity-40 ${
               avances.length ? 'w-full sm:w-auto' : 'w-full ring-1 ring-borde sm:w-auto'
             }`}
-          >
-            {VERBO.cancelado}
-          </button>
+          />
         )}
       </div>
       {error && <p role="alert" className="text-[12px] text-rojo sm:text-right">{error}</p>}
@@ -118,7 +120,7 @@ export function Acciones({ id, estado, className = '' }: { id: string; estado: s
 }
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 
 export function NuevoPedido({
@@ -178,13 +180,7 @@ export function NuevoPedido({
 
   if (!abierto) {
     return (
-      <button
-        onClick={() => setAbierto(true)}
-        className="inline-flex min-h-11 items-center rounded-full bg-tinta px-5 text-[14px] font-medium text-white
-                   transition-colors hover:bg-tinta/85"
-      >
-        Nuevo pedido
-      </button>
+      <Boton onClick={() => setAbierto(true)}>Nuevo pedido</Boton>
     )
   }
 
@@ -202,8 +198,8 @@ export function NuevoPedido({
       <div className="grid gap-2.5 sm:grid-cols-2">
         <input name="cliente_nombre" required placeholder="Nombre del cliente"
                disabled={enviando} className={campo} aria-label="Nombre del cliente" />
-        <input name="cliente_fono" placeholder="Teléfono" inputMode="tel"
-               disabled={enviando} className={campo} aria-label="Teléfono" />
+        <input name="cliente_fono" placeholder="Teléfono (opcional)" inputMode="tel"
+               disabled={enviando} className={campo} aria-label="Teléfono, opcional" />
         <input name="cliente_email" type="email" placeholder="Correo (opcional)"
                disabled={enviando} className={campo} aria-label="Correo" />
         <Selector
@@ -297,7 +293,7 @@ export function NuevoPedido({
       </div>
 
       {total > 0 && (
-        <p className="mt-3 rounded-[10px] bg-papel-alt px-3.5 py-2.5 text-[14px] text-tinta-suave">
+        <p className="mt-3 rounded-[var(--radius-anidado)] bg-papel-alt px-3.5 py-2.5 text-[14px] text-tinta-suave">
           Total: <strong className="cifra text-tinta">{clp(total)}</strong>
           {costo > 0 && unidades > 0 && (
             <span className="text-gris"> · ganancia {clp(ganancia)}</span>
@@ -312,11 +308,9 @@ export function NuevoPedido({
         </p>
       )}
 
-      <button type="submit" disabled={enviando || stock < 1}
-              className="mt-4 w-full rounded-full bg-tinta px-5 py-2.5 text-[14px] font-medium text-white
-                         transition-colors hover:bg-tinta/85 disabled:opacity-40">
+      <Boton type="submit" disabled={enviando || stock < 1} tamano="lg" className="mt-4">
         {enviando ? 'Creando…' : 'Crear y reservar stock'}
-      </button>
+      </Boton>
       <p className="mt-2 text-center text-[12px] text-gris">
         Las unidades quedan reservadas hasta que se pague o se cancele.
       </p>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import { useAvisos } from '@/components/avisos'
 import { activarAvisos, desactivarAvisos, probarAvisos } from '@/app/panel/(protegido)/avisos-push'
+import { esperarWorkerActivo, explicarFalloDeAvisos } from '@/lib/esperar-worker'
 
 /**
  * «Avisarme cada venta en este teléfono».
@@ -89,7 +90,8 @@ export function AvisosTelefono() {
           return
         }
         const reg = await registro()
-        await conLimite(navigator.serviceWorker.ready)
+        // No `serviceWorker.ready`: en `/panel` (fuera del alcance `/panel/`) no se resuelve nunca.
+        await esperarWorkerActivo(reg)
         const sub =
           (await reg.pushManager.getSubscription()) ??
           (await conLimite(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveABytes(CLAVE_PUBLICA) })))
@@ -101,11 +103,9 @@ export function AvisosTelefono() {
         setEstado('activo')
         avisos.ok('Listo. Cada venta pagada te va a llegar aquí.')
       } catch (e) {
-        avisos.error(
-          e instanceof Error && e.message === 'tiempo'
-            ? 'El servicio de avisos del teléfono no respondió. Revisa tu conexión e intenta de nuevo.'
-            : 'Este navegador no permitió activar los avisos.'
-        )
+        // Queda en la consola para poder diagnosticar un caso que el mensaje no alcance a explicar.
+        console.error('[avisos] no se pudo activar:', e)
+        avisos.error(explicarFalloDeAvisos(e))
       }
     })
   }
@@ -154,7 +154,7 @@ export function AvisosTelefono() {
   return (
     <section aria-labelledby="avisos-titulo" className="entra mb-6 overflow-hidden rounded-[var(--radius-tarjeta)] bg-papel ring-1 ring-borde/70">
       <div className="flex gap-4 p-5">
-        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-tinta text-white">
+        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-anidado)] bg-tinta text-white">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />

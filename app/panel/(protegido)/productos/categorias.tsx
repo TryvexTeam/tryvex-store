@@ -32,7 +32,7 @@ async function reducirFoto(archivo: File, ladoMax = 1200): Promise<File> {
 }
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
 
 /**
@@ -118,7 +118,7 @@ export function Categorias({
   }
 
   const formulario = (c?: Categoria) => (
-    <form onSubmit={(e) => enviar(e, !c)} className="space-y-2.5 rounded-[14px] bg-papel p-4 ring-2 ring-tinta/15">
+    <form onSubmit={(e) => enviar(e, !c)} className="space-y-2.5 rounded-[var(--radius-anidado)] bg-papel p-4 ring-2 ring-tinta/15">
       {c && <input type="hidden" name="id" value={c.id} />}
       <div className="grid grid-cols-[1fr_5rem] gap-2.5">
         <div>
@@ -178,7 +178,7 @@ export function Categorias({
           editando === c.id ? (
             <li key={c.id}>{formulario(c)}</li>
           ) : (
-            <li key={c.id} className={`flex items-center gap-3 rounded-[12px] bg-papel-alt px-3.5 py-3 ${c.activo ? '' : 'opacity-60'}`}>
+            <li key={c.id} className={`flex items-center gap-3 rounded-[var(--radius-anidado)] bg-papel-alt px-3.5 py-3 ${c.activo ? '' : 'opacity-60'}`}>
               <span className="cifra w-5 shrink-0 text-center text-[12px] text-gris">{c.orden}</span>
               {/* La foto de la fila de familias: tocarla para cambiarla. */}
               <button
@@ -187,7 +187,7 @@ export function Categorias({
                 disabled={pendiente || subiendoFoto !== null}
                 aria-label={c.imagen_url ? `Cambiar la foto de ${c.nombre}` : `Elegir una foto para ${c.nombre}`}
                 title={c.imagen_url ? 'Cambiar foto' : 'Elegir foto'}
-                className={`presionable relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-papel ${c.imagen_url ? 'ring-1 ring-borde/70' : 'border border-dashed border-borde text-gris hover:border-gris'}`}
+                className={`presionable relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-anidado)] bg-papel ${c.imagen_url ? 'ring-1 ring-borde/70' : 'border border-dashed border-borde text-gris hover:border-gris'}`}
               >
                 {subiendoFoto === c.id ? (
                   <span className="size-4 animate-spin rounded-full border-2 border-borde border-t-tinta" />
@@ -228,7 +228,7 @@ export function Categorias({
         formulario()
       ) : (
         <button type="button" onClick={() => setEditando('nueva')}
-                className="presionable flex w-full items-center justify-center gap-1.5 rounded-[12px] border border-dashed
+                className="presionable flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-anidado)] border border-dashed
                            border-borde py-3 text-[13px] font-medium text-tinta-suave hover:border-gris">
           <IconoMas size={16} />
           Nueva categoría

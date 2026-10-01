@@ -38,7 +38,7 @@ type Props = {
 type Filtro = 'todos' | EstadoProducto
 
 const campo =
-  'w-full min-h-11 rounded-[10px] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
+  'w-full min-h-11 rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
 
 const ESTILO_ESTADO: Record<EstadoProducto, string> = {
@@ -177,7 +177,7 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
 
       {/* ── Grilla ────────────────────────────────────────────── */}
       {filtrados.length === 0 ? (
-        <div className="rounded-[22px] bg-papel px-6 py-16 text-center shadow-[0_2px_12px_rgb(0_0_0/5%)] ring-1 ring-borde/60">
+        <div className="rounded-[var(--radius-widget)] bg-papel px-6 py-16 text-center shadow-[0_2px_12px_rgb(0_0_0/5%)] ring-1 ring-borde/60">
           <p className="text-[19px] font-semibold tracking-[-0.02em]">
             {productos.length === 0 ? 'El catálogo está vacío.' : filtro === 'borrador' ? 'No hay borradores pendientes.' : 'Ningún producto coincide.'}
           </p>
@@ -208,7 +208,7 @@ export function Catalogo({ productos, categorias, conteoPorCategoria, tramos }: 
                 <button
                   type="button"
                   onClick={() => setAbierto(p.id)}
-                  className="presionable panel-card group flex h-full w-full flex-col overflow-hidden rounded-[18px] bg-papel text-left ring-1 ring-borde/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
+                  className="presionable panel-card group flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-widget)] bg-papel text-left ring-1 ring-borde/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta"
                 >
                   <div className="relative aspect-square bg-papel">
                     {p.imagen_url ? (
@@ -417,11 +417,11 @@ function HojaCrear({
         </div>
 
         {error && (
-          <p role="alert" className="rounded-[10px] bg-spark-suave px-3 py-2 text-[13px] text-spark">{error}</p>
+          <p role="alert" className="rounded-[var(--radius-anidado)] bg-spark-suave px-3 py-2 text-[13px] text-spark">{error}</p>
         )}
 
         <button type="submit" disabled={pendiente}
-                className="presionable w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white
+                className="presionable w-full rounded-[var(--radius-anidado)] bg-tinta py-3 text-[15px] font-semibold text-white
                            hover:bg-tinta/85 disabled:opacity-60">
           {pendiente ? 'Creando…' : 'Crear y añadir fotos'}
         </button>

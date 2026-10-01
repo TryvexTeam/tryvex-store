@@ -58,21 +58,22 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
 }
 
 /**
- * Promedio y total de TODAS las reseñas visibles (del producto, si se indica).
+ * Promedio, total y cuántas son de 4 o 5 estrellas, de TODAS las reseñas visibles (del producto, si se indica).
  * Va aparte de leerResenas porque esa lista está recortada a 24/30 tarjetas para
  * el carrusel: calcular el resumen sobre ella daría un total y un promedio falsos
  * en cuanto haya más reseñas que tarjetas. Solo trae la columna de la nota.
  */
-export async function leerResumenResenas(productoId?: string): Promise<{ promedio: number; total: number }> {
+export async function leerResumenResenas(productoId?: string): Promise<{ promedio: number; total: number; positivas: number }> {
   const db = crearClienteAdministrador()
   let consulta = db.from('resenas_tienda').select('calificacion').eq('visible', true)
   if (productoId) consulta = consulta.eq('producto_id', productoId)
   const { data } = await consulta
 
   const total = data?.length ?? 0
-  if (!data || total === 0) return { promedio: 0, total: 0 }
+  if (!data || total === 0) return { promedio: 0, total: 0, positivas: 0 }
   const promedio = data.reduce((suma, r) => suma + r.calificacion, 0) / total
-  return { promedio: Math.round(promedio * 100) / 100, total }
+  const positivas = data.filter((r) => r.calificacion >= 4).length
+  return { promedio: Math.round(promedio * 100) / 100, total, positivas }
 }
 
 export function nombreFotoResena(resenaId: string, original: string): string {

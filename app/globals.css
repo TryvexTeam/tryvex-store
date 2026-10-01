@@ -684,13 +684,90 @@ body {
   letter-spacing: -0.01em;
   transition:
     background-color 300ms var(--ease-tienda),
-    color 300ms var(--ease-tienda);
+    color 300ms var(--ease-tienda),
+    box-shadow 300ms var(--ease-tienda),
+    scale 300ms var(--ease-tienda);
+}
+/* Al pasar el cursor el botón se asienta un poco más grande y al pulsarlo se
+   hunde: dice «esto responde» sin mover nada de sitio. Se usa `scale` y no
+   `transform` para no pisar los translate de Tailwind. En táctil no hay hover
+   real, así que solo queda el hundido al tocar. */
+@media (hover: hover) and (pointer: fine) {
+  .tienda-boton:not(:disabled):hover { scale: 1.025; }
+}
+.tienda-boton:not(:disabled):active { scale: 0.97; transition-duration: 120ms; }
+/* El ícono de la bolsa se inclina al acercarse: el gesto de «meter algo». */
+.boton-bolsa svg { transition: transform 360ms var(--ease-tienda); }
+@media (hover: hover) and (pointer: fine) {
+  .boton-bolsa:hover svg { transform: translateY(-2px) rotate(-8deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tienda-boton, .boton-bolsa svg { transition-duration: 0.01ms; }
+  .tienda-boton:not(:disabled):hover, .tienda-boton:not(:disabled):active { scale: 1; }
+  .boton-bolsa:hover svg { transform: none; }
 }
 @media (max-width: 734px) {
   .tienda-boton {
     font-size: 15px;
     padding-inline: 18px;
   }
+}
+
+/* ── Botón con relleno (la animación del botón de WhatsApp) ────────────────────
+   Medida en api.whatsapp.com, botón «Abrir aplicación»:
+     · una masa oscura (#1c1e21, radio 50 %) espera debajo del botón, recortada
+       por overflow;
+     · al pasar el cursor SUBE, y el botón queda oscuro (la medición dio
+       translateY + scale 1,47; acá es un círculo grande que sube, más parecido
+       a una ola que al óvalo de la primera versión):
+       transform 1 s cubic-bezier(.66, 0, .34, 1); acá 1,3 s, más pausado a pedido del dueño;
+     · el texto cambia después: color 330 ms linear con 500 ms de retraso;
+     · al presionar queda oscuro al instante.
+   Acá el oscuro es el tinta de la tienda. */
+.boton-presion {
+  --retraso-texto: 500ms;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    background-color 330ms linear,
+    color 330ms linear var(--retraso-texto),
+    border-color 500ms ease-out,
+    scale 300ms var(--ease-tienda),
+    box-shadow 300ms var(--ease-tienda);
+}
+/* En el botón con contorno el texto cambia a mitad del relleno, no al final. */
+.boton-presion-contorno { --retraso-texto: 450ms; }
+.boton-presion::after {
+  content: '';
+  position: absolute;
+  /* Un círculo grande, no un óvalo: su borde superior es una curva suave que
+     cruza el botón como una ola. Como mide lo mismo de alto que de ancho, la
+     curva se ve igual en un botón angosto que en uno ancho. */
+  left: -30%;
+  top: 0;
+  z-index: -1;
+  width: 160%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--color-tinta);
+  transform: translateY(24%);
+  transition: transform 1300ms cubic-bezier(0.5, 0, 0.25, 1);
+  will-change: transform;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .boton-presion:not(:disabled):hover::after { transform: translateY(-16%); }
+  .boton-presion-contorno:not(:disabled):hover { color: #fff; }
+}
+.boton-presion:not(:disabled):active {
+  background-color: var(--color-tinta);
+  color: #fff;
+  border-color: var(--color-tinta);
+  transition: scale 120ms var(--ease-tienda);
+}
+@media (prefers-reduced-motion: reduce) {
+  .boton-presion, .boton-presion::after { transition-duration: 0.01ms; transition-delay: 0s; }
 }
 
 .tienda-enlace {
@@ -1203,6 +1280,390 @@ body {
   to { clip-path: inset(0 calc(var(--margen-heroe) + 2.5%) 3% calc(var(--margen-heroe) + 2.5%) round 32px); }
 }
 
+/* ── Cinta de confianza ──────────────────────────────────────────────────────
+   Dos copias idénticas del grupo y una pista que avanza la mitad de su ancho:
+   el bucle cierra sin salto. Pausa con cursor o foco; sin movimiento reducido
+   queda una fila quieta que envuelve. */
+.cinta-pista { display: flex; width: max-content; animation: cinta-corre 42s linear infinite; }
+.cinta-grupo { display: flex; flex-shrink: 0; align-items: center; gap: 2.75rem; padding-right: 2.75rem; }
+@keyframes cinta-corre { to { transform: translateX(-50%); } }
+.cinta:hover .cinta-pista, .cinta:focus-within .cinta-pista { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .cinta-pista { animation: none; width: auto; justify-content: center; }
+  .cinta-grupo { flex-wrap: wrap; justify-content: center; row-gap: 0.5rem; padding-inline: 22px; }
+  .cinta-copia { display: none; }
+}
+
+/* ── Packs por cantidad ─────────────────────────────────────────────────────
+   Mismo gesto que los botones: se asienta al pasar el cursor y se hunde al
+   pulsar, y el borde cambia de color con suavidad. */
+.pack-opcion {
+  transition: box-shadow 300ms var(--ease-tienda), scale 300ms var(--ease-tienda), opacity 200ms;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pack-opcion:not(:disabled):hover { scale: 1.02; }
+}
+.pack-opcion:not(:disabled):active { scale: 0.97; transition-duration: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pack-opcion { transition-duration: 0.01ms; }
+  .pack-opcion:not(:disabled):hover, .pack-opcion:not(:disabled):active { scale: 1; }
+}
+
+/* Según el aparato: donde hay cursor se ve `.solo-cursor`; en táctil, `.solo-tactil`. */
+.solo-cursor { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .solo-cursor { display: block; }
+  .solo-tactil { display: none; }
+}
+
+/* ── Acordeón de Tryvex Tech ─────────────────────────────────────────────────
+   Hoja blanca con filas de línea fina. Al pasar el cursor, la fila se vuelve
+   negra: el relleno (`::before`) entra desde el borde más cercano al cursor
+   —`--origen`, que pone fila-acordeon.tsx— y sale por el más cercano también.
+   Es la mecánica del Flowing Menu de React Bits, pero solo con `transform`.
+
+   El color va en variables REGISTRADAS (@property): así se animan y todo el
+   texto de la fila cambia a la vez que el relleno. Sin registrarlas, el texto
+   cambiaría de golpe y quedaría blanco sobre blanco a mitad del barrido.
+   Solo con mouse; en táctil se invierte la fila abierta. */
+@property --fg { syntax: '<color>'; inherits: true; initial-value: #1d1d1f; }
+@property --fg-2 { syntax: '<color>'; inherits: true; initial-value: #6e6e73; }
+@property --linea { syntax: '<color>'; inherits: true; initial-value: rgb(0 0 0 / 0.08); }
+@property --fondo { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+
+:root { interpolate-size: allow-keywords; }
+
+.fila-tech {
+  --ease-fila: cubic-bezier(0.22, 1, 0.36, 1);
+  --origen: bottom;
+  position: relative;
+  isolation: isolate;
+  color: var(--fg);
+  border-top: 1px solid var(--linea);
+  transition: --fg 260ms var(--ease-fila), --fg-2 260ms var(--ease-fila), --linea 260ms var(--ease-fila), --fondo 260ms var(--ease-fila);
+}
+.fila-tech:first-child { border-top-color: transparent; }
+.fila-tech::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  transform: scaleY(0);
+  transform-origin: var(--origen);
+  transition: transform 380ms var(--ease-fila);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fila-tech:hover,
+  .fila-tech:has(:focus-visible) {
+    --fg: #ffffff;
+    --fg-2: rgb(255 255 255 / 0.62);
+    --linea: rgb(255 255 255 / 0.16);
+    --fondo: #000000;
+  }
+  .fila-tech:hover::before,
+  .fila-tech:has(:focus-visible)::before { transform: scaleY(1); }
+}
+@media (hover: none) {
+  .fila-tech[open] {
+    --fg: #ffffff;
+    --fg-2: rgb(255 255 255 / 0.62);
+    --linea: rgb(255 255 255 / 0.16);
+    --fondo: #000000;
+  }
+  .fila-tech[open]::before { transform: scaleY(1); }
+}
+
+.fila-tech-resumen {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+.fila-tech-resumen::-webkit-details-marker { display: none; }
+.fila-tech-resumen:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; border-radius: 1.25rem; }
+@media (min-width: 735px) { .fila-tech-resumen { padding: 1.5rem 1.75rem; } }
+
+.fila-tech-mas {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg) 24%, transparent);
+  transition: transform 300ms var(--ease-fila);
+}
+.fila-tech[open] .fila-tech-mas { transform: rotate(45deg); }
+
+.fila-tech-contenido { padding: 0 1.25rem 1.5rem; }
+@media (min-width: 735px) { .fila-tech-contenido { padding: 0 1.75rem 1.75rem; } }
+
+.fila-tech-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  margin-top: 1.5rem;
+  padding-inline: 1.1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg) 28%, transparent);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg);
+  transition: background-color 200ms var(--ease-fila), color 200ms var(--ease-fila), border-color 200ms var(--ease-fila), scale 160ms var(--ease-fila);
+}
+.fila-tech-accion:active { scale: 0.97; }
+@media (hover: hover) and (pointer: fine) {
+  .fila-tech-accion:hover { background: var(--fg); color: var(--fondo); border-color: var(--fg); }
+}
+
+/* La altura del panel se anima donde el navegador lo permite (::details-content);
+   en los demás se abre de golpe, que también es correcto. */
+.fila-tech::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition: block-size 340ms var(--ease-fila), content-visibility 340ms allow-discrete;
+}
+.fila-tech[open]::details-content { block-size: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fila-tech, .fila-tech::before, .fila-tech-mas, .fila-tech-accion, .fila-tech::details-content { transition-duration: 0.01ms; }
+}
+
+/* ── Star Border (adaptado de React Bits: ver components/tienda/star-border.tsx) ── */
+.star-borde-abajo, .star-borde-arriba {
+  position: absolute;
+  width: 300%;
+  height: 50%;
+  opacity: 0.7;
+  border-radius: 999px;
+  z-index: 0;
+  animation: star-movimiento linear infinite alternate;
+}
+.star-borde-abajo { bottom: -11px; right: -250%; }
+.star-borde-arriba { top: -10px; left: -250%; --sentido: 1; }
+.star-borde-abajo { --sentido: -1; }
+@keyframes star-movimiento {
+  0%   { transform: translate(0, 0); opacity: 1; }
+  100% { transform: translate(calc(var(--sentido) * 100%), 0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .star-borde-abajo, .star-borde-arriba { animation: none; }
+}
+
+/* ── Tarjeta virtual de Tryvex ───────────────────────────────────────────────
+   Proporción real de tarjeta (85,6 × 54 mm = 1,586). Dos capas: una se inclina
+   con el cursor (rotateX/Y por variables) y otra gira al tocarla (frente y
+   reverso, backface-visibility). Con movimiento reducido no hay inclinación ni
+   giro: el reverso aparece con un fundido. */
+.tarjeta-tryvex { perspective: 1100px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tarjeta-tryvex:focus-visible { outline: 2px solid var(--color-tinta); outline-offset: 6px; border-radius: 22px; }
+.tarjeta-tryvex-inclina {
+  --rx: 0deg; --ry: 0deg; --gx: 30%; --gy: 20%;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.tarjeta-tryvex-giro {
+  position: relative;
+  aspect-ratio: 1.586 / 1;
+  transform-style: preserve-3d;
+  transition: transform 750ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tarjeta-tryvex-giro[data-vuelta='true'] { transform: rotateY(180deg); }
+.tarjeta-tryvex:active .tarjeta-tryvex-inclina { scale: 0.985; }
+
+.tarjeta-cara {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 15px;
+  padding: 6% 7%;
+  color: #fff;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.14) inset, 0 -1px 0 rgb(0 0 0 / 0.5) inset, 0 22px 44px -10px rgb(0 0 0 / 0.45), 0 6px 14px rgb(0 0 0 / 0.25);
+}
+.tarjeta-frente {
+  /* Metal cepillado: grafito con vetas finas horizontales, un reflejo en
+     diagonal como el de una placa pulida y un toque de rojo Tryvex en la esquina. */
+  background:
+    linear-gradient(112deg, transparent 28%, rgb(255 255 255 / 0.1) 40%, rgb(255 255 255 / 0.03) 48%, transparent 58%),
+    radial-gradient(110% 80% at 100% 100%, rgb(229 57 53 / 0.2), transparent 58%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.028) 0 1px, rgb(0 0 0 / 0.03) 1px 2px, transparent 2px 3px),
+    linear-gradient(135deg, #3b3c41 0%, #1c1d20 46%, #2e2f33 100%);
+}
+/* Texto grabado en el metal: más claro abajo, sombra arriba. */
+.tarjeta-grabado { color: rgb(255 255 255 / 0.82); text-shadow: 0 1px 0 rgb(255 255 255 / 0.12), 0 -1px 0 rgb(0 0 0 / 0.6); }
+.tarjeta-relieve-grande {
+  color: #f4f4f6;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.35), 0 -1px 0 rgb(0 0 0 / 0.7), 0 6px 14px rgb(0 0 0 / 0.35);
+}
+.tarjeta-reverso {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(90% 70% at 0% 100%, rgb(229 57 53 / 0.18), transparent 60%),
+    linear-gradient(135deg, #18181a 0%, #0b0b0c 100%);
+}
+/* El destello sigue al cursor: una luz pasando por una superficie brillante. */
+.tarjeta-brillo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.2), transparent 45%);
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transition: opacity 300ms;
+}
+@media (hover: hover) and (pointer: fine) { .tarjeta-tryvex:hover .tarjeta-brillo { opacity: 1; } }
+/* Cifras en relieve, como estampadas en el plástico. */
+.tarjeta-relieve {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: #ededef;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.22), 0 -1px 0 rgb(0 0 0 / 0.65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-tryvex-inclina { transform: none !important; transition: none; }
+  .tarjeta-tryvex-giro { transform-style: flat; transition: none; }
+  .tarjeta-tryvex-giro[data-vuelta='true'] { transform: none; }
+  .tarjeta-cara { transition: opacity 250ms; }
+  .tarjeta-reverso { transform: none; opacity: 0; }
+  .tarjeta-tryvex-giro[data-vuelta='true'] .tarjeta-reverso { opacity: 1; }
+  .tarjeta-tryvex-giro[data-vuelta='true'] .tarjeta-frente { opacity: 0; }
+}
+
+/* ── Mantener para confirmar (inspirado en HoldButton de React Bits) ─────────
+   El relleno es la variable registrada --p (0 a 1): mientras se mantiene
+   presionado sube en `--duracion` en línea recta; al soltar vuelve en 250 ms.
+   Lo dibuja el navegador, sin JavaScript por cuadro. */
+@property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+.mantener {
+  --p: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  transition: --p 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mantener[data-manteniendo='true'] { --p: 1; transition: --p var(--duracion, 900ms) linear; }
+.mantener-capa {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-rojo);
+  color: #fff;
+  clip-path: inset(0 calc((1 - var(--p)) * 100%) 0 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mantener, .mantener[data-manteniendo='true'] { transition-duration: 0.01ms; }
+}
+
+/* ── Brillo al pasar el cursor (inspirado en GlareHover de React Bits) ─────────
+   Una franja de luz cruza el elemento en diagonal. Solo CSS: el original lo
+   hacía con estilos en línea desde JavaScript. Va sobre un elemento con
+   `position` y `overflow: hidden`. */
+.brillo-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(-45deg, transparent 56%, rgb(255 255 255 / 0.6) 70%, transparent 84%) no-repeat;
+  background-size: 260% 260%;
+  background-position: -130% -130%;
+  transition: background-position 750ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) and (pointer: fine) { .brillo-hover:hover::after { background-position: 130% 130%; } }
+@media (prefers-reduced-motion: reduce) { .brillo-hover::after { transition: none; } }
+
+/* ── Foco que sigue al cursor (inspirado en SpotlightCard de React Bits) ──────
+   El original guarda la posición en estado de React y vuelve a renderizar en
+   cada movimiento; acá la posición va en variables CSS (--x, --y) y no hay
+   renders. La luz queda detrás del contenido. */
+.foco-tarjeta { position: relative; isolation: isolate; }
+.foco-tarjeta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(280px circle at var(--x, 50%) var(--y, 50%), var(--foco, rgb(0 0 0 / 0.06)), transparent 70%);
+  opacity: 0;
+  transition: opacity 400ms;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) { .foco-tarjeta:hover::before { opacity: 1; } }
+
+/* ── Corazón que late (inspirado en PulseHeart de React Bits) ─────────────────
+   Se contrae hasta casi un punto, cambia de color en su punto más pequeño y
+   vuelve con rebote. El color lo cambia el componente a los 190 ms. */
+@keyframes corazon-late {
+  0%   { transform: scale(1); }
+  34%  { transform: scale(0.32); }
+  72%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+.corazon-late { animation: corazon-late 560ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (prefers-reduced-motion: reduce) { .corazon-late { animation: none; } }
+
+/* ── Brillo que cruza un texto (inspirado en ShinyText de React Bits) ──────────
+   Una franja de luz recorre el texto una vez al elegirlo, no en bucle: un
+   brillo permanente distrae de leer el precio. Solo CSS; el original usa un
+   bucle infinito con motion. El texto conserva su color si no hay soporte. */
+@property --brillo-x { syntax: '<percentage>'; inherits: false; initial-value: 130%; }
+@keyframes brillo-texto { from { --brillo-x: 130%; } to { --brillo-x: -30%; } }
+.texto-brillo {
+  background-image: linear-gradient(110deg, transparent calc(var(--brillo-x) - 22%), rgb(255 255 255 / 0.95) var(--brillo-x), transparent calc(var(--brillo-x) + 22%)), linear-gradient(currentColor, currentColor);
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: brillo-texto 1100ms ease-out 1 both;
+}
+@media (prefers-reduced-motion: reduce) { .texto-brillo { animation: none; background-image: none; -webkit-text-fill-color: currentColor; } }
+
+/* ── Medalla del logo 3D ─────────────────────────────────────────────────────
+   Flota unos píxeles, sin prisa, y se inclina al acercarse el cursor. Solo
+   transform: no repinta nada. Sin movimiento, queda quieta. */
+@keyframes medalla-flota {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-7px) rotate(3deg); }
+}
+.medalla { animation: medalla-flota 7s ease-in-out infinite; }
+@media (hover: hover) and (pointer: fine) {
+  .medalla-marco:hover .medalla { animation-play-state: paused; transform: rotate(8deg) scale(1.06); transition: transform 400ms var(--ease-tienda); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .medalla { animation: none; }
+  .medalla-marco:hover .medalla { transform: none; }
+}
+
+/* ── Tarjetas-enlace (contacto) ─────────────────────────────────────────────
+   Se asientan al pasar el cursor, la flecha se adelanta y al pulsar se hunden.
+   La sombra va por utilidad de Tailwind para no pisar el anillo (ring), que
+   también es un box-shadow. */
+.tarjeta-enlace { transition: box-shadow 300ms var(--ease-tienda), background-color 300ms var(--ease-tienda), scale 300ms var(--ease-tienda); }
+.tarjeta-enlace .flecha { transition: transform 300ms var(--ease-tienda); }
+@media (hover: hover) and (pointer: fine) {
+  .tarjeta-enlace:hover { scale: 1.012; }
+  .tarjeta-enlace:hover .flecha { transform: translate(3px, -3px); }
+}
+.tarjeta-enlace:active { scale: 0.985; transition-duration: 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-enlace, .tarjeta-enlace .flecha { transition-duration: 0.01ms; }
+  .tarjeta-enlace:hover, .tarjeta-enlace:active { scale: 1; }
+  .tarjeta-enlace:hover .flecha { transform: none; }
+}
+
 /* ── Línea de envío ──────────────────────────────────────────────────────────
    Vertical en el teléfono, horizontal desde tablet. La animación cuenta el
    avance: el trazo crece hasta donde llegó el pedido y los hitos aparecen
@@ -1357,4 +1818,91 @@ body {
     --margen-arriba: 32px;
     --margen-abajo: 96px;
   }
+}
+
+/* ── Tema oscuro del panel ─────────────────────────────────────────────────────
+   Se oscurece redefiniendo los tokens bajo [data-tema='oscuro'] (lo pone
+   TemaPanel). Todo lo que usa tokens cambia solo; abajo van los casos donde un
+   color fijo choca con el cambio, que es donde se «bugea» el contraste:
+     · `bg-tinta` + `text-white`: tinta pasa a ser CLARO, así que el botón queda
+       claro y su texto debe pasar a oscuro;
+     · bloques `bg-tinta text-papel` con textos `text-white/60` adentro: se
+       quedan como superficie oscura elevada, para que esos blancos se lean;
+     · `bg-verde` / `bg-spark` con texto blanco: los tonos claros del tema
+       oscuro (pensados para texto sobre negro) no dan 4.5:1 con blanco, así
+       que el RELLENO usa los tonos de siempre.
+   Valores medidos contra #1c1c1e (tarjetas) y #000 (fondo). */
+[data-tema='oscuro'] {
+  color-scheme: dark;
+  --color-papel: #1c1c1e;
+  --color-papel-alt: #000000;
+  --color-papel-hondo: #111113;
+  --color-tinta: #f5f5f7;
+  --color-tinta-suave: #c7c7cc;
+  --color-gris: #98989f;
+  --color-borde: #3a3a3c;
+  --color-spark: #ff6b63;
+  --color-spark-hover: #ff857e;
+  --color-spark-suave: rgba(255, 107, 99, 0.16);
+  --color-verde: #32d74b;
+  --color-ambar: #ff9f0a;
+  --color-rojo: #ff6961;
+  --color-vino: #ff8da1;
+  --shadow-sutil: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.6);
+  --shadow-alzado: 0 2px 6px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-hoja: 0 -1px 0 rgba(255, 255, 255, 0.06), 0 -12px 40px rgba(0, 0, 0, 0.7);
+}
+/* Un documento o una réplica de la tienda dentro del panel vuelve a ser claro. */
+[data-tema='oscuro'] [data-tema='claro'] {
+  color-scheme: light;
+  --color-papel: #ffffff;
+  --color-papel-alt: #f5f5f7;
+  --color-papel-hondo: #fafafa;
+  --color-tinta: #1d1d1f;
+  --color-tinta-suave: #424245;
+  --color-gris: #6e6e73;
+  --color-borde: #d2d2d7;
+  --color-spark: #e53935;
+  --color-spark-hover: #cf322e;
+  --color-spark-suave: rgba(229, 57, 53, 0.08);
+  --color-verde: #1d9e4b;
+  --color-ambar: #b25000;
+  --color-rojo: #d70015;
+  --color-vino: #8c1c32;
+  color: var(--color-tinta);
+}
+[data-tema='oscuro'] .bg-tinta.text-white,
+[data-tema='oscuro'] [class*='bg-tinta/'].text-white,
+[data-tema='oscuro'] .bg-tinta.text-papel[class*='rounded-full'] { color: #1d1d1f; }
+[data-tema='oscuro'] .bg-tinta.text-papel:not([class*='rounded-full']) { background-color: #2c2c2e; color: #f5f5f7; }
+[data-tema='oscuro'] .bg-verde.text-white { background-color: #1d9e4b; color: #fff; }
+[data-tema='oscuro'] .bg-spark.text-white { background-color: #cf322e; color: #fff; }
+[data-tema='oscuro'] .bg-tinta\/25 { background-color: rgb(0 0 0 / 0.55); }
+html[data-tema-panel='oscuro'] { background: #000; color-scheme: dark; }
+
+/* ── Sistema del panel (medido en revolut.com, tokens --rui-*) ──────────────────
+   Revolut usa UNA curva y cinco duraciones (100/200/300/450/900 ms) y una
+   escala corta de radios: widget 16, widget anidado 12, popup 24, píldora.
+   Acá el panel adopta lo mismo, solo dentro de [data-tema] (la tienda no cambia).
+   Tailwind lee `--default-transition-*` en todas sus utilidades `transition-*`,
+   así que redefinirlas acá unifica el movimiento de todo el panel de una vez. */
+[data-tema] {
+  --radius-tarjeta: 16px;
+  --radius-widget: 16px;
+  --radius-anidado: 12px;
+  --radius-popup: 24px;
+  --duracion-xs: 100ms;
+  --duracion-sm: 200ms;
+  --duracion-md: 300ms;
+  --duracion-lg: 450ms;
+  --ease-panel: cubic-bezier(0.15, 0.5, 0.5, 1);
+  --default-transition-duration: var(--duracion-sm);
+  --default-transition-timing-function: var(--ease-panel);
+  font-family: var(--font-inter-panel), var(--font-sans);
+}
+
+/* Imprimir o «Guardar como PDF» una pantalla del panel: sin cabecera, barra ni controles. */
+@media print {
+  [data-tema] header, [data-tema] nav, [data-tema] aside, .no-imprimir { display: none !important; }
+  [data-tema] { background: #fff !important; }
 }

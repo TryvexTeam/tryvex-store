@@ -1,29 +1,25 @@
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import { integranteActual, NEGOCIO_TIENDA } from '@/lib/sesion'
-import { clp, fecha as fmtFecha } from '@/lib/formato'
-import { categoriaHistorica, etiquetaCategoria } from '@/lib/finanzas'
+import { clp } from '@/lib/formato'
+import { ResumenFinanzas, ListaMovimientos, type Movimiento } from '@/components/panel/finanzas-vista'
+import { SelectorPeriodo, DesgloseCategorias, AvisoSinComprobante, CuentasPorMetodo, PestanasMovimientos, desglosarPorCategoria, type FiltroTipo } from '@/components/panel/finanzas-extras'
+import { agruparPorMetodo } from '@/lib/cuentas'
+import { BotonImprimir } from '@/components/panel/boton-imprimir'
+import { BotonEnlace } from '@/components/panel/ui'
+import { resolverPeriodo, queryDePeriodo } from '@/lib/periodo'
 import FormularioMovimiento from './formulario'
 import Comprobante from './comprobante'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Finanzas' }
 
-type Movimiento = {
-  id: string
-  tipo: string
-  categoria: string
-  descripcion: string
-  monto_clp: string | number
-  fecha: string
-  metodo_pago: string | null
-  contraparte: string | null
-  voucher_path: string | null
-  voucher_nombre: string | null
-}
-
-export default async function Finanzas() {
+export default async function Finanzas({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string; sin?: string; tipo?: string }> }) {
   const yo = await integranteActual()
+  const params = await searchParams
+  const periodo = resolverPeriodo(params)
+  const soloSinComprobante = params.sin === '1'
+  const filtroTipo: FiltroTipo = params.tipo === 'ingreso' || params.tipo === 'egreso' ? params.tipo : 'todos'
 
   // El enlace ya se oculta en el layout, pero alguien puede escribir la URL.
   // Por debajo el RLS también lo bloquearía; esto da un desvío limpio.
@@ -31,25 +27,54 @@ export default async function Finanzas() {
 
   const supabase = await crearClienteServidor()
 
-  const [{ data: movs }, { data: stock }, { data: productos }] = await Promise.all([
-    supabase
-      .from('movimientos_financieros')
-      .select('id,tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte,voucher_path,voucher_nombre')
-      // La tabla es compartida con Tryvex Plataform: aquí solo lo de la tienda.
-      .eq('negocio', NEGOCIO_TIENDA)
-      .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(60),
+  const LIMITE = 2000
+  let consulta = supabase
+    .from('movimientos_financieros')
+    .select('id,tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte,voucher_path,voucher_nombre')
+    // La tabla es compartida con Tryvex Plataform: aquí solo lo de la tienda.
+    .eq('negocio', NEGOCIO_TIENDA)
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(LIMITE)
+  if (periodo.desde) consulta = consulta.gte('fecha', periodo.desde)
+  if (periodo.hasta) consulta = consulta.lte('fecha', periodo.hasta)
+
+  const consultaAnterior = periodo.anterior
+    ? supabase
+        .from('movimientos_financieros')
+        .select('tipo,monto_clp')
+        .eq('negocio', NEGOCIO_TIENDA)
+        .gte('fecha', periodo.anterior.desde)
+        .lte('fecha', periodo.anterior.hasta)
+        .limit(LIMITE)
+    : null
+
+  const [{ data: movs }, { data: movsAnteriores }, { data: stock }, { data: productos }] = await Promise.all([
+    consulta,
+    consultaAnterior ?? Promise.resolve({ data: null }),
     supabase.from('v_stock_actual').select('producto_id,stock'),
     supabase.from('productos').select('id,precio_base,costo_unitario'),
   ])
 
-  const lista = (movs ?? []) as Movimiento[]
+  const todos = (movs ?? []) as Movimiento[]
   const n = (v: string | number) => Number(v) || 0
 
-  const ingresos = lista.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0)
-  const egresos = lista.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0)
+  const ingresos = todos.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0)
+  const egresos = todos.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0)
   const balance = ingresos - egresos
+  const anterior = movsAnteriores
+    ? {
+        ingresos: movsAnteriores.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + n(m.monto_clp), 0),
+        egresos: movsAnteriores.filter((m) => m.tipo === 'egreso').reduce((a, m) => a + n(m.monto_clp), 0),
+      }
+    : null
+
+  const sinComprobante = todos.filter((m) => m.tipo === 'egreso' && !m.voucher_path)
+  const base = soloSinComprobante ? sinComprobante : todos
+  const lista = (filtroTipo === 'todos' || soloSinComprobante ? base : base.filter((m) => m.tipo === filtroTipo)).slice(0, 200)
+  const cuentas = agruparPorMetodo(todos)
+  const conteoTipos = { todos: todos.length, ingreso: todos.filter((m) => m.tipo === 'ingreso').length, egreso: todos.filter((m) => m.tipo === 'egreso').length }
+  const truncado = todos.length >= LIMITE
 
   // ── Analítica propia: lo que Treinta no muestra ──────────────────
   // Cuánto falta para recuperar lo invertido, y cuántas unidades son.
@@ -66,14 +91,24 @@ export default async function Finanzas() {
 
   return (
     <>
-      <header className="mb-8">
-        <h1 className="text-[2.2rem] leading-tight font-semibold tracking-[-0.022em]">Finanzas</h1>
-        <p className="mt-1 text-[15px] text-gris">
-          {lista.length === 0
-            ? 'Aún no hay movimientos registrados.'
-            : `${lista.length} movimientos recientes.`}
-        </p>
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-[2.2rem] leading-tight font-semibold tracking-[-0.022em]">Finanzas</h1>
+          <p className="mt-1 text-[15px] text-gris">
+            {todos.length === 0
+              ? 'No hay movimientos en este periodo.'
+              : `${todos.length} ${todos.length === 1 ? 'movimiento' : 'movimientos'} · ${periodo.etiqueta}${truncado ? ' (se muestran los más recientes)' : ''}`}
+          </p>
+        </div>
+        <div className="no-imprimir flex items-center gap-2">
+          <BotonEnlace variante="secundario" tamano="sm" href={`/api/reportes?tipo=finanzas&${queryDePeriodo(periodo)}`} aria-label="Descargar los movimientos de este periodo en CSV">
+            CSV
+          </BotonEnlace>
+          <BotonImprimir />
+        </div>
       </header>
+
+      <SelectorPeriodo periodo={periodo} conservarSin={soloSinComprobante} />
 
       {/*
         Jerarquía numérica: UNA cifra manda.
@@ -85,44 +120,19 @@ export default async function Finanzas() {
         únicamente por el color deja fuera a quien no lo percibe, y en dinero
         esa confusión cuesta caro. El «+» y el «−» dicen lo mismo sin color.
       */}
-      <section aria-label="Resumen" className="mb-8 grid grid-cols-2 gap-3 t:gap-4">
-        <div className="col-span-2 rounded-[var(--radius-tarjeta)] bg-tinta p-5 text-papel t:p-6">
-          <p className="text-[12px] font-semibold tracking-etiqueta text-white/60 uppercase">
-            Balance
-          </p>
-          <p className="cifra mt-2 text-[40px] leading-none font-semibold tracking-titulo t:text-[48px]">
-            {clp(balance)}
-          </p>
-          <p className="mt-2 text-[13px] text-white/55">
-            {balance >= 0 ? 'a favor' : 'en rojo'}
-          </p>
-        </div>
+      <ResumenFinanzas balance={balance} ingresos={ingresos} egresos={egresos} anterior={anterior} etiquetaPeriodo={periodo.etiqueta} />
 
-        <div className="rounded-[var(--radius-tarjeta)] bg-papel p-4 ring-1 ring-borde/70 t:p-5">
-          <p className="text-[12px] font-semibold tracking-etiqueta text-gris uppercase">
-            Ingresos
-          </p>
-          <p className="cifra mt-2 text-[24px] leading-none font-semibold text-verde t:text-[26px]">
-            <span aria-hidden>+</span>
-            <span className="sr-only">más </span>
-            {clp(ingresos)}
-          </p>
-        </div>
+      <CuentasPorMetodo cuentas={cuentas} />
 
-        <div className="rounded-[var(--radius-tarjeta)] bg-papel p-4 ring-1 ring-borde/70 t:p-5">
-          <p className="text-[12px] font-semibold tracking-etiqueta text-gris uppercase">
-            Egresos
-          </p>
-          <p className="cifra mt-2 text-[24px] leading-none font-semibold text-tinta-suave t:text-[26px]">
-            <span aria-hidden>−</span>
-            <span className="sr-only">menos </span>
-            {clp(egresos)}
-          </p>
-        </div>
-      </section>
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
+        <DesgloseCategorias titulo="Salió por categoría" filas={desglosarPorCategoria(todos, 'egreso')} tono="spark" />
+        <DesgloseCategorias titulo="Entró por categoría" filas={desglosarPorCategoria(todos, 'ingreso')} tono="verde" />
+      </div>
+
+      <AvisoSinComprobante cantidad={sinComprobante.length} activo={soloSinComprobante} periodo={periodo} />
 
       {/* Punto de equilibrio: la pregunta real del negocio. */}
-      {margenUnitario > 0 && lista.length > 0 && (
+      {margenUnitario > 0 && todos.length > 0 && (
         <section
           aria-label="Punto de equilibrio"
           className="mb-10 rounded-[var(--radius-tarjeta)] bg-papel p-6 ring-1 ring-borde/70"
@@ -166,49 +176,18 @@ export default async function Finanzas() {
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <section aria-label="Movimientos" className="min-w-0">
           <h2 className="mb-4 text-[1.35rem] font-semibold tracking-[-0.015em]">Movimientos</h2>
+          {!soloSinComprobante && <PestanasMovimientos periodo={periodo} activa={filtroTipo} cuentas={conteoTipos} />}
 
           {lista.length === 0 ? (
             <div className="rounded-[var(--radius-tarjeta)] bg-papel px-6 py-14 text-center ring-1 ring-borde/70">
-              <p className="text-[15px] text-gris">Nada registrado todavía.</p>
-              <p className="mt-1 text-[13px] text-gris">
-                Parte anotando tu primera importación: unidades y costo.
-              </p>
+              <p className="text-[15px] text-gris">{soloSinComprobante ? 'Todos los egresos tienen comprobante.' : 'Nada registrado en este periodo.'}</p>
+              <p className="mt-1 text-[13px] text-gris">Prueba con otro periodo o anota un movimiento.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-borde/60 overflow-hidden rounded-[var(--radius-tarjeta)] bg-papel ring-1 ring-borde/70">
-              {lista.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 px-4 py-3.5 t:gap-4 t:px-5">
-                  {/* Flecha además de color: la dirección del movimiento se lee
-                      aunque no se distingan los tonos, y de un vistazo. */}
-                  <span
-                    aria-hidden
-                    className={`grid size-8 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${
-                      m.tipo === 'ingreso' ? 'bg-verde/10 text-verde' : 'bg-papel-alt text-tinta-suave'
-                    }`}
-                  >
-                    {m.tipo === 'ingreso' ? '↓' : '↑'}
-                  </span>
-                  <span className="sr-only">{m.tipo === 'ingreso' ? 'Ingreso:' : 'Egreso:'}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-medium text-tinta">{m.descripcion}</p>
-                    <p className="mt-0.5 truncate text-[12px] text-gris">
-                      {[etiquetaCategoria(categoriaHistorica(m.categoria, m.tipo), m.categoria), m.contraparte, fmtFecha(m.fecha)].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
-                  {m.voucher_path && (
-                    <Comprobante ruta={m.voucher_path} nombre={m.voucher_nombre} />
-                  )}
-                  <span
-                    className={`cifra shrink-0 text-[15px] font-medium ${
-                      m.tipo === 'ingreso' ? 'text-verde' : 'text-tinta'
-                    }`}
-                  >
-                    {m.tipo === 'ingreso' ? '+' : '−'}
-                    {clp(m.monto_clp)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ListaMovimientos
+              lista={lista}
+              comprobante={(m) => (m.voucher_path ? <Comprobante ruta={m.voucher_path} nombre={m.voucher_nombre} /> : null)}
+            />
           )}
         </section>
 

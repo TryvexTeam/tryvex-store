@@ -10,6 +10,7 @@ import { PieTienda } from '@/components/tienda/pie-tienda'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import Checkout, { type PerfilCompra } from './formulario'
 import { puntoStarken } from '@/lib/sucursales-starken'
+import { hitosDeEnvio } from '@/lib/plazo-envio'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
@@ -79,6 +80,7 @@ export default async function Comprar(props: PageProps<'/comprar'>) {
           datosPago={datosDePago(configuracion)}
           emailCuenta={sesion.data.user?.email ?? null}
           perfil={perfil}
+          hitosEnvio={hitosDeEnvio(new Date())}
         />
       </main>
       <PieTienda

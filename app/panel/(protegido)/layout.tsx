@@ -1,10 +1,18 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { Inter } from 'next/font/google'
 import { integranteActual } from '@/lib/sesion'
 import BotonSalir from './salir'
 import { Marca } from '@/app/marca'
 import { BarraInferior, type Destino } from '@/components/barra-inferior'
 import { ProveedorAvisos } from '@/components/avisos'
 import { CampanaVentas } from '@/components/panel/campana-ventas'
+import { BotonTema, TemaPanel } from '@/components/panel/tema-panel'
+import { COOKIE_TEMA_PANEL, leerTema } from '@/lib/tema-panel'
+
+// Inter se descarga solo en el panel (la tienda sigue con Geist, la tipografía de marca).
+// Es la que usa Revolut en producto: cifras tabulares nítidas a tamaños chicos.
+const inter = Inter({ variable: '--font-inter-panel', subsets: ['latin'], display: 'swap' })
 
 export const metadata = {
   title: { default: 'Panel', template: '%s — Panel Tryvex' },
@@ -13,6 +21,7 @@ export const metadata = {
 
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const yo = await integranteActual()
+  const tema = leerTema((await cookies()).get(COOKIE_TEMA_PANEL)?.value)
 
   // Finanzas solo aparece si el permiso existe. Ocultar el enlace no protege
   // nada por sí solo: la página lo comprueba y, por debajo, manda el RLS.
@@ -42,7 +51,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     <ProveedorAvisos>
       {/* Con el panel abierto, cada venta nueva suena a caja registradora. */}
       <CampanaVentas />
-      <div className="min-h-dvh bg-papel-alt">
+      <TemaPanel inicial={tema} className={inter.variable}>
         <header className="sticky top-0 z-40 border-b border-borde/60 bg-papel/80 backdrop-blur-xl">
           <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-6 px-4 sm:px-5">
             <Link href="/panel" className="shrink-0" aria-label="Tryvex, ir al resumen">
@@ -83,6 +92,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
                   <path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1" />
                 </svg>
               </Link>
+              <BotonTema />
               <BotonSalir />
             </div>
           </div>
@@ -95,7 +105,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         </main>
 
         <BarraInferior destinos={destinos} />
-      </div>
+      </TemaPanel>
     </ProveedorAvisos>
   )
 }

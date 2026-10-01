@@ -38,7 +38,7 @@ export interface PedidoDetalle {
 }
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 
@@ -107,7 +107,7 @@ export function DetallePedido({ pedido }: { pedido: PedidoDetalle }) {
           </ol>
 
           <section aria-label="Productos">
-            <ul className="divide-y divide-borde/60 rounded-[12px] bg-papel-alt">
+            <ul className="divide-y divide-borde/60 rounded-[var(--radius-anidado)] bg-papel-alt">
               {pedido.items.map((it, i) => (
                 <li key={i} className="flex items-baseline gap-3 px-4 py-3 text-[14px]">
                   <span className="cifra text-gris">{it.cantidad}×</span>
@@ -130,7 +130,7 @@ export function DetallePedido({ pedido }: { pedido: PedidoDetalle }) {
             href={`/panel/pedidos/${pedido.id}/boleta`}
             target="_blank"
             rel="noopener"
-            className="presionable flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-papel-alt text-[14px] font-medium text-tinta ring-1 ring-borde hover:bg-borde/40"
+            className="presionable flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-anidado)] bg-papel-alt text-[14px] font-medium text-tinta ring-1 ring-borde hover:bg-borde/40"
           >
             <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 2h9l5 5v15H6z" />
@@ -182,7 +182,7 @@ export function DetallePedido({ pedido }: { pedido: PedidoDetalle }) {
               <div className="sm:col-span-2">{texto('boleta_url', 'Enlace a la boleta', { type: 'url', placeholder: 'https://' })}</div>
             </fieldset>
             <button type="submit" disabled={guardando}
-                    className="presionable w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white hover:bg-tinta/85 disabled:opacity-60">
+                    className="presionable w-full rounded-[var(--radius-anidado)] bg-tinta py-3 text-[15px] font-semibold text-white hover:bg-tinta/85 disabled:opacity-60">
               {guardando ? 'Guardando…' : 'Guardar pedido'}
             </button>
           </form>

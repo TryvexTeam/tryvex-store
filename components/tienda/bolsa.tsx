@@ -5,7 +5,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { clp } from '@/lib/formato'
+import { notificar } from '@/lib/notificar'
 import { Estrella } from '@/app/marca'
+import { LlegadaEstimada, SellosConfianza } from '@/components/tienda/confianza-compra'
+import type { Hito } from '@/lib/plazo-envio'
 import {
   claveLinea,
   escuchaGuardado,
@@ -52,7 +55,6 @@ export function useBolsa(): ContextoBolsa {
 export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
   const [lineas, setLineas] = useState<LineaBolsa[]>([])
   const [lista, setLista] = useState(false)
-  const [agregada, setAgregada] = useState<LineaBolsa | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -71,8 +73,6 @@ export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  const cerrarAviso = useCallback(() => setAgregada(null), [])
-
   const valor = useMemo<ContextoBolsa>(
     () => ({
       lineas,
@@ -81,7 +81,13 @@ export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
       subtotal: lineas.reduce((a, l) => a + l.cantidad * l.precio, 0),
       agregar: (linea) => {
         actualizar((a) => sumarLinea(a, linea))
-        setAgregada(linea)
+        if (location.pathname !== '/bolsa') {
+          void notificar.accion({
+            titulo: 'Agregado a tu bolsa',
+            descripcion: linea.variante ? `${linea.nombre} · ${linea.variante}` : linea.nombre,
+            accion: { titulo: 'Ver bolsa', alPulsar: () => router.push('/bolsa') },
+          })
+        }
       },
       cambiar: (clave, cantidad) => actualizar((a) => a.map((l) => (claveLinea(l) === clave ? { ...l, cantidad: acotarUnidades(cantidad) } : l))),
       quitar: (clave) => actualizar((a) => a.filter((l) => claveLinea(l) !== clave)),
@@ -94,7 +100,6 @@ export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
   return (
     <Contexto.Provider value={valor}>
       {children}
-      <AvisoAgregado linea={agregada} onCerrar={cerrarAviso} />
     </Contexto.Provider>
   )
 }
@@ -186,7 +191,7 @@ function BarraEnvio({ subtotal, gratisDesde }: { subtotal: number; gratisDesde: 
  * Página de la bolsa (/bolsa), como la de Apple: título grande, los
  * productos en lista y el resumen con el total y el botón de pago.
  */
-export function PaginaBolsa() {
+export function PaginaBolsa({ hitosEnvio = null, envioGratis = false }: { hitosEnvio?: readonly Hito[] | null; envioGratis?: boolean }) {
   const { lineas, subtotal: subtotalLocal, unidades, cambiar, quitar, lista } = useBolsa()
   const cotizacion = useCotizacionBolsa(lineas)
   const cotizadas = new Map((cotizacion?.lineas ?? []).map((c) => [c.clave, c]))
@@ -272,54 +277,16 @@ export function PaginaBolsa() {
             <span className="text-[17px] font-semibold">Total</span>
             <span className={`cifra text-[24px] font-semibold transition-opacity ${vigente ? '' : 'opacity-60'}`}>{clp(subtotal)}</span>
           </div>
-          <Link href="/comprar" className="tienda-boton mt-5 w-full bg-tinta !min-h-[52px] !text-[17px] text-white hover:bg-tinta/85">
+          <LlegadaEstimada hitos={hitosEnvio} className="mt-5" />
+          <Link href="/comprar" className="tienda-boton mt-4 w-full bg-tinta !min-h-[52px] !text-[17px] text-white hover:bg-tinta/85">
             Pagar
           </Link>
           <p className="mt-3 text-center text-[12px] text-gris" aria-live="polite">
             {vigente ? 'Precios por pack incluidos.' : 'Actualizando precios…'}
           </p>
+          <SellosConfianza envioGratis={envioGratis} className="mt-5 border-t border-borde/70 pt-5" />
         </div>
       </aside>
-    </div>
-  )
-}
-
-/** Cuánto dura el aviso de «agregado» antes de irse solo. */
-const DURACION_AVISO = 5000
-
-/**
- * Aviso al agregar: una tarjeta chica abajo, que no tapa la página ni pide
- * cerrarse. Dice qué se agregó y lleva a la bolsa. Se va sola a los pocos
- * segundos, y en la propia página de la bolsa no aparece.
- */
-function AvisoAgregado({ linea, onCerrar }: { linea: LineaBolsa | null; onCerrar: () => void }) {
-  const { unidades } = useBolsa()
-  const ruta = usePathname()
-
-  useEffect(() => {
-    if (!linea) return
-    const t = setTimeout(onCerrar, DURACION_AVISO)
-    return () => clearTimeout(t)
-  }, [linea, onCerrar])
-
-  const visible = linea !== null && ruta !== '/bolsa'
-  return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-      {visible && (
-        <div className="aviso-bolsa pointer-events-auto flex w-full max-w-[420px] items-center gap-3 rounded-[18px] bg-papel/95 p-3 pr-2 shadow-[0_10px_40px_rgb(0_0_0/18%)] ring-1 ring-black/5 backdrop-blur-xl">
-          <Miniatura src={linea.imagen} />
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] text-verde">Agregado a tu bolsa</p>
-            <p className="truncate text-[15px] font-semibold">{linea.nombre}</p>
-          </div>
-          <Link href="/bolsa" onClick={onCerrar} className="shrink-0 rounded-full bg-tinta px-4 py-2 text-[14px] font-medium text-white hover:bg-tinta/90">
-            Ver bolsa{unidades > 1 ? ` (${unidades})` : ''}
-          </Link>
-          <button type="button" onClick={onCerrar} aria-label="Cerrar aviso" className="grid size-9 shrink-0 place-items-center rounded-full text-gris hover:text-tinta">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M6 6l12 12M18 6 6 18" /></svg>
-          </button>
-        </div>
-      )}
     </div>
   )
 }

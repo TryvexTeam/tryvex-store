@@ -28,7 +28,7 @@ function Miniatura({ p }: { p: PiezaEditable }) {
   const b = borradorDesde(p.contenido, codigo)
   const foto = b.foto_escritorio || b.foto_movil
   return (
-    <span className={`relative block aspect-[16/9] w-[112px] shrink-0 overflow-hidden rounded-[10px] ring-1 ring-borde ${(codigo?.tono ?? 'oscuro') === 'oscuro' ? 'bg-black' : 'bg-[#e9f1f8]'}`}>
+    <span className={`relative block aspect-[16/9] w-[112px] shrink-0 overflow-hidden rounded-[var(--radius-anidado)] ring-1 ring-borde ${(codigo?.tono ?? 'oscuro') === 'oscuro' ? 'bg-black' : 'bg-[#e9f1f8]'}`}>
       {b.video ? (
         <video src={`${b.video}#t=0.1`} preload="metadata" muted playsInline className="size-full object-cover" />
       ) : foto ? (
@@ -64,8 +64,8 @@ export function ListaEscenas({ piezas, opciones, precios }: { piezas: PiezaEdita
         {piezas.map((p) => {
           const codigo = ESCENAS_BANNER.find((e) => `heroe-${e.id}` === p.clave)
           return (
-            <li key={p.clave} className={`flex items-center gap-3 rounded-[18px] bg-papel p-3 ring-1 ring-borde ${p.visible ? '' : 'opacity-70'}`}>
-              <button type="button" onClick={() => setAbierta(p.clave)} className="presionable flex min-w-0 flex-1 items-center gap-3 rounded-[12px] text-left">
+            <li key={p.clave} className={`flex items-center gap-3 rounded-[var(--radius-widget)] bg-papel p-3 ring-1 ring-borde ${p.visible ? '' : 'opacity-70'}`}>
+              <button type="button" onClick={() => setAbierta(p.clave)} className="presionable flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-anidado)] text-left">
                 <Miniatura p={p} />
                 <span className="min-w-0">
                   <span className="block truncate text-[16px] font-semibold tracking-cuerpo text-tinta">{p.titulo ?? codigo?.etiqueta ?? p.clave}</span>

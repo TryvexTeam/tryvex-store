@@ -8,6 +8,8 @@ import { precioPara, type FichaProducto } from '@/lib/ficha-precio'
 import { useBolsa } from './bolsa'
 import { GaleriaFicha } from './galeria-ficha'
 import { MediosPago } from './medios-pago'
+import { EnvioEstimado } from './envio-estimado'
+import type { Hito } from '@/lib/plazo-envio'
 
 interface Envio {
   plazo: string | null
@@ -31,6 +33,7 @@ export function Ficha({
   garantia,
   retracto,
   whatsapp,
+  hitosEnvio = null,
   varianteInicial = null,
 }: {
   ficha: FichaProducto
@@ -38,6 +41,8 @@ export function Ficha({
   garantia: string
   retracto: string
   whatsapp: string | null
+  /** Fechas estimadas de entrega, calculadas en el servidor; null = no mostrar. */
+  hitosEnvio?: Hito[] | null
   /** Color elegido en la card (?v=): la ficha abre con ese. */
   varianteInicial?: string | null
 }) {
@@ -155,7 +160,10 @@ export function Ficha({
             )}
             {conDescuento && <span className="rounded-full bg-verde/10 px-2.5 py-0.5 text-[13px] font-semibold text-verde">{tramo.etiqueta}</span>}
           </p>
-          <p className="mt-1 text-[14px] text-tinta-suave">{envioTexto}{envio.plazo ? ` · ${envio.plazo}` : ''}</p>
+          {/* Con fechas a la vista, el plazo en texto («Entre 1 y 3 días hábiles») sobra y
+              hasta contradice: se muestra solo cuando no hay línea de tiempo. */}
+          <p className="mt-1 text-[14px] text-tinta-suave">{envioTexto}{envio.plazo && !(hitosEnvio && !agotado) ? ` · ${envio.plazo}` : ''}</p>
+          {hitosEnvio && !agotado && <EnvioEstimado hitos={hitosEnvio} />}
 
           {/* Variantes */}
           {conVariantes && (
@@ -185,29 +193,36 @@ export function Ficha({
             </fieldset>
           )}
 
-          {/* Precio por volumen */}
+          {/* Packs por cantidad. Cada opción dice cuánto se ahorra en pesos, calculado
+              contra el precio normal de esa misma cantidad: nunca un «hasta» ni un
+              porcentaje que el comprador no pueda comprobar. */}
           {tramosVisibles.length > 0 && (
-            <div className="mt-7">
-              <p className="mb-3 text-[15px] font-semibold">Mientras más llevas, menos pagas</p>
-              <ul className="grid grid-cols-2 gap-2.5 t:grid-cols-3">
-                {tramosVisibles.map((t) => {
-                  const activo = tramo?.min === t.min
+            <fieldset className="mt-7">
+              <legend className="mb-3 text-[15px] font-semibold">Mientras más llevas, menos pagas</legend>
+              <ul className="grid grid-cols-2 gap-2.5">
+                {[{ min: 1, etiqueta: '1 unidad', precio: base }, ...tramosVisibles].map((t) => {
+                  const activo = (tramo?.min ?? 1) === t.min
+                  const ahorro = (base - t.precio) * t.min
+                  const sinStock = t.min > Math.max(1, disponible)
                   return (
                     <li key={t.min}>
                       <button
                         type="button"
-                        onClick={() => setCantidad(Math.min(t.min, Math.max(1, disponible)))}
-                        disabled={t.min > disponible}
-                        className={`w-full rounded-[14px] px-4 py-3 text-left ring-1 transition-shadow disabled:opacity-40 ${activo ? 'ring-2 ring-verde' : 'ring-borde hover:ring-gris'}`}
+                        aria-pressed={activo}
+                        onClick={() => setCantidad(t.min)}
+                        disabled={sinStock}
+                        className={`pack-opcion flex h-full w-full flex-col rounded-[14px] px-4 py-3 text-left ring-1 disabled:opacity-40 ${activo ? 'ring-2 ring-verde' : 'ring-borde hover:ring-tinta'}`}
                       >
                         <span className="block text-[13px] text-gris">{t.etiqueta}</span>
                         <span className="cifra block text-[16px] font-semibold">{clp(t.precio)} c/u</span>
+                        {t.min > 1 && <span className="cifra mt-0.5 block text-[12px] text-tinta-suave">{clp(t.precio * t.min)} por {t.min}</span>}
+                        {ahorro > 0 && <span key={activo ? 'activo' : 'reposo'} className={`cifra mt-auto pt-2 text-[12px] font-semibold text-verde ${activo ? 'texto-brillo' : ''}`}>Ahorras {clp(ahorro)}</span>}
                       </button>
                     </li>
                   )
                 })}
               </ul>
-            </div>
+            </fieldset>
           )}
 
           {/* Cantidad y compra */}
@@ -233,13 +248,14 @@ export function Ficha({
               Avísame cuando llegue
             </a>
           ) : (
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 grid gap-3">
               {/* Verde 700 (#15803d): con texto blanco da 5:1; el token --color-verde da 3.5:1 y no alcanza. */}
-              <Link href={destino} className="tienda-boton flex-1 bg-green-700 !min-h-[52px] !text-[17px] text-white hover:bg-green-800">
+              <Link href={destino} className="tienda-boton boton-presion w-full bg-green-700 !min-h-[52px] !text-[17px] text-white">
                 Comprar · <span className="cifra ml-1">{clp(precio * cantidad)}</span>
               </Link>
-              <button type="button" onClick={agregarABolsa} aria-label="Agregar a la bolsa" title="Agregar a la bolsa" className="tienda-boton size-[52px] shrink-0 !min-h-[52px] !px-0 text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
+              <button type="button" onClick={agregarABolsa} className="tienda-boton boton-presion boton-presion-contorno boton-bolsa w-full gap-2 !min-h-[52px] !text-[17px] text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
                 <IconoBolsa size={22} />
+                Agregar al carrito
               </button>
             </div>
           )}
@@ -291,10 +307,11 @@ export function Ficha({
             <p className="truncate text-[19px] font-semibold tracking-cuerpo">{ficha.nombre}</p>
             <div className="flex shrink-0 items-center gap-5">
               <p className="cifra text-[15px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
-              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar a la bolsa" title="Agregar a la bolsa" className="tienda-boton size-9 !min-h-9 !px-0 text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion boton-presion-contorno boton-bolsa min-h-9 gap-1.5 px-4 py-1.5 text-[14px] text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
                 <IconoBolsa size={18} />
+                Agregar al carrito
               </button>
-              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white hover:bg-green-800">
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white">
                 Comprar
               </Link>
             </div>
@@ -315,10 +332,11 @@ export function Ficha({
               <p className="cifra text-[13px] text-tinta-suave">{clp(precio * cantidad)}{variante ? ` · ${variante.nombre}` : ''}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar a la bolsa" title="Agregar a la bolsa" className="tienda-boton size-11 !px-0 text-tinta ring-1 ring-borde ring-inset hover:ring-gris">
+              <button type="button" onClick={agregarABolsa} tabIndex={barra ? 0 : -1} aria-label="Agregar al carrito" className="tienda-boton boton-presion boton-presion-contorno boton-bolsa gap-1.5 !px-4 text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
                 <IconoBolsa size={20} />
+                Agregar
               </button>
-              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton bg-green-700 text-white hover:bg-green-800">
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion bg-green-700 text-white">
                 Comprar
               </Link>
             </div>

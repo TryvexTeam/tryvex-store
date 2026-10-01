@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { HISTORIA_TRYVEX } from '@/lib/ayuda'
 import { leerVitrina } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
@@ -25,6 +26,11 @@ export default async function Nosotros() {
         <div className="space-y-5">
           {HISTORIA_TRYVEX.map((parrafo) => <p key={parrafo}>{parrafo}</p>)}
         </div>
+        <aside aria-labelledby="nosotros-contacto" className="mt-12 border-t border-borde/70 pt-8">
+          <h2 id="nosotros-contacto" className="text-[24px] leading-tight font-semibold tracking-tarjeta text-tinta">¿Tiene una consulta?</h2>
+          <p className="mt-2">Vea los canales disponibles para escribirnos.</p>
+          <Link href="/contacto" className="tienda-boton mt-6 bg-tinta text-white hover:bg-tinta-suave">Ir a contacto</Link>
+        </aside>
       </PaginaServicio>
       <PieTienda nombre={configuracion?.nombre_tienda ?? 'Tryvex'} email={configuracion?.email_contacto ?? null} emailVisible={configuracion?.email_visible ?? null} whatsapp={configuracion?.whatsapp ?? null} garantia={configuracion?.garantia_texto ?? null} retracto={configuracion?.retracto_texto ?? null} />
     </div>

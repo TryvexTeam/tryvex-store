@@ -11,6 +11,9 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { Comentarios } from '@/components/tienda/comentarios'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
+import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
+import { urlSitio } from '@/lib/sitio'
+import { CintaConfianza } from '@/components/tienda/cinta-confianza'
 
 /**
  * Ficha de producto.
@@ -53,8 +56,59 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
     politica: c?.envio_politica_texto ?? 'El costo y el plazo del envío se muestran antes de pagar.',
   }
 
+  // Datos estructurados para Google (precio, stock, envío y valoración). Solo
+  // entra lo que la ficha ya muestra: nada inventado, y la valoración únicamente
+  // si hay reseñas reales.
+  const urlFicha = `${urlSitio()}/producto/${encodeURIComponent(ficha.slug)}`
+  // Solo con la configuración leída: si la base no respondió, no se declara envío gratis.
+  const envioGratisConfirmado = c !== null && c.envio_tarifa_clp === 0 && !c.envio_gratis_desde_clp
+  const datosProducto = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: ficha.nombre,
+    sku: ficha.sku,
+    url: urlFicha,
+    ...(ficha.descripcion ? { description: ficha.descripcion } : {}),
+    ...(ficha.marca ? { brand: { '@type': 'Brand', name: ficha.marca } } : {}),
+    ...(ficha.galeria.length ? { image: ficha.galeria } : {}),
+    ...(resumenResenas.total > 0
+      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: resumenResenas.promedio, reviewCount: resumenResenas.total } }
+      : {}),
+    offers: {
+      '@type': 'Offer',
+      url: urlFicha,
+      priceCurrency: 'CLP',
+      price: String(Math.round(ficha.precio)),
+      itemCondition: ficha.condicion === 'nuevo' ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
+      availability: ficha.disponible > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      ...(envioGratisConfirmado
+        ? {
+            shippingDetails: {
+              '@type': 'OfferShippingDetails',
+              shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'CLP' },
+              shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CL' },
+              deliveryTime: {
+                '@type': 'ShippingDeliveryTime',
+                // Derivados de la misma promesa que ve el comprador (PLAZO_TRYVEX): el tránsito es lo que
+                // queda entre el despacho y la llegada, tomando el caso más corto y el más largo.
+                handlingTime: { '@type': 'QuantitativeValue', minValue: PLAZO_TRYVEX.despacho[0], maxValue: PLAZO_TRYVEX.despacho[1], unitCode: 'DAY' },
+                transitTime: {
+                  '@type': 'QuantitativeValue',
+                  minValue: Math.max(0, PLAZO_TRYVEX.llegada[0] - PLAZO_TRYVEX.despacho[1]),
+                  maxValue: PLAZO_TRYVEX.llegada[1] - PLAZO_TRYVEX.despacho[0],
+                  unitCode: 'DAY',
+                },
+              },
+            },
+          }
+        : {}),
+    },
+  }
+
   return (
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
+      {/* `<` se escapa para que ningún texto de producto pueda cerrar la etiqueta. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datosProducto).replace(/</g, '\\u003c') }} />
       <FranjaAnuncio configuracion={c} />
       <Cabecera destinos={destinosMenu(vitrina.categorias, '/')} ayuda={whatsapp} />
 
@@ -65,7 +119,17 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'}
           retracto={c?.retracto_texto ?? 'Tienes 10 días desde que lo recibes para arrepentirte.'}
           whatsapp={whatsapp}
+          hitosEnvio={hitosDeEnvio(new Date())}
           varianteInicial={varianteInicial}
+        />
+
+        <CintaConfianza
+          items={[
+            envioGratisConfirmado ? 'Envío gratis a todo Chile' : 'Envíos a todo Chile',
+            'Garantía legal de 6 meses',
+            'Pago seguro con Mercado Pago',
+            ...(whatsapp ? ['Atención por WhatsApp'] : []),
+          ]}
         />
 
         <Comentarios

@@ -53,7 +53,7 @@ export function CampoColores({ clave, tema, acento, libre, alCambiar }: {
         </div>
         {acento === 'libre' && (
           <label className="mt-2 flex items-center gap-3 text-[13px] text-tinta-suave">
-            <input type="color" value={colorLibre} onChange={(e) => alCambiar({ acento_libre: e.target.value })} className="h-11 w-16 cursor-pointer rounded-[10px] bg-papel ring-1 ring-borde" />
+            <input type="color" value={colorLibre} onChange={(e) => alCambiar({ acento_libre: e.target.value })} className="h-11 w-16 cursor-pointer rounded-[var(--radius-anidado)] bg-papel ring-1 ring-borde" />
             Elige el color · <span className="font-mono">{colorLibre}</span>
           </label>
         )}

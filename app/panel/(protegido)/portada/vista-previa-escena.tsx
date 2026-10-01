@@ -60,7 +60,7 @@ export function VistaPreviaEscena({ borrador: b, codigo, pantalla, precios }: {
   )
 
   return (
-    <div className={`mx-auto w-full ${movil ? 'max-w-[200px]' : 'max-w-[520px]'}`}>
+    <div data-tema="claro" className={`mx-auto w-full ${movil ? 'max-w-[200px]' : 'max-w-[520px]'}`}>
       <div
         className="relative w-full overflow-hidden rounded-[14px] ring-1 ring-borde"
         style={{ containerType: 'inline-size', aspectRatio: movil ? '390 / 640' : '1440 / 760', background: oscuro ? '#000' : '#e9f1f8' } as CSSProperties}

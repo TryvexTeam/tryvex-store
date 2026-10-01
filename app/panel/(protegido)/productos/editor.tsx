@@ -47,7 +47,7 @@ export type Tramo = {
 }
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
@@ -156,7 +156,7 @@ export default function EditorProducto({
       {/* ── Estado de publicación ─────────────────────────────── */}
       <section aria-labelledby={`estado-${producto.id}`}>
         <h3 id={`estado-${producto.id}`} className={`${titulo} mb-2.5`}>Estado</h3>
-        <div role="radiogroup" aria-label="Estado de publicación" className="grid grid-cols-3 gap-1 rounded-[12px] bg-papel-alt p-1">
+        <div role="radiogroup" aria-label="Estado de publicación" className="grid grid-cols-3 gap-1 rounded-[var(--radius-anidado)] bg-papel-alt p-1">
           {ESTADOS_PRODUCTO.map((e) => (
             <button
               key={e}
@@ -308,7 +308,7 @@ export default function EditorProducto({
         </div>
 
         <button type="submit" disabled={guardando}
-                className="presionable mt-6 w-full rounded-[10px] bg-tinta py-3 text-[15px] font-semibold text-white
+                className="presionable mt-6 w-full rounded-[var(--radius-anidado)] bg-tinta py-3 text-[15px] font-semibold text-white
                            hover:bg-tinta/85 disabled:opacity-60 sm:w-auto sm:px-8">
           {guardando ? 'Guardando…' : 'Guardar producto'}
         </button>
@@ -339,7 +339,7 @@ export default function EditorProducto({
 
         {/* Calculadora: 6 tramos desde 3 unidades hasta el piso en 100+. */}
         {vistaMayorista && (
-          <div className="mb-4 rounded-[14px] bg-papel-alt p-4 ring-1 ring-borde/70">
+          <div className="mb-4 rounded-[var(--radius-anidado)] bg-papel-alt p-4 ring-1 ring-borde/70">
             <p className="text-[13px] font-semibold text-tinta">Precios mayoristas</p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-gris">
               Desde 3 unidades, en escalones parejos hasta 100. Desde 100 el precio se mantiene en el piso: costo
@@ -396,7 +396,7 @@ export default function EditorProducto({
           {tramos.map((t) => (
             <li key={t.id}>
               <form onSubmit={enviar(guardarTramo, 'Tramo guardado.')}
-                    className="grid grid-cols-2 items-end gap-2.5 rounded-[12px] bg-papel-alt p-3 sm:grid-cols-[1.4fr_.8fr_.8fr_1fr_auto]">
+                    className="grid grid-cols-2 items-end gap-2.5 rounded-[var(--radius-anidado)] bg-papel-alt p-3 sm:grid-cols-[1.4fr_.8fr_.8fr_1fr_auto]">
                 <input type="hidden" name="id" value={t.id} />
                 <input type="hidden" name="producto_id" value={producto.id} />
                 <input name="etiqueta" defaultValue={t.etiqueta} required aria-label="Etiqueta" disabled={guardando} className={campo} />
@@ -421,7 +421,7 @@ export default function EditorProducto({
           {nuevo && (
             <li>
               <form onSubmit={enviar(guardarTramo, 'Tramo creado.')} data-reset="si"
-                    className="grid grid-cols-2 items-end gap-2.5 rounded-[12px] bg-papel-alt p-3 ring-2 ring-spark/30 sm:grid-cols-[1.4fr_.8fr_.8fr_1fr_auto]">
+                    className="grid grid-cols-2 items-end gap-2.5 rounded-[var(--radius-anidado)] bg-papel-alt p-3 ring-2 ring-spark/30 sm:grid-cols-[1.4fr_.8fr_.8fr_1fr_auto]">
                 <input type="hidden" name="producto_id" value={producto.id} />
                 <input name="etiqueta" placeholder="Etiqueta" required aria-label="Etiqueta" disabled={guardando} className={campo} />
                 <input name="min_unidades" type="number" min="1" placeholder="Desde" required aria-label="Desde" disabled={guardando} className={`${campo} cifra`} />

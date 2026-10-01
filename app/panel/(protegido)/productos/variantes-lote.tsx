@@ -6,7 +6,7 @@ import { useAvisos } from '@/components/avisos'
 import { crearVariantesEnLote } from './acciones-variantes'
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3 py-2 text-[13px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3 py-2 text-[13px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 
 type Fila = { nombre: string; color_hex: string; usarColor: boolean; precio: string }
@@ -55,7 +55,7 @@ export function VariantesLote({ productoId, skuProducto, desdeOrden, onCerrar }:
   }
 
   return (
-    <section className="mt-3 rounded-[14px] bg-papel p-4 ring-2 ring-spark/25">
+    <section className="mt-3 rounded-[var(--radius-anidado)] bg-papel p-4 ring-2 ring-spark/25">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <h4 className="text-[14px] font-semibold">Crear varias opciones</h4>
@@ -81,7 +81,7 @@ export function VariantesLote({ productoId, skuProducto, desdeOrden, onCerrar }:
         <>
           <ul className="space-y-2">
             {vista.map((fila, i) => (
-              <li key={`${fila.nombre}-${i}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-[10px] bg-papel-alt p-2">
+              <li key={`${fila.nombre}-${i}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-[var(--radius-anidado)] bg-papel-alt p-2">
                 <div className="min-w-0"><p className="truncate text-[13px] font-medium">{fila.nombre}</p><p className="truncate text-[11px] text-gris">{skuDeVariante(skuProducto, fila.nombre)}</p></div>
                 <input type="color" aria-label={`Color de ${fila.nombre}`} value={fila.color_hex} disabled={!fila.usarColor || pendiente}
                   onChange={(e) => setVista((actual) => actual.map((f, n) => n === i ? { ...f, color_hex: e.target.value.toUpperCase() } : f))}

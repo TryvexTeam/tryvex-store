@@ -55,7 +55,7 @@ export function EditorPieza({ pieza, opciones }: { pieza: PiezaEditable; opcione
           else setError(r.error)
         })
       }
-      className="rounded-[18px] bg-papel p-4 ring-1 ring-borde md:p-5"
+      className="rounded-[var(--radius-widget)] bg-papel p-4 ring-1 ring-borde md:p-5"
     >
       <input type="hidden" name="clave" value={k} />
 

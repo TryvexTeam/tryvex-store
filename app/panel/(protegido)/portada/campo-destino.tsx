@@ -11,7 +11,7 @@ export interface OpcionesDestino {
 
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 export const campo =
-  'w-full min-h-[44px] rounded-[10px] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
+  'w-full min-h-[44px] rounded-[var(--radius-anidado)] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
 
 /** Qué significa cada destino, dicho en los términos de quien edita. */
 const TIPOS: { valor: TipoDestino; etiqueta: string }[] = [

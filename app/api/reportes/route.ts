@@ -41,8 +41,20 @@ export async function GET(request: NextRequest) {
       return [s.sku, s.nombre, s.stock, minimo, Number(s.stock) <= minimo ? 'Sí' : 'No']
     }))
   } else if (tipo === 'finanzas') {
-    const { data } = await supabase.from('movimientos_financieros').select('tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte').eq('negocio', NEGOCIO_TIENDA).order('fecha', { ascending: false }).limit(5000)
-    salida = archivo('finanzas', ['Tipo', 'Categoría', 'Descripción', 'Monto CLP', 'Fecha', 'Método', 'Contraparte'], (data ?? []).map((m) => [m.tipo, m.categoria, m.descripcion, m.monto_clp, m.fecha, m.metodo_pago, m.contraparte]))
+    // Rango opcional: el mismo que se ve en pantalla. Solo se aceptan fechas de calendario.
+    const desde = request.nextUrl.searchParams.get('desde')
+    const hasta = request.nextUrl.searchParams.get('hasta')
+    const fechaValida = (v: string | null): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v)
+    let consulta = supabase
+      .from('movimientos_financieros')
+      .select('tipo,categoria,descripcion,monto_clp,fecha,metodo_pago,contraparte,voucher_path')
+      .eq('negocio', NEGOCIO_TIENDA)
+      .order('fecha', { ascending: false })
+      .limit(5000)
+    if (fechaValida(desde)) consulta = consulta.gte('fecha', desde)
+    if (fechaValida(hasta)) consulta = consulta.lte('fecha', hasta)
+    const { data } = await consulta
+    salida = archivo('finanzas', ['Tipo', 'Categoría', 'Descripción', 'Monto CLP', 'Fecha', 'Método', 'Contraparte', 'Comprobante'], (data ?? []).map((m) => [m.tipo, m.categoria, m.descripcion, m.monto_clp, m.fecha, m.metodo_pago, m.contraparte, m.voucher_path ? 'Sí' : 'No']))
   } else {
     const { data } = await supabase.from('pedidos').select('numero,cliente_nombre,cliente_email,cliente_fono,canal,estado,metodo_pago,total_clp,created_at,pagado_at,envio_courier,envio_seguimiento').order('created_at', { ascending: false }).limit(5000)
     const filas = (data ?? []).filter((p) => tipo === 'pedidos' || VENDIDOS.includes(p.estado))
