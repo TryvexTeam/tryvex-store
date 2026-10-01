@@ -43,7 +43,7 @@ export function CampoVideo({ clave, valor, alCambiar }: { clave: string; valor: 
   return (
     <div>
       <span className="mb-1 block text-[12px] font-medium text-gris">Video</span>
-      <div className="relative aspect-video w-full max-w-[360px] overflow-hidden rounded-[12px] bg-black ring-1 ring-borde">
+      <div className="relative aspect-video w-full max-w-[360px] overflow-hidden rounded-[var(--radius-anidado)] bg-black ring-1 ring-borde">
         {valor ? (
           <video key={valor} src={valor} muted loop playsInline autoPlay controls className="size-full object-cover" />
         ) : (

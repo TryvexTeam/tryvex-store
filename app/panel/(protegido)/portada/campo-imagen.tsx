@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 const campo =
-  'w-full min-h-[44px] rounded-[10px] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
+  'w-full min-h-[44px] rounded-[var(--radius-anidado)] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
 
 /**
  * Campo de imagen con vista previa, para subir, cambiar y quitar.
@@ -55,7 +55,7 @@ export function CampoImagen({ id, etiqueta, pista, valor, alCambiar, subir, prop
         onDragOver={(e) => { e.preventDefault(); setEncima(true) }}
         onDragLeave={() => setEncima(false)}
         onDrop={(e) => { e.preventDefault(); setEncima(false); void elegir(e.dataTransfer.files?.[0]) }}
-        className={`relative ${proporcion} w-full overflow-hidden rounded-[12px] bg-papel-alt ring-1 transition-colors ${encima ? 'ring-2 ring-spark' : 'ring-borde'}`}
+        className={`relative ${proporcion} w-full overflow-hidden rounded-[var(--radius-anidado)] bg-papel-alt ring-1 transition-colors ${encima ? 'ring-2 ring-spark' : 'ring-borde'}`}
       >
         {valor && !falla ? (
           // eslint-disable-next-line @next/next/no-img-element

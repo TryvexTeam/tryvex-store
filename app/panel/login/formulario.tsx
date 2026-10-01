@@ -38,7 +38,7 @@ export default function FormularioLogin({ volver }: { volver: string }) {
   }
 
   const campo =
-    'w-full rounded-[10px] bg-white px-4 py-3 text-[15px] text-tinta ring-1 ring-borde ' +
+    'w-full rounded-[var(--radius-anidado)] bg-white px-4 py-3 text-[15px] text-tinta ring-1 ring-borde ' +
     'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none ' +
     'transition-shadow disabled:opacity-60'
 

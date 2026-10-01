@@ -180,7 +180,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
           onDragOver={arrastrarArchivos}
           onDragLeave={() => setEncima(false)}
           onDrop={soltarArchivos}
-          className={`presionable flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-[18px] border-2 border-dashed px-6 transition-colors ${
+          className={`presionable flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-[var(--radius-widget)] border-2 border-dashed px-6 transition-colors ${
             encima ? 'border-tinta bg-papel-alt' : 'border-borde bg-papel-alt/60 text-gris hover:border-gris'
           }`}
         >
@@ -193,7 +193,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
           onDragOver={arrastrarArchivos}
           onDragLeave={() => setEncima(false)}
           onDrop={soltarArchivos}
-          className={`rounded-[18px] transition-shadow ${encima ? 'ring-2 ring-tinta ring-offset-4' : ''}`}
+          className={`rounded-[var(--radius-widget)] transition-shadow ${encima ? 'ring-2 ring-tinta ring-offset-4' : ''}`}
         >
           <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={alSoltar}>
             <SortableContext items={orden} strategy={rectSortingStrategy}>
@@ -211,7 +211,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
                   />
                 ))}
                 {Array.from({ length: subiendo }).map((_, i) => (
-                  <li key={`subiendo-${i}`} className="grid aspect-square place-items-center rounded-[14px] bg-papel-alt ring-1 ring-borde/70">
+                  <li key={`subiendo-${i}`} className="grid aspect-square place-items-center rounded-[var(--radius-anidado)] bg-papel-alt ring-1 ring-borde/70">
                     <span className="size-5 animate-spin rounded-full border-2 border-borde border-t-tinta" />
                     <span className="sr-only">Subiendo…</span>
                   </li>
@@ -223,7 +223,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
                       onClick={() => entrada.current?.click()}
                       disabled={ocupado}
                       aria-label="Añadir fotos o videos"
-                      className="presionable grid aspect-square w-full place-items-center rounded-[14px] border border-dashed border-borde bg-papel-alt/60 text-gris hover:border-gris hover:text-tinta disabled:opacity-50"
+                      className="presionable grid aspect-square w-full place-items-center rounded-[var(--radius-anidado)] border border-dashed border-borde bg-papel-alt/60 text-gris hover:border-gris hover:text-tinta disabled:opacity-50"
                     >
                       <IconoMas size={22} />
                     </button>
@@ -237,13 +237,13 @@ export function Galeria({ productoId, galeria, portada }: Props) {
 
       {/* ── Acciones sobre la casilla elegida ─────────────────────── */}
       {sel && (
-        <div className="mt-3 flex items-center gap-2 rounded-[14px] bg-papel-alt p-2" role="toolbar" aria-label="Acciones de la foto elegida">
+        <div className="mt-3 flex items-center gap-2 rounded-[var(--radius-anidado)] bg-papel-alt p-2" role="toolbar" aria-label="Acciones de la foto elegida">
           <button
             type="button"
             disabled={ocupado || selEsPortada || selEsVideo}
             title={selEsVideo ? 'La portada tiene que ser una foto' : undefined}
             onClick={() => accion(() => fijarPortada(productoId, sel), 'Portada actualizada.')}
-            className="presionable flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-papel text-[13px] font-semibold text-tinta ring-1 ring-borde/70 disabled:opacity-50"
+            className="presionable flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-anidado)] bg-papel text-[13px] font-semibold text-tinta ring-1 ring-borde/70 disabled:opacity-50"
           >
             <IconoEstrella size={15} activo={selEsPortada} />
             {selEsPortada ? 'Es la portada' : selEsVideo ? 'Un video no es portada' : 'Usar de portada'}
@@ -252,7 +252,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
             type="button"
             disabled={ocupado}
             onClick={() => accion(() => borrarImagen(productoId, sel), selEsVideo ? 'Video borrado.' : 'Foto borrada.')}
-            className="presionable flex h-10 items-center gap-1.5 rounded-[10px] bg-papel px-3.5 text-[13px] font-semibold text-tinta-suave ring-1 ring-borde/70 hover:text-rojo disabled:opacity-50"
+            className="presionable flex h-10 items-center gap-1.5 rounded-[var(--radius-anidado)] bg-papel px-3.5 text-[13px] font-semibold text-tinta-suave ring-1 ring-borde/70 hover:text-rojo disabled:opacity-50"
           >
             <IconoBasura size={15} />
             Borrar
@@ -278,7 +278,7 @@ export function Galeria({ productoId, galeria, portada }: Props) {
       )}
 
       {error && (
-        <p role="alert" className="mt-2 rounded-[10px] bg-rojo/10 px-3 py-2 text-[13px] text-rojo">
+        <p role="alert" className="mt-2 rounded-[var(--radius-anidado)] bg-rojo/10 px-3 py-2 text-[13px] text-rojo">
           {error}
         </p>
       )}
@@ -321,7 +321,7 @@ function Casilla({
         onClick={alElegir}
         aria-pressed={seleccionada}
         aria-label={`${video ? 'Video' : 'Foto'} ${indice + 1} de ${total}${esPortada ? ', portada' : ''}. Toca para elegir; mantén presionado para mover.`}
-        className={`presionable relative block aspect-square w-full touch-manipulation overflow-hidden rounded-[14px] bg-papel-alt transition-shadow select-none ${
+        className={`presionable relative block aspect-square w-full touch-manipulation overflow-hidden rounded-[var(--radius-anidado)] bg-papel-alt transition-shadow select-none ${
           isDragging ? 'cursor-grabbing shadow-[0_12px_32px_rgb(0_0_0/22%)] ring-2 ring-tinta' : seleccionada ? 'cursor-grab ring-2 ring-tinta' : 'cursor-grab ring-1 ring-borde/70 hover:ring-gris'
         }`}
       >

@@ -12,7 +12,7 @@ import { guardarVariante, quitarVariante, reactivarVariante, subirArchivoVariant
 import { VariantesLote } from './variantes-lote'
 
 const campo =
-  'w-full rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
+  'w-full rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-tinta focus:outline-none disabled:opacity-60'
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 
@@ -135,7 +135,7 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
               />
             </li>
           ) : (
-            <li key={v.id} className="flex items-center gap-3 rounded-[12px] bg-papel-alt px-3.5 py-3">
+            <li key={v.id} className="flex items-center gap-3 rounded-[var(--radius-anidado)] bg-papel-alt px-3.5 py-3">
               {/* El círculo que ve el cliente: tocarlo para subir una muestra. */}
               <button
                 type="button"
@@ -159,7 +159,7 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
                 disabled={pendiente || subiendo !== null}
                 aria-label={v.imagen_url ? `Cambiar la foto de ${v.nombre}` : `Subir la foto de ${v.nombre}`}
                 title="Foto de la variante"
-                className={`presionable relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-papel ${v.imagen_url ? 'ring-1 ring-borde/70' : 'border border-dashed border-borde text-gris hover:border-gris'}`}
+                className={`presionable relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-anidado)] bg-papel ${v.imagen_url ? 'ring-1 ring-borde/70' : 'border border-dashed border-borde text-gris hover:border-gris'}`}
               >
                 {subiendo === `${v.id}-foto` ? (
                   <span className="size-4 animate-spin rounded-full border-2 border-borde border-t-tinta" />
@@ -213,7 +213,7 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
       )}
 
       {activas.length === 0 && editando !== 'nueva' && editando !== 'lote' && (
-        <p className="rounded-[12px] bg-papel-alt px-4 py-5 text-center text-[13px] text-gris">
+        <p className="rounded-[var(--radius-anidado)] bg-papel-alt px-4 py-5 text-center text-[13px] text-gris">
           Sin variantes: el producto se vende tal cual, con un solo stock.
         </p>
       )}
@@ -225,7 +225,7 @@ export function Variantes({ productoId, skuProducto, precioProducto, variantes }
           </summary>
           <ul className="mt-2 space-y-1.5">
             {inactivas.map((v) => (
-              <li key={v.id} className="flex items-center gap-3 rounded-[10px] px-3 py-2 opacity-70">
+              <li key={v.id} className="flex items-center gap-3 rounded-[var(--radius-anidado)] px-3 py-2 opacity-70">
                 <span className="size-4 rounded-full ring-1 ring-borde" style={{ background: v.color_hex ?? 'transparent' }} />
                 <span className="flex-1 text-[13px]">{v.nombre}</span>
                 <button type="button" onClick={() => reactivar(v)} disabled={pendiente}
@@ -288,7 +288,7 @@ function FormularioVariante({
   }
 
   return (
-    <form onSubmit={enviar} className="space-y-3 rounded-[14px] bg-papel p-4 ring-2 ring-spark/25">
+    <form onSubmit={enviar} className="space-y-3 rounded-[var(--radius-anidado)] bg-papel p-4 ring-2 ring-spark/25">
       {variante && <input type="hidden" name="id" value={variante.id} />}
       <input type="hidden" name="producto_id" value={productoId} />
       <input type="hidden" name="orden" value={variante?.orden ?? orden} />
@@ -316,7 +316,7 @@ function FormularioVariante({
           <div className="flex items-center gap-2.5">
             <input type="color" value={color} onChange={(e) => setColor(e.target.value.toUpperCase())}
                    disabled={pendiente || !conColor} aria-label="Elegir color"
-                   className="size-10 shrink-0 cursor-pointer rounded-[10px] border-0 bg-transparent p-0 disabled:opacity-40" />
+                   className="size-10 shrink-0 cursor-pointer rounded-[var(--radius-anidado)] border-0 bg-transparent p-0 disabled:opacity-40" />
             <Casilla checked={conColor} onChange={setConColor} className="!text-[13px] text-tinta-suave">
               Mostrar muestra de color
             </Casilla>

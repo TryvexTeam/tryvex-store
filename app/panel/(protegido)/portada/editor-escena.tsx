@@ -170,7 +170,7 @@ export function EditorEscena({ pieza, codigo, opciones, precios, alCerrar }: {
                 <p className="text-[12px] leading-snug text-gris">Lo que dejes vacío no se muestra. Usa la × para borrar un texto.</p>
                 {/* La cifra también es texto de la escena: escondida al final, quien vaciaba todos los campos la seguía viendo en la tienda. */}
                 {codigo?.promo && (
-                  <div className="rounded-[14px] bg-papel-alt/60 p-3 ring-1 ring-borde">
+                  <div className="rounded-[var(--radius-anidado)] bg-papel-alt/60 p-3 ring-1 ring-borde">
                     <Casilla checked={b.mostrar_cifra} onChange={(v) => cambiar({ mostrar_cifra: v })} className="!text-[14px] font-medium">
                       Mostrar la cifra grande
                     </Casilla>

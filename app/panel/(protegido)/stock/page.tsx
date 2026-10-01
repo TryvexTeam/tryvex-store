@@ -46,7 +46,7 @@ export default async function Stock() {
       </header>
 
       {bajos.length > 0 && (
-        <p role="status" className="mb-6 rounded-[10px] bg-spark-suave px-4 py-3 text-[14px] text-rojo">
+        <p role="status" className="mb-6 rounded-[var(--radius-anidado)] bg-spark-suave px-4 py-3 text-[14px] text-rojo">
           {bajos.map((b) => `${b.nombre}: quedan ${b.stock} (mínimo ${minimoDe(b.producto_id)})`).join(' · ')}. Conviene reponer.
         </p>
       )}

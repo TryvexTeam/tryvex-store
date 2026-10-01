@@ -31,7 +31,7 @@ function Rejilla({ nombre, etiqueta, valor, alCambiar, vertical }: {
   return (
     <fieldset>
       <legend className={rotulo}>{etiqueta}</legend>
-      <div className={`grid grid-cols-3 grid-rows-3 gap-1 rounded-[10px] bg-black/85 p-1.5 ${vertical ? 'aspect-[4/5] w-[112px]' : 'aspect-[21/9] w-[220px] max-w-full'}`}>
+      <div className={`grid grid-cols-3 grid-rows-3 gap-1 rounded-[var(--radius-anidado)] bg-black/85 p-1.5 ${vertical ? 'aspect-[4/5] w-[112px]' : 'aspect-[21/9] w-[220px] max-w-full'}`}>
         {POSICIONES.map((y) => POSICIONES.map((x) => (
           <label key={`${x}-${y}`} className="relative grid cursor-pointer place-items-center rounded-[6px] hover:bg-white/10">
             <input type="radio" name={nombre} value={`${x},${y}`} checked={valor.x === x && valor.y === y} onChange={() => alCambiar({ x, y })} className="peer sr-only" />
@@ -61,11 +61,11 @@ export function CampoCapsulas({ clave, capsulas, alCambiar, opciones }: {
       <p className="text-[12px] leading-snug text-gris">
         Etiquetas con botón. Elige dónde va cada una en teléfono y en escritorio. Hasta {MAX_CAPSULAS}.
       </p>
-      {capsulas.length === 0 && <p className="mt-3 rounded-[12px] bg-papel p-4 text-[13px] text-tinta-suave ring-1 ring-borde">Esta escena no tiene cápsulas.</p>}
+      {capsulas.length === 0 && <p className="mt-3 rounded-[var(--radius-anidado)] bg-papel p-4 text-[13px] text-tinta-suave ring-1 ring-borde">Esta escena no tiene cápsulas.</p>}
       {capsulas.length > 0 && (
         <ol className="mt-3 grid gap-3">
           {capsulas.map((c, i) => (
-            <li key={c.id ?? i} className="rounded-[12px] bg-papel p-3 ring-1 ring-borde">
+            <li key={c.id ?? i} className="rounded-[var(--radius-anidado)] bg-papel p-3 ring-1 ring-borde">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold text-tinta">Cápsula {i + 1}</p>
                 <button type="button" onClick={() => alCambiar(capsulas.filter((_, j) => j !== i))} className="presionable inline-flex min-h-[44px] items-center rounded-full px-4 text-[13px] font-medium text-rojo hover:bg-rojo/10">

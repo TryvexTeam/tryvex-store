@@ -154,7 +154,7 @@ export function AvisosTelefono() {
   return (
     <section aria-labelledby="avisos-titulo" className="entra mb-6 overflow-hidden rounded-[var(--radius-tarjeta)] bg-papel ring-1 ring-borde/70">
       <div className="flex gap-4 p-5">
-        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[12px] bg-tinta text-white">
+        <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-anidado)] bg-tinta text-white">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />

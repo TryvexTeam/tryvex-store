@@ -114,7 +114,7 @@ export default async function Productos() {
         {catalogo.length > 0 && (
           <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {cifras.map((c) => (
-              <div key={c.rotulo} className="rounded-[18px] bg-papel px-5 py-4 shadow-[0_2px_12px_rgb(0_0_0/5%)] ring-1 ring-borde/60">
+              <div key={c.rotulo} className="rounded-[var(--radius-widget)] bg-papel px-5 py-4 shadow-[0_2px_12px_rgb(0_0_0/5%)] ring-1 ring-borde/60">
                 <dt className="text-[12px] font-semibold tracking-[0.04em] text-gris uppercase">{c.rotulo}</dt>
                 <dd className={`cifra mt-1 text-[28px] leading-tight font-semibold tracking-[-0.02em] ${c.tono}`}>
                   {c.valor.toLocaleString('es-CL')}

@@ -9,7 +9,7 @@ import { alternarVisibilidadResena, borrarResena, crearResena, editarResena, sub
 const TIPOS_FOTO_RESENA = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic'] as const
 const PESO_MAXIMO_FOTO_RESENA = 5 * 1024 * 1024
 
-const campo = 'w-full min-h-11 rounded-[10px] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
+const campo = 'w-full min-h-11 rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[14px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 
 export type OpcionResena = { productoId: string; producto: string }
 export type ResenaPanel = {
@@ -122,11 +122,11 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
       </section>
       <section aria-labelledby="resenas-lista">
         <div className="mb-3 flex items-baseline justify-between"><h2 id="resenas-lista" className="text-[18px] font-semibold">Reseñas creadas</h2><span className="text-[13px] text-gris">{resenas.length}</span></div>
-        {resenas.length === 0 ? <p className="rounded-[14px] bg-papel px-5 py-10 text-center text-[14px] text-gris ring-1 ring-borde/70">Aún no has agregado reseñas.</p> : (
+        {resenas.length === 0 ? <p className="rounded-[var(--radius-anidado)] bg-papel px-5 py-10 text-center text-[14px] text-gris ring-1 ring-borde/70">Aún no has agregado reseñas.</p> : (
           <ul className="grid gap-3">
             {resenas.map((r) => (
               <li key={r.id} className="flex flex-col gap-4 rounded-[var(--radius-tarjeta)] bg-papel p-4 ring-1 ring-borde/70 sm:flex-row sm:p-5">
-                <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[12px] bg-papel-alt sm:w-40">
+                <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[var(--radius-anidado)] bg-papel-alt sm:w-40">
                   {r.foto ? <Image src={r.foto} alt={`Foto de la reseña de ${r.cliente_nombre}`} fill sizes="160px" className="object-cover" /> : <span className="grid size-full place-items-center text-[12px] text-gris">Sin foto</span>}
                 </div>
                 <div className="min-w-0 flex-1">

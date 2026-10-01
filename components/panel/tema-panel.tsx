@@ -14,7 +14,7 @@ import { COOKIE_TEMA_PANEL, type Tema } from '@/lib/tema-panel'
  */
 const Contexto = createContext<{ tema: Tema; alternar: () => void }>({ tema: 'claro', alternar: () => {} })
 
-export function TemaPanel({ inicial, children }: { inicial: Tema; children: ReactNode }) {
+export function TemaPanel({ inicial, className = '', children }: { inicial: Tema; className?: string; children: ReactNode }) {
   const [tema, setTema] = useState<Tema>(inicial)
 
   // El fondo detrás de la página (rebote de scroll, barra del navegador) también
@@ -34,7 +34,7 @@ export function TemaPanel({ inicial, children }: { inicial: Tema; children: Reac
 
   return (
     <Contexto.Provider value={{ tema, alternar }}>
-      <div data-tema={tema} className="min-h-dvh bg-papel-alt text-tinta">
+      <div data-tema={tema} className={`min-h-dvh bg-papel-alt text-tinta ${className}`}>
         {children}
       </div>
     </Contexto.Provider>

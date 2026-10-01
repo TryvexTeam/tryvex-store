@@ -10,7 +10,7 @@ import { confirmarVideoFoco, guardarFoco, pedirSubidaVideoFoco, quitarVideoFoco 
 
 const rotulo = 'mb-1 block text-[12px] font-medium text-gris'
 const campo =
-  'w-full min-h-[44px] rounded-[10px] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
+  'w-full min-h-[44px] rounded-[var(--radius-anidado)] bg-papel px-3 py-2 text-[15px] text-tinta ring-1 ring-borde focus:ring-2 focus:ring-spark focus:outline-none'
 
 const MODOS = [
   { valor: 'bucle', titulo: 'En bucle', ayuda: 'Corre solo, en silencio, detrás de las frases.' },
@@ -76,7 +76,7 @@ export function EditorFoco({ escena, visible, productos }: Props) {
           setAviso(r.ok ? { ok: true, texto: 'Guardado. Ya se ve en la portada.' } : { ok: false, texto: r.error })
         })
       }
-      className="rounded-[18px] bg-papel p-4 ring-1 ring-borde md:p-5"
+      className="rounded-[var(--radius-widget)] bg-papel p-4 ring-1 ring-borde md:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -93,7 +93,7 @@ export function EditorFoco({ escena, visible, productos }: Props) {
         <div className="md:col-span-2">
           <span className={rotulo}>Video</span>
           <div className="flex flex-col gap-3 md:flex-row md:items-start">
-            <div className="relative aspect-video w-full max-w-[360px] overflow-hidden rounded-[14px] bg-black ring-1 ring-borde">
+            <div className="relative aspect-video w-full max-w-[360px] overflow-hidden rounded-[var(--radius-anidado)] bg-black ring-1 ring-borde">
               {video ? (
                 <video key={video} src={video} muted loop playsInline autoPlay controls className="size-full object-cover" />
               ) : (
@@ -149,7 +149,7 @@ export function EditorFoco({ escena, visible, productos }: Props) {
             {MODOS.map((m) => (
               <label
                 key={m.valor}
-                className={`cursor-pointer rounded-[14px] p-3.5 ring-1 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-spark ${modo === m.valor ? 'bg-papel-alt ring-2 ring-tinta' : 'ring-borde'}`}
+                className={`cursor-pointer rounded-[var(--radius-anidado)] p-3.5 ring-1 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-spark ${modo === m.valor ? 'bg-papel-alt ring-2 ring-tinta' : 'ring-borde'}`}
               >
                 <input type="radio" name="modo" value={m.valor} checked={modo === m.valor} onChange={() => setModo(m.valor)} className="sr-only" />
                 <span className="block text-[15px] font-semibold text-tinta">{m.titulo}</span>

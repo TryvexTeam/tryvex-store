@@ -4,9 +4,10 @@ import { useRef, useState, useTransition } from 'react'
 import { Selector } from '@/components/selector'
 import { registrarMovimiento } from './acciones'
 import { categoriasPara, METODOS_PAGO } from '@/lib/finanzas'
+import { Boton } from '@/components/panel/ui'
 
 const campo =
-  'w-full min-h-11 rounded-[10px] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
+  'w-full min-h-11 rounded-[var(--radius-anidado)] bg-papel px-3.5 py-2.5 text-[15px] text-tinta ring-1 ring-borde ' +
   'placeholder:text-gris focus:ring-2 focus:ring-spark focus:outline-none disabled:opacity-60'
 
 export default function FormularioMovimiento() {
@@ -63,7 +64,7 @@ export default function FormularioMovimiento() {
             role="radio"
             aria-checked={tipo === t}
             onClick={() => { setTipo(t); setCategoria('') }}
-            className={`min-h-11 rounded-[10px] text-[14px] font-medium transition-colors ${
+            className={`min-h-11 rounded-[var(--radius-anidado)] text-[14px] font-medium transition-colors ${
               tipo === t
                 ? t === 'ingreso'
                   ? 'bg-verde text-white'
@@ -173,7 +174,7 @@ export default function FormularioMovimiento() {
           />
           <label
             htmlFor="voucher"
-            className="flex min-h-11 cursor-pointer items-center justify-between rounded-[10px] bg-papel-alt px-3.5
+            className="flex min-h-11 cursor-pointer items-center justify-between rounded-[var(--radius-anidado)] bg-papel-alt px-3.5
                        text-[14px] text-tinta-suave transition-colors hover:bg-borde/40
                        peer-focus-visible:ring-2 peer-focus-visible:ring-spark"
           >
@@ -192,14 +193,9 @@ export default function FormularioMovimiento() {
         <p role="status" className="mt-3 text-[13px] text-verde">Movimiento registrado.</p>
       )}
 
-      <button
-        type="submit"
-        disabled={enviando}
-        className="mt-4 min-h-11 w-full rounded-full bg-tinta px-5 text-[15px] font-medium text-white
-                   transition-colors hover:bg-tinta/85 disabled:opacity-40"
-      >
+      <Boton type="submit" disabled={enviando} tamano="lg" className="mt-4">
         {enviando ? 'Guardando…' : 'Guardar'}
-      </button>
+      </Boton>
     </form>
   )
 }

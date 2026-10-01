@@ -187,7 +187,7 @@ export function ResumenPanel({
             return (
               <div key={g.clave}>
                 <EncabezadoDia etiqueta={g.etiqueta} neto={netoDelDia > 0 ? netoDelDia : undefined} />
-                <ul className="divide-y divide-borde/50 overflow-hidden rounded-[22px] bg-papel ring-1 ring-borde/60">
+                <ul className="divide-y divide-borde/50 overflow-hidden rounded-[var(--radius-widget)] bg-papel ring-1 ring-borde/60">
                   {g.items.map((p, i) => {
                     const vendida = VENDIDOS.includes(p.estado)
                     const nombre = p.cliente_nombre || `Pedido ${p.numero ?? ''}`
@@ -262,7 +262,7 @@ function Metrica({
   return (
     <div
       style={{ animationDelay: `${retraso}ms` }}
-      className="entra rounded-[20px] bg-papel p-4 shadow-[var(--shadow-sutil)] ring-1 ring-borde/60"
+      className="entra rounded-[var(--radius-widget)] bg-papel p-4 shadow-[var(--shadow-sutil)] ring-1 ring-borde/60"
     >
       <div className="flex items-center gap-1.5">
         {alerta && <span aria-hidden className="size-1.5 rounded-full bg-ambar" />}

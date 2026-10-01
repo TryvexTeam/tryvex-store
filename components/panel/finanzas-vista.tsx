@@ -29,13 +29,13 @@ const n = (v: string | number) => Number(v) || 0
 /** Balance enorme y, debajo, lo que entró y lo que salió, en dos píldoras. */
 export function ResumenFinanzas({ balance, ingresos, egresos }: { balance: number; ingresos: number; egresos: number }) {
   return (
-    <section aria-label="Resumen" className="entra mb-8 overflow-hidden rounded-[26px] bg-tinta p-6 text-papel shadow-[var(--shadow-alzado)]">
+    <section aria-label="Resumen" className="entra mb-8 overflow-hidden rounded-[var(--radius-popup)] bg-tinta p-6 text-papel shadow-[var(--shadow-alzado)]">
       <p className="text-[14px] font-medium text-white/60">Balance</p>
       <MontoGrande valor={balance} signo={balance < 0 ? '−' : undefined} className="mt-4" />
       <p className="mt-3 text-[13px] text-white/55">{balance >= 0 ? 'a favor' : 'en rojo'}</p>
 
       <dl className="mt-6 grid grid-cols-2 gap-2.5">
-        <div className="rounded-[18px] bg-white/[0.08] p-3.5">
+        <div className="rounded-[var(--radius-widget)] bg-white/[0.08] p-3.5">
           <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
             <span aria-hidden className="grid size-5 place-items-center rounded-full bg-verde/25 text-[11px] text-[#7be39e]">↓</span>
             Entró
@@ -46,7 +46,7 @@ export function ResumenFinanzas({ balance, ingresos, egresos }: { balance: numbe
             {clp(ingresos)}
           </dd>
         </div>
-        <div className="rounded-[18px] bg-white/[0.08] p-3.5">
+        <div className="rounded-[var(--radius-widget)] bg-white/[0.08] p-3.5">
           <dt className="flex items-center gap-1.5 text-[12.5px] font-medium text-white/60">
             <span aria-hidden className="grid size-5 place-items-center rounded-full bg-white/15 text-[11px] text-white/80">↑</span>
             Salió
@@ -71,7 +71,7 @@ export function ListaMovimientos({ lista, comprobante }: { lista: Movimiento[]; 
         return (
           <div key={g.clave}>
             <EncabezadoDia etiqueta={g.etiqueta} neto={neto} />
-            <ul className="divide-y divide-borde/50 overflow-hidden rounded-[22px] bg-papel ring-1 ring-borde/60">
+            <ul className="divide-y divide-borde/50 overflow-hidden rounded-[var(--radius-widget)] bg-papel ring-1 ring-borde/60">
               {g.items.map((m, i) => {
                 const ingreso = m.tipo === 'ingreso'
                 return (

@@ -45,7 +45,7 @@ export function CampoZonas({ clave, division, zonas, alCambiar, opciones }: {
         <ol className="grid gap-3">
           {areas.map((a, i) => (
             // La clave cambia con la división: al pasar de mitades a tercios, cada zona arranca limpia.
-            <li key={`${division}-${i}`} className="rounded-[12px] bg-papel p-3 ring-1 ring-borde">
+            <li key={`${division}-${i}`} className="rounded-[var(--radius-anidado)] bg-papel p-3 ring-1 ring-borde">
               <p className="text-[13px] font-semibold text-tinta">{i + 1}. {a.nombre}</p>
               <div className="mt-2 grid gap-3">
                 <CampoDestino id={`zona-${clave}-${i}`} etiqueta="Lleva a" valor={zona(i).destino} alCambiar={(d) => poner(i, { ...zona(i), destino: d })} opciones={opciones} />

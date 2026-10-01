@@ -24,7 +24,7 @@ export default async function PaginaLogin({
         {motivo === 'sin-acceso' && (
           <p
             role="alert"
-            className="mb-6 rounded-[10px] bg-white px-4 py-3 text-[13px] leading-relaxed text-rojo ring-1 ring-borde"
+            className="mb-6 rounded-[var(--radius-anidado)] bg-white px-4 py-3 text-[13px] leading-relaxed text-rojo ring-1 ring-borde"
           >
             Tu cuenta existe pero no está activa como integrante del equipo.
             Pídele acceso a un administrador.

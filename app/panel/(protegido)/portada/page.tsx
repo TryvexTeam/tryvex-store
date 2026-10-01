@@ -57,7 +57,7 @@ export default async function PortadaPanel() {
       </header>
 
       {piezas.length === 0 ? (
-        <p className="mt-8 rounded-[18px] bg-papel p-6 text-[15px] text-tinta-suave ring-1 ring-borde">
+        <p className="mt-8 rounded-[var(--radius-widget)] bg-papel p-6 text-[15px] text-tinta-suave ring-1 ring-borde">
           Todavía no hay piezas cargadas. Mientras tanto, la portada muestra su contenido por defecto.
         </p>
       ) : (
