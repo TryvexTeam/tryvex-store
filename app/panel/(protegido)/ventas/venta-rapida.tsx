@@ -390,7 +390,7 @@ export function VentaRapida({ productos }: { productos: ProductoVenta[] }) {
 
         {error && <p role="alert" className="rounded-[var(--radius-anidado)] bg-rojo/10 px-3.5 py-2.5 text-[13px] text-rojo">{error}</p>}
 
-        <Boton type="submit" tamano="lg" disabled={!puedeCobrar || cobrando} className="hidden lg:inline-flex">
+        <Boton type="submit" tamano="lg" disabled={!puedeCobrar || cobrando} className="max-lg:hidden">
           {cobrando ? 'Cobrando…' : total > 0 ? `Cobrar ${clp(total)}` : 'Cobrar'}
         </Boton>
         <p className="hidden text-center text-[12px] text-gris lg:block">Descuenta el stock y registra el ingreso al instante.</p>
