@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { clp } from '@/lib/formato'
-import { IconoBolsa } from '@/components/iconos'
+import { IconoBolsa, IconoPersonas } from '@/components/iconos'
+import type { PruebaSocial } from '@/lib/prueba-social'
 import { precioPara, type FichaProducto } from '@/lib/ficha-precio'
 import { useBolsa } from './bolsa'
 import { GaleriaFicha } from './galeria-ficha'
@@ -35,6 +36,7 @@ export function Ficha({
   whatsapp,
   hitosEnvio = null,
   varianteInicial = null,
+  pruebaSocial = null,
 }: {
   ficha: FichaProducto
   envio: Envio
@@ -45,6 +47,8 @@ export function Ficha({
   hitosEnvio?: Hito[] | null
   /** Color elegido en la card (?v=): la ficha abre con ese. */
   varianteInicial?: string | null
+  /** Compradores reales del producto (conteo de pedidos pagados); null si aún son pocos. */
+  pruebaSocial?: PruebaSocial | null
 }) {
   const bolsa = useBolsa()
   const conVariantes = ficha.variantes.length > 0
@@ -238,6 +242,13 @@ export function Ficha({
             </p>
           </div>
 
+          {!agotado && pruebaSocial && (
+            <p className="mt-4 flex items-center gap-2 text-[13px] text-tinta-suave">
+              <IconoPersonas size={16} className="shrink-0" />
+              <span><strong className="font-semibold text-tinta">{pruebaSocial.personas} personas</strong> compraron esto {pruebaSocial.periodo}</span>
+            </p>
+          )}
+
           {agotado ? (
             <a
               href={whatsapp ? `${whatsapp}?text=${encodeURIComponent(`Hola, me avisan cuando llegue ${ficha.nombre}${variante ? ` (${variante.nombre})` : ''}?`)}` : '#'}
@@ -250,8 +261,9 @@ export function Ficha({
           ) : (
             <div className="mt-6 grid gap-3">
               {/* Verde 700 (#15803d): con texto blanco da 5:1; el token --color-verde da 3.5:1 y no alcanza. */}
-              <Link href={destino} className="tienda-boton boton-presion w-full bg-green-700 !min-h-[52px] !text-[17px] text-white">
-                Comprar · <span className="cifra ml-1">{clp(precio * cantidad)}</span>
+              <Link href={destino} className="tienda-boton boton-presion w-full gap-2 bg-green-700 !min-h-[52px] !text-[17px] text-white">
+                <IconoBolsa size={22} />
+                <span>Comprar · <span className="cifra ml-1">{clp(precio * cantidad)}</span></span>
               </Link>
               <button type="button" onClick={agregarABolsa} className="tienda-boton boton-presion boton-presion-contorno boton-bolsa w-full gap-2 !min-h-[52px] !text-[17px] text-tinta ring-1 ring-borde ring-inset hover:ring-tinta">
                 <IconoBolsa size={22} />
@@ -311,7 +323,8 @@ export function Ficha({
                 <IconoBolsa size={18} />
                 Agregar al carrito
               </button>
-              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white">
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion gap-1.5 min-h-9 bg-green-700 px-4 py-1.5 text-[14px] text-white">
+                <IconoBolsa size={18} />
                 Comprar
               </Link>
             </div>
@@ -336,7 +349,8 @@ export function Ficha({
                 <IconoBolsa size={20} />
                 Agregar
               </button>
-              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion bg-green-700 text-white">
+              <Link href={destino} tabIndex={barra ? 0 : -1} className="tienda-boton boton-presion gap-1.5 bg-green-700 text-white">
+                <IconoBolsa size={18} />
                 Comprar
               </Link>
             </div>

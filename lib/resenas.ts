@@ -14,7 +14,9 @@ export const PESO_MAXIMO_FOTO_RESENA = 5 * 1024 * 1024
 
 export type ResenaPublica = {
   id: string
+  /** Vacío = reseña de la portada, sin producto. */
   productoId: string
+  /** Vacío = reseña de la portada, sin producto. */
   producto: string
   cliente: string
   texto: string
@@ -22,6 +24,9 @@ export type ResenaPublica = {
   /** true solo si la reseña nace de un pedido real (pedido_id presente). */
   verificada: boolean
   foto: string | null
+  /** Medidas de la foto en píxeles; vacías si no se pudieron tomar. */
+  fotoAncho: number | null
+  fotoAlto: number | null
   creadaEn: string
 }
 
@@ -36,7 +41,7 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
   const db = crearClienteAdministrador()
   let consulta = db
     .from('resenas_tienda')
-    .select('id,producto_id,pedido_id,cliente_nombre,texto,calificacion,foto_path,created_at,productos(nombre)')
+    .select('id,producto_id,pedido_id,cliente_nombre,texto,calificacion,foto_path,foto_ancho,foto_alto,created_at,productos(nombre)')
     .eq('visible', true)
     .order('created_at', { ascending: false })
     .limit(productoId ? 30 : 24)
@@ -46,13 +51,15 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
 
   return (data ?? []).map((r) => ({
     id: r.id,
-    productoId: r.producto_id,
-    producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? 'Producto Tryvex',
+    productoId: r.producto_id ?? '',
+    producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? '',
     cliente: r.cliente_nombre,
     texto: r.texto,
     calificacion: r.calificacion,
     verificada: r.pedido_id !== null,
     foto: urlPublicaResena(r.foto_path),
+    fotoAncho: r.foto_ancho,
+    fotoAlto: r.foto_alto,
     creadaEn: r.created_at,
   }))
 }

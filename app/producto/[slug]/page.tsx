@@ -10,6 +10,9 @@ import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { Comentarios } from '@/components/tienda/comentarios'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
+import { leerLanding } from '@/lib/landing-lectura'
+import { leerPruebaSocial } from '@/lib/prueba-social'
+import { LandingProducto } from '@/components/tienda/landing-producto'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
 import { urlSitio } from '@/lib/sitio'
@@ -43,7 +46,12 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
   const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
   if (!ficha) notFound()
-  const [resenas, resumenResenas] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id)])
+  const [resenas, resumenResenas, landing, pruebaSocial] = await Promise.all([
+    leerResenas(ficha.id),
+    leerResumenResenas(ficha.id),
+    leerLanding(ficha.id),
+    leerPruebaSocial(ficha.id),
+  ])
 
   const c = vitrina.configuracion
   const whatsapp = c?.whatsapp ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}` : null
@@ -121,6 +129,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           whatsapp={whatsapp}
           hitosEnvio={hitosDeEnvio(new Date())}
           varianteInicial={varianteInicial}
+          pruebaSocial={pruebaSocial}
         />
 
         <CintaConfianza
@@ -131,6 +140,8 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
             ...(whatsapp ? ['Atención por WhatsApp'] : []),
           ]}
         />
+
+        <LandingProducto bloques={landing} />
 
         <Comentarios
           resenas={resenas}
