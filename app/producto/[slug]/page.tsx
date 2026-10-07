@@ -8,7 +8,7 @@ import { Carrusel } from '@/components/tienda/carrusel'
 import { CardProducto } from '@/components/tienda/card-producto'
 import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
-import { Comentarios } from '@/components/tienda/comentarios'
+import { ResenasFicha } from '@/components/tienda/resenas-ficha'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
@@ -121,6 +121,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           whatsapp={whatsapp}
           hitosEnvio={hitosDeEnvio(new Date())}
           varianteInicial={varianteInicial}
+          valoracion={resumenResenas.total > 0 ? resumenResenas : null}
         />
 
         <CintaConfianza
@@ -132,12 +133,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           ]}
         />
 
-        <Comentarios
-          resenas={resenas}
-          titulo={`Reseñas de ${ficha.nombre}`}
-          bajada="Opiniones sobre este producto."
-          resumen={resumenResenas}
-        />
+        <ResenasFicha resenas={resenas} resumen={resumenResenas} producto={ficha.nombre} />
 
         {otros.length > 0 && (
           <section aria-labelledby="relacionados-titulo" className="bg-papel-alt pt-12 pb-6 t:pt-16">
