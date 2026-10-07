@@ -12,7 +12,7 @@ import { FilaCategorias } from '@/components/tienda/fila-categorias'
 import { ProductoFoco, TituloEco } from '@/components/tienda/escenas-scroll'
 import { ExploraColeccion } from '@/components/tienda/coleccion'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
-import { Comentarios } from '@/components/tienda/comentarios'
+import { ResenasPortada } from '@/components/tienda/resenas-portada'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 
@@ -85,7 +85,7 @@ export default async function Inicio() {
         <ListaProductos productos={loNuevo} total={productos.length} />
         <BannerDoble piezas={piezas} />
         <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
-        <Comentarios resenas={resenas} resumen={resumenResenas} />
+        <ResenasPortada resenas={resenas} resumen={resumenResenas} />
         {/* ConfianzaEnMovimiento sale de la home: sus cuatro datos (garantia,
             envio, retracto, pago) ya los muestra <FranjaConfianza /> arriba en
             62 px. Repetirlos costaba 767 px de scroll. El componente queda para
