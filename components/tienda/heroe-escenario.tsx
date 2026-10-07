@@ -91,7 +91,6 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
   alFallar: () => void
 }) {
   const video = useRef<HTMLVideoElement>(null)
-  const poster = escena.fotos ? getImageProps({ src: escena.fotos.escritorio.src, alt: '', width: escena.fotos.escritorio.ancho, height: escena.fotos.escritorio.alto, sizes: '100vw' }).props.src : undefined
   const fallar = useRef(alFallar)
   useEffect(() => { fallar.current = alFallar })
 
@@ -129,7 +128,6 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
     <video
       ref={video}
       key={`${escena.video}|${escena.videoMovil ?? ''}`}
-      poster={poster}
       muted
       loop={enBucle}
       playsInline
@@ -406,18 +404,20 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                 className={`absolute inset-x-0 top-[var(--movil-desde)] bottom-0 t:[mask-image:none] ${escena.movilDesde ? '[mask-image:linear-gradient(to_bottom,transparent,#000_16%)]' : ''} ${escena.texto === 'arriba' ? 't:top-[40%]' : 't:top-0'}`}
                 style={{ '--movil-desde': `${escena.movilDesde ?? 0}%` } as CSSProperties}
               >
-                {escena.video && videoFallido !== escena.id ? (
+                {/* La foto va siempre debajo: se ve al instante mientras el video carga y queda
+                    si el video no llega. Antes, un video que tardaba más de 5 s se quitaba y una
+                    escena sin foto quedaba negra. Ahora tardar solo cambia cuánto dura la escena. */}
+                {escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />}
+                {escena.video && (
                   <VideoEscena
                     escena={escena}
                     activa={esActiva}
                     reducido={reducido}
-                    enBucle={!puedeAvanzar}
+                    enBucle={!puedeAvanzar || videoFallido === escena.id}
                     barra={barraVideo}
                     alTerminar={alTerminarVideo}
                     alFallar={() => setVideoFallido(escena.id)}
                   />
-                ) : (
-                  escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />
                 )}
                 {/* El velo oscuro existe para leer el texto de la escena; sin texto, solo apagaría la imagen. */}
                 {tieneTexto(escena) && <span aria-hidden className="heroe-velo absolute inset-0" />}
