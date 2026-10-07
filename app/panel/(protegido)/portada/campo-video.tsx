@@ -13,7 +13,7 @@ import { confirmarVideoEscena, pedirSubidaVideoEscena } from './acciones'
  * se publica la escena. Quitarlo tampoco borra nada todavía, así que cancelar
  * nunca deja a la tienda apuntando a un archivo que ya no existe.
  */
-export function CampoVideo({ clave, valor, alCambiar }: { clave: string; valor: string; alCambiar: (url: string) => void }) {
+export function CampoVideo({ clave, valor, alCambiar, etiqueta = 'Video', ayuda = 'MP4 o WebM, hasta 30 MB. Horizontal y sin texto encima se ve mejor. La escena avanza cuando el video termina.', vertical = false }: { clave: string; valor: string; alCambiar: (url: string) => void; etiqueta?: string; ayuda?: string; vertical?: boolean }) {
   const [subiendo, setSubiendo] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const entrada = useRef<HTMLInputElement>(null)
@@ -42,8 +42,8 @@ export function CampoVideo({ clave, valor, alCambiar }: { clave: string; valor: 
 
   return (
     <div>
-      <span className="mb-1 block text-[12px] font-medium text-gris">Video</span>
-      <div className="relative aspect-video w-full max-w-[360px] overflow-hidden rounded-[var(--radius-anidado)] bg-black ring-1 ring-borde">
+      <span className="mb-1 block text-[12px] font-medium text-gris">{etiqueta}</span>
+      <div className={`relative w-full overflow-hidden rounded-[var(--radius-anidado)] bg-black ring-1 ring-borde ${vertical ? 'aspect-[9/16] max-w-[168px]' : 'aspect-video max-w-[360px]'}`}>
         {valor ? (
           <video key={valor} src={valor} muted loop playsInline autoPlay controls className="size-full object-cover" />
         ) : (
@@ -61,7 +61,7 @@ export function CampoVideo({ clave, valor, alCambiar }: { clave: string; valor: 
           </button>
         )}
       </div>
-      <p className="mt-1 max-w-[46ch] text-[12px] leading-snug text-gris">MP4 o WebM, hasta 30 MB. Horizontal y sin texto encima se ve mejor. La escena avanza cuando el video termina.</p>
+      <p className="mt-1 max-w-[46ch] text-[12px] leading-snug text-gris">{ayuda}</p>
       {aviso && <p role="alert" className="mt-1 text-[12px] text-rojo">{aviso}</p>}
       <input ref={entrada} type="file" accept={TIPOS_VIDEO.join(',')} className="sr-only" onChange={(e) => void subir(e.target.files?.[0])} />
     </div>

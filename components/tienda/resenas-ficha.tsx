@@ -26,7 +26,7 @@ const FOTOS_PARA_GRILLA = 6
 
 const decimal = (n: number) => n.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
-export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPublica[]; resumen: ResumenResenas; producto: string }) {
+export function ResenasFicha({ resenas, resumen, producto, escribir }: { resenas: ResenaPublica[]; resumen: ResumenResenas; producto: string; /** Botón «Escribir una reseña» (o su estado). */ escribir?: ReactNode }) {
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const pista = useRef<HTMLUListElement>(null)
   const [extremos, setExtremos] = useState({ inicio: true, fin: false })
@@ -43,7 +43,17 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
   // Con pocas reseñas no hay hacia dónde avanzar: se mide al montar y al cambiar el filtro.
   useEffect(() => medirPista(), [filtradas])
 
-  if (resumen.total === 0 || resenas.length === 0) return null
+  // Sin reseñas todavía: solo la invitación a ser el primero (si hay botón que ofrecer).
+  if (resumen.total === 0 || resenas.length === 0) {
+    if (!escribir) return null
+    return (
+      <section id="resenas" aria-labelledby="resenas-titulo" className="scroll-mt-20 bg-papel-alt px-[var(--canal)] py-14 text-center t:py-20">
+        <p className="text-[13px] font-semibold tracking-[0.14em] text-tinta-suave uppercase">Reseñas de clientes</p>
+        <h2 id="resenas-titulo" className="mx-auto mt-3 max-w-[18ch] text-[30px] leading-[1.06] font-semibold tracking-seccion text-balance text-tinta t:text-[40px]">Sé el primero en contar cómo te fue.</h2>
+        <div className="mt-6 flex justify-center">{escribir}</div>
+      </section>
+    )
+  }
 
   function elegir(nuevo: Filtro) {
     setFiltro((actual) => (actual === nuevo && nuevo !== 'todas' ? 'todas' : nuevo))
@@ -146,7 +156,8 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
             </ul>
           </div>
 
-          <div className="flex items-center justify-between gap-4 lg:justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-4 lg:justify-end">
+            {escribir}
             <div className="flex flex-wrap gap-2" role="group" aria-label="Mostrar">
               <Chip activo={filtro === 'todas'} onClick={() => elegir('todas')}>Todas · {resenas.length}</Chip>
               {conFoto.length > 0 && <Chip activo={filtro === 'fotos'} onClick={() => elegir('fotos')}>Con foto · {conFoto.length}</Chip>}

@@ -32,6 +32,8 @@ export interface EscenaHeroe {
    * (que queda como imagen de espera mientras el video carga).
    */
   video?: string
+  /** Video vertical para teléfono; sin él, el teléfono recorta el de escritorio. */
+  videoMovil?: string
   /** Centro del producto para que el recorte nazca exactamente en él. */
   foco: { x: number; y: number }
   /** % desde arriba donde empieza la foto en teléfono (0 = a sangre). */
@@ -56,6 +58,11 @@ export interface EscenaHeroe {
   acento?: string
   /** Etiquetas con enlace puestas sobre la escena. Si hay, reemplazan a la cápsula de compra del código. */
   capsulas?: CapsulaEscena[]
+  /**
+   * Escena de campaña: solo aparece si tiene contenido cargado en el panel (sin fila no
+   * se dibuja: no hay foto en el código). Al terminar la campaña se oculta desde el panel.
+   */
+  soloConPieza?: boolean
 }
 
 export const CAMPANA = {
@@ -78,6 +85,29 @@ const fotosBanner = (archivo: string, alt: string): NonNullable<EscenaHeroe['fot
  * tablet y laptop, hogar, fundas 17 Pro Max, relojes) quedan para la portada.
  */
 export const ESCENAS_BANNER: readonly EscenaHeroe[] = [
+  // Campaña: videos con su propio texto, cargados en el panel (Portada → «Campaña»).
+  {
+    id: 'cyber',
+    tono: 'oscuro',
+    etiqueta: 'Cyber',
+    antetitulo: '',
+    titulo: ['Cyber Monday', 'extendido'],
+    bajada: '',
+    foco: { x: 50, y: 50 },
+    sinTexto: true,
+    soloConPieza: true,
+  },
+  {
+    id: 'cyber-ofertas',
+    tono: 'oscuro',
+    etiqueta: 'Ofertas Cyber',
+    antetitulo: '',
+    titulo: ['Ofertas Cyber', 'envío gratis'],
+    bajada: '',
+    foco: { x: 50, y: 50 },
+    sinTexto: true,
+    soloConPieza: true,
+  },
   {
     // Imagen sin halo mientras llegan las de alta gama (T-017); el diseño exterior del 18 Pro es casi igual.
     id: 'iphone',
@@ -172,7 +202,7 @@ export function escenasConPiezas(
 
   return escenas.flatMap((e) => {
     const pieza = piezas.get(`heroe-${e.id}`)
-    if (!pieza) return [e]
+    if (!pieza) return e.soloConPieza ? [] : [e]
     if (!pieza.visible) return []
 
     const b = borradorDesde(pieza.contenido, e)
@@ -199,6 +229,7 @@ export function escenasConPiezas(
       boton: b.boton,
       fotos,
       video: b.video || undefined,
+      videoMovil: b.video_movil || undefined,
       estilo,
       promo: b.mostrar_cifra ? e.promo : undefined,
       href: hrefDeDestino(destinoDe({ destino: b.destino })) ?? e.href,

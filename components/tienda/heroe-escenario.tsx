@@ -68,6 +68,11 @@ function CapsulaCompra({ producto }: { producto: ProductoHeroe }) {
   )
 }
 
+/** Si la escena dibuja algún texto encima (con «sin texto» o todo vacío, no). */
+function tieneTexto(escena: EscenaHeroe): boolean {
+  return !escena.sinTexto && Boolean(escena.antetitulo || escena.titulo[0] || escena.titulo[1] || escena.bajada || escena.promo || escena.boton)
+}
+
 /**
  * Video de la escena: corre solo y en silencio, cubriendo la escena igual que
  * la foto (que queda de imagen de espera mientras carga). Mientras la
@@ -104,7 +109,7 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
       window.clearTimeout(plazo)
       v.removeEventListener('playing', alArrancar)
     }
-  }, [activa, reducido, escena.video])
+  }, [activa, reducido, escena.video, escena.videoMovil])
 
   // La barra sigue al video cuadro a cuadro: con un tiempo fijo se llenaba
   // antes o después de que el video terminara.
@@ -123,8 +128,7 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
   return (
     <video
       ref={video}
-      key={escena.video}
-      src={escena.video}
+      key={`${escena.video}|${escena.videoMovil ?? ''}`}
       poster={poster}
       muted
       loop={enBucle}
@@ -134,7 +138,12 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
       onEnded={alTerminar}
       onError={alFallar}
       className="absolute inset-0 size-full object-cover"
-    />
+    >
+      {/* El navegador elige una sola fuente por ancho de pantalla y descarga solo esa. */}
+      {escena.videoMovil && <source media="(max-width: 734.98px)" src={escena.videoMovil} />}
+      {/* Con <source>, un fallo de carga avisa en la última fuente, no en el <video>. */}
+      <source src={escena.video} onError={alFallar} />
+    </video>
   )
 }
 
@@ -410,7 +419,8 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                 ) : (
                   escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />
                 )}
-                <span aria-hidden className="heroe-velo absolute inset-0" />
+                {/* El velo oscuro existe para leer el texto de la escena; sin texto, solo apagaría la imagen. */}
+                {tieneTexto(escena) && <span aria-hidden className="heroe-velo absolute inset-0" />}
                 {escena.estilo !== 'tarjeta' && escena.zonas && escena.zonas.length > 0 && <ZonasEscena zonas={escena.zonas} alClic={alClicZona} />}
               </div>
             </div>

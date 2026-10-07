@@ -160,7 +160,10 @@ export function EditorEscena({ pieza, codigo, opciones, precios, alCerrar }: {
                 </div>
                 <p className="-mt-2 text-[12px] leading-snug text-gris">Con una sola imagen, se usa para teléfono y escritorio. Sin imágenes ni video, la escena queda de color liso.</p>
                 <Texto id={`a-${k}`} etiqueta="Descripción de la imagen" valor={b.alt} alCambiar={(v) => cambiar({ alt: v })} max={240} ayuda="Describe qué se ve, para quien no puede verla. Si es solo decorativa, déjalo vacío." />
-                <CampoVideo clave={k} valor={b.video} alCambiar={(v) => cambiar({ video: v })} />
+                <div className="grid gap-5 sm:grid-cols-[1fr_auto]">
+                  <CampoVideo clave={k} valor={b.video} alCambiar={(v) => cambiar({ video: v })} etiqueta="Video para escritorio" />
+                  <CampoVideo clave={k} valor={b.video_movil} alCambiar={(v) => cambiar({ video_movil: v })} etiqueta="Video para teléfono" ayuda="Vertical (9:16). Sin él, el teléfono muestra el centro del de escritorio." vertical />
+                </div>
                 <Casilla checked={b.sin_texto} onChange={(v) => cambiar({ sin_texto: v })} className="!text-[14px] text-tinta-suave">La imagen ya trae su propio texto: no mostrar titular ni botón encima</Casilla>
               </>
             )}

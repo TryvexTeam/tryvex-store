@@ -14,12 +14,15 @@ export default async function PaginaResenas() {
     supabase.from('productos').select('id,nombre').eq('activo', true).order('nombre'),
     supabase
       .from('resenas_tienda')
-      .select('id,producto_id,cliente_nombre,texto,calificacion,foto_path,visible,created_at,pedidos(numero),productos(nombre)')
+      .select('id,producto_id,cliente_nombre,texto,calificacion,foto_path,visible,created_at,auth_user_id,pedidos(numero),productos(nombre)')
+      // Ocultas primero (ahí están las por aprobar): con 500+ reseñas, el límite no puede dejarlas fuera.
+      .order('visible', { ascending: true })
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(150),
   ])
 
-  type ResenaCruda = Omit<ResenaPanel, 'foto' | 'pedidoNumero' | 'producto'> & {
+  type ResenaCruda = Omit<ResenaPanel, 'foto' | 'pedidoNumero' | 'producto' | 'porAprobar'> & {
+    auth_user_id: string | null
     foto_path: string | null
     pedidos: { numero: number } | null
     productos: { nombre: string } | null
@@ -31,7 +34,10 @@ export default async function PaginaResenas() {
     pedidoNumero: r.pedidos?.numero ?? null,
     producto: r.productos?.nombre ?? 'Producto',
     foto: urlPublicaResena(r.foto_path),
+    porAprobar: r.auth_user_id !== null && !r.visible,
   }))
+  // Las que esperan aprobación van primero: es lo que el equipo tiene que mirar.
+  lista.sort((a, b) => Number(b.porAprobar) - Number(a.porAprobar))
 
   return <ResenasPanel opciones={opciones} resenas={lista} />
 }
