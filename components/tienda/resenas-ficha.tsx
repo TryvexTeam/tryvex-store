@@ -112,15 +112,15 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
       )}
 
       {/* ── Control: distribución, filtros y flechas, alineados al contenido ── */}
-      <div className="mx-auto mt-10 w-full max-w-[1204px] px-[var(--canal)] t:mt-14">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="w-full max-w-[420px]">
+      <div className="mx-auto mt-10 w-full max-w-[1204px] px-[var(--canal)] t:mt-12">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
+          <div className="w-full max-w-[420px] lg:max-w-[360px]">
             {resumen.total >= MINIMO_PARA_PROPORCION && (
               <p className="mb-3 text-[15px] text-tinta-suave">
                 <span className="cifra font-semibold text-verde">{recomiendan} %</span> lo calificó con 4 o 5 estrellas
               </p>
             )}
-            <ul className="grid gap-1" aria-label="Filtrar por estrellas">
+            <ul className="grid gap-1 lg:gap-0" aria-label="Filtrar por estrellas">
               {resumen.distribucion.map((cantidad, i) => {
                 const estrellas = (5 - i) as 1 | 2 | 3 | 4 | 5
                 const activa = filtro === estrellas
@@ -131,7 +131,7 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
                       disabled={cantidad === 0}
                       aria-pressed={activa}
                       onClick={() => elegir(estrellas)}
-                      className={`grid w-full grid-cols-[34px_1fr_40px] items-center gap-3 rounded-[10px] px-2 py-1.5 text-left text-[14px] transition-colors duration-200 disabled:opacity-40 ${activa ? 'bg-papel ring-1 ring-tinta/15' : 'enabled:hover:bg-papel'}`}
+                      className={`grid w-full grid-cols-[34px_1fr_40px] items-center gap-3 rounded-[10px] px-2 py-1.5 text-left text-[14px] lg:py-1 lg:text-[13px] transition-colors duration-200 disabled:opacity-40 ${activa ? 'bg-papel ring-1 ring-tinta/15' : 'enabled:hover:bg-papel'}`}
                     >
                       <span className="cifra flex items-center gap-1 font-medium text-tinta">{estrellas}<IconoEstrella size={13} activo /></span>
                       <span className="h-2 overflow-hidden rounded-full bg-borde/70">
@@ -171,10 +171,10 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
         className="sin-barra mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [--margen-resenas:max(var(--canal),calc((100vw-1204px)/2+var(--canal)))] [padding-inline:var(--margen-resenas)] [scroll-padding-inline:var(--margen-resenas)] t:gap-5"
       >
         {filtradas.map((r) => (
-          <li key={r.id} className="flex w-[min(80vw,320px)] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] bg-papel shadow-sutil transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgb(0_0_0/0.10)] t:w-[340px]">
+          <li key={r.id} className="flex w-[min(80vw,320px)] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] bg-papel shadow-sutil transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgb(0_0_0/0.10)] t:w-[300px]">
             {r.foto && (
-              <button type="button" onClick={() => verFoto(r)} className="group relative aspect-[4/5] w-full overflow-hidden bg-papel-alt" aria-label={`Ver la foto de ${r.cliente} en grande`}>
-                <Image src={r.foto} alt="" fill sizes="(min-width: 735px) 340px, 80vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+              <button type="button" onClick={() => verFoto(r)} className="group relative aspect-[4/5] w-full overflow-hidden bg-papel-alt t:aspect-square" aria-label={`Ver la foto de ${r.cliente} en grande`}>
+                <Image src={r.foto} alt="" fill sizes="(min-width: 735px) 300px, 80vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
               </button>
             )}
             <div className="flex flex-1 flex-col p-5 t:p-6">
