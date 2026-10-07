@@ -91,6 +91,17 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
   alFallar: () => void
 }) {
   const video = useRef<HTMLVideoElement>(null)
+  // Invisible hasta que reproduce: con solo los metadatos, Chrome pinta un rectángulo negro encima de la foto.
+  const [enCurso, setEnCurso] = useState(false)
+  // Con autoplay, el video puede arrancar antes de que React escuche `playing`: se revisa al montar.
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    const marcar = () => setEnCurso(true)
+    if (!v.paused && v.readyState >= 2) marcar()
+    v.addEventListener('timeupdate', marcar, { once: true })
+    return () => v.removeEventListener('timeupdate', marcar)
+  }, [escena.video, escena.videoMovil])
   const fallar = useRef(alFallar)
   useEffect(() => { fallar.current = alFallar })
 
@@ -101,12 +112,16 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
     if (!v || !activa || reducido) return
     let arranco = false
     const alArrancar = () => { arranco = true }
+    // Si el video llega tarde (red lenta), arranca apenas pueda en vez de quedar en pausa sobre la foto.
+    const alPoder = () => { if (v.paused && v.readyState >= 2) v.play()?.catch(() => {}) }
     v.addEventListener('playing', alArrancar, { once: true })
+    for (const evento of ['loadeddata', 'canplay', 'canplaythrough', 'progress'] as const) v.addEventListener(evento, alPoder)
     v.play()?.catch(() => fallar.current())
     const plazo = window.setTimeout(() => { if (!arranco) fallar.current() }, ESPERA_ARRANQUE_VIDEO)
     return () => {
       window.clearTimeout(plazo)
       v.removeEventListener('playing', alArrancar)
+      for (const evento of ['loadeddata', 'canplay', 'canplaythrough', 'progress'] as const) v.removeEventListener(evento, alPoder)
     }
   }, [activa, reducido, escena.video, escena.videoMovil])
 
@@ -135,7 +150,10 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
       aria-hidden
       onEnded={alTerminar}
       onError={alFallar}
-      className="absolute inset-0 size-full object-cover"
+      onPlaying={() => setEnCurso(true)}
+      // El navegador lo inicia apenas tenga datos, aunque el plazo de 5 s ya haya pasado.
+      autoPlay={activa && !reducido}
+      className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${enCurso ? 'opacity-100' : 'opacity-0'}`}
     >
       {/* El navegador elige una sola fuente por ancho de pantalla y descarga solo esa. */}
       {escena.videoMovil && <source media="(max-width: 734.98px)" src={escena.videoMovil} />}
@@ -516,11 +534,11 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                   aria-controls={`escena-${escena.id}`}
                   aria-label={`${escena.etiqueta}, escena ${indice + 1} de ${escenas.length}`}
                   tabIndex={esActiva ? 0 : -1}
-                  className="heroe-punto grid h-11 place-items-center px-2.5"
+                  className="heroe-punto grid h-11 place-items-center px-2 t:px-2.5"
                   onClick={() => cambiar(indice)}
                   onKeyDown={(e) => alTeclado(e, indice)}
                 >
-                  <span aria-hidden className={`heroe-punto-pista block h-2 overflow-hidden rounded-full ${esActiva ? 'heroe-punto-activo w-12' : 'w-2'}`}>
+                  <span aria-hidden className={`heroe-punto-pista block h-2 overflow-hidden rounded-full ${esActiva ? 'heroe-punto-activo w-8 t:w-12' : 'w-2'}`}>
                     <span
                       ref={esActiva && esperaVideo && reproduciendo ? barraVideo : undefined}
                       className={`heroe-escenario-progreso block h-full origin-left rounded-full ${esActiva && reproduciendo && !reducido ? (esperaVideo ? 'heroe-escenario-progreso-video' : 'heroe-escenario-progreso-activo') : esActiva ? 'heroe-escenario-progreso-pausado' : ''}`}
