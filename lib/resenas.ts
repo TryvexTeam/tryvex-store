@@ -40,7 +40,7 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     .eq('visible', true)
     .order('created_at', { ascending: false })
     // La ficha pagina en el cliente («Ver más reseñas»), así que trae holgura; la portada, solo el carrusel.
-    .limit(productoId ? 120 : 24)
+    .limit(productoId ? 200 : 24)
 
   if (productoId) consulta = consulta.eq('producto_id', productoId)
   const { data } = await consulta
