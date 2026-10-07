@@ -32,6 +32,8 @@ export interface EscenaHeroe {
    * (que queda como imagen de espera mientras el video carga).
    */
   video?: string
+  /** Video vertical para teléfono; sin él, el teléfono recorta el de escritorio. */
+  videoMovil?: string
   /** Centro del producto para que el recorte nazca exactamente en él. */
   foco: { x: number; y: number }
   /** % desde arriba donde empieza la foto en teléfono (0 = a sangre). */
@@ -199,6 +201,7 @@ export function escenasConPiezas(
       boton: b.boton,
       fotos,
       video: b.video || undefined,
+      videoMovil: b.video_movil || undefined,
       estilo,
       promo: b.mostrar_cifra ? e.promo : undefined,
       href: hrefDeDestino(destinoDe({ destino: b.destino })) ?? e.href,
