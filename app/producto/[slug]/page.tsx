@@ -9,7 +9,9 @@ import { CardProducto } from '@/components/tienda/card-producto'
 import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { ResenasFicha } from '@/components/tienda/resenas-ficha'
-import { leerResenas, leerResumenResenas } from '@/lib/resenas'
+import { EscribirResena, type EstadoResena } from '@/components/tienda/escribir-resena'
+import { cuentaActual } from '@/lib/cuenta'
+import { leerResenas, leerResumenResenas, resenaPropia } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
 import { urlSitio } from '@/lib/sitio'
@@ -43,7 +45,9 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
   const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
   if (!ficha) notFound()
-  const [resenas, resumenResenas] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id)])
+  const [resenas, resumenResenas, cuenta] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id), cuentaActual()])
+  const propia = cuenta ? await resenaPropia(ficha.id, cuenta.id) : null
+  const estadoResena: EstadoResena = !cuenta ? 'sin-sesion' : (propia ?? 'puede')
 
   const c = vitrina.configuracion
   const whatsapp = c?.whatsapp ? `https://wa.me/${c.whatsapp.replace(/\D/g, '')}` : null
@@ -133,7 +137,12 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           ]}
         />
 
-        <ResenasFicha resenas={resenas} resumen={resumenResenas} producto={ficha.nombre} />
+        <ResenasFicha
+          resenas={resenas}
+          resumen={resumenResenas}
+          producto={ficha.nombre}
+          escribir={<EscribirResena productoId={ficha.id} producto={ficha.nombre} estado={estadoResena} nombre={cuenta?.nombre ?? null} volver={`/producto/${encodeURIComponent(ficha.slug)}#resenas`} />}
+        />
 
         {otros.length > 0 && (
           <section aria-labelledby="relacionados-titulo" className="bg-papel-alt pt-12 pb-6 t:pt-16">

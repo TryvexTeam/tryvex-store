@@ -108,3 +108,15 @@ export function nombreFotoResena(resenaId: string, original: string): string {
   const ext = extension.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
   return `${resenaId}/foto.${ext}`
 }
+
+/** La reseña que este cliente ya dejó del producto: para no ofrecerle escribir otra. */
+export async function resenaPropia(productoId: string, authUserId: string): Promise<'en-revision' | 'publicada' | null> {
+  const { data } = await crearClienteAdministrador()
+    .from('resenas_tienda')
+    .select('visible')
+    .eq('producto_id', productoId)
+    .eq('auth_user_id', authUserId)
+    .maybeSingle()
+  if (!data) return null
+  return data.visible ? 'publicada' : 'en-revision'
+}
