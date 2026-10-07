@@ -94,7 +94,6 @@ export function Comentarios({
                 <Image src={resena.foto} alt={`Foto compartida por ${resena.cliente}`} fill sizes="(min-width: 640px) 390px, 82vw" className="object-contain" />
               </div>
             )}
-            {/* «Compra verificada» solo con un pedido real detrás: afirmarla en una reseña sin pedido sería falso. */}
             <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">{resena.verificada ? 'Compra verificada' : 'Reseña de cliente'}</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
             <div className="relative mt-3"><Estrellas calificacion={resena.calificacion} /></div>
             <blockquote className="relative mt-5 text-[22px] leading-[1.18] font-medium tracking-cuerpo text-tinta t:text-[25px]">“{resena.texto}”</blockquote>
