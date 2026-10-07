@@ -80,7 +80,7 @@ export function GrillaFotosClientes({ fotos, alAbrir, children }: { fotos: FotoC
   const celdas = Array.from({ length: FILAS * COLUMNAS }, (_, i) => fotos[(i + Math.floor(i / COLUMNAS) * 3) % fotos.length])
 
   return (
-    <div ref={marco} className="relative isolate h-[400px] overflow-hidden rounded-[28px] bg-[#0b0b0d] t:h-[480px] d:h-[540px]">
+    <div ref={marco} className="relative isolate h-[480px] overflow-hidden bg-[#0b0b0d] t:h-[520px] d:h-[560px]">
       {/* Las fotos se tocan con el puntero; con teclado se recorren en la lista de reseñas (no se duplican 28 tabulaciones). */}
       {/* Fotos cuadradas de 140 px como mínimo: con un ancho relativo, en el teléfono quedaban como tiras. */}
       <div aria-hidden className="absolute top-1/2 left-1/2 grid w-[max(150%,1080px)] -translate-x-1/2 -translate-y-1/2 -rotate-[15deg] gap-3">

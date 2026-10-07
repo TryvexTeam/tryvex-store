@@ -7,7 +7,8 @@
  * tienda; no se puede revender el componente como producto.
  *
  * Cambios de Tryvex: sin fotos de demostración (items obligatorios), etiqueta
- * accesible configurable y textos en español.
+ * accesible configurable y textos en español. Sin `overscroll-contain`: en Chrome,
+ * sobre este contenedor la rueda del mouse dejaba de bajar la página.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -1347,7 +1348,7 @@ const FlexCarousel = ({
   return (
     <div
       ref={containerRef}
-      className={`relative h-full w-full cursor-grab touch-pan-y select-none overflow-hidden overscroll-contain outline-none [-webkit-tap-highlight-color:transparent] focus-visible:shadow-[inset_0_0_0_2px_rgba(128,128,140,0.55)] data-[hover=open]:cursor-zoom-in data-[hover=close]:cursor-zoom-out data-[dragging]:cursor-grabbing ${className}`.trim()}
+      className={`relative h-full w-full cursor-grab touch-pan-y select-none overflow-hidden outline-none [-webkit-tap-highlight-color:transparent] focus-visible:shadow-[inset_0_0_0_2px_rgba(128,128,140,0.55)] data-[hover=open]:cursor-zoom-in data-[hover=close]:cursor-zoom-out data-[dragging]:cursor-grabbing ${className}`.trim()}
       style={{ ...style, '--flex-carousel-half': `${Math.min(Math.max(cardHeight, 0.05), 1) * 50}%` } as CSSProperties}
       role="region"
       aria-roledescription="carousel"
