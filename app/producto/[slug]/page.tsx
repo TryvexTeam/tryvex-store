@@ -141,7 +141,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           resenas={resenas}
           resumen={resumenResenas}
           producto={ficha.nombre}
-          escribir={<EscribirResena productoId={ficha.id} producto={ficha.nombre} estado={estadoResena} nombre={cuenta?.nombre ?? null} volver={`/producto/${encodeURIComponent(ficha.slug)}#resenas`} />}
+          escribir={<EscribirResena key="escribir-resena" productoId={ficha.id} producto={ficha.nombre} estado={estadoResena} nombre={cuenta?.nombre ?? null} volver={`/producto/${encodeURIComponent(ficha.slug)}#resenas`} />}
         />
 
         {otros.length > 0 && (

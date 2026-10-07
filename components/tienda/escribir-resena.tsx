@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react'
 import { IconoCamara, IconoEstrella } from '@/components/iconos'
 import { enviarResenaCliente } from '@/app/producto/[slug]/acciones'
 
@@ -48,18 +48,24 @@ export function EscribirResena({ productoId, producto, estado, nombre, volver }:
       </Link>
     )
   }
-  if (estado === 'en-revision' || estado === 'publicada' || enviada) {
-    return (
-      <p className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-verde/10 px-5 text-[14px] font-semibold text-verde">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
-        {estado === 'publicada' ? 'Ya publicaste tu reseña' : 'Tu reseña está en revisión'}
-      </p>
-    )
-  }
+  // Tras enviar, la ficha se actualiza sola y llega como «en revisión»: la ventana de
+  // agradecimiento sigue montada (estado `enviada`) hasta que el cliente la cierra.
+  const yaResenada = estado === 'en-revision' || estado === 'publicada' || enviada
+  const aviso = (
+    <p className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-verde/10 px-5 text-[14px] font-semibold text-verde">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+      {estado === 'publicada' ? 'Ya publicaste tu reseña' : 'Tu reseña está en revisión'}
+    </p>
+  )
+  if (yaResenada && !enviada) return aviso
 
-  function enviar(formulario: FormData) {
+  // onSubmit y no `action`: con `action`, React vacía el formulario después de cada envío,
+  // también cuando falla, y el cliente perdía lo que había escrito.
+  function enviar(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
     setError(null)
     if (nota === 0) return setError('Elige cuántas estrellas le das.')
+    const formulario = new FormData(e.currentTarget)
     formulario.set('calificacion', String(nota))
     iniciar(async () => {
       const r = await enviarResenaCliente(formulario)
@@ -70,9 +76,11 @@ export function EscribirResena({ productoId, producto, estado, nombre, volver }:
 
   return (
     <>
-      <button type="button" onClick={() => ventana.current?.showModal()} className={`${boton} bg-tinta text-white hover:bg-tinta/85`}>
-        Escribir una reseña
-      </button>
+      {enviada ? aviso : (
+        <button type="button" onClick={() => ventana.current?.showModal()} className={`${boton} bg-tinta text-white hover:bg-tinta/85`}>
+          Escribir una reseña
+        </button>
+      )}
 
       <dialog
         ref={ventana}
@@ -90,7 +98,7 @@ export function EscribirResena({ productoId, producto, estado, nombre, volver }:
             <button type="button" autoFocus onClick={() => ventana.current?.close()} className={`${boton} mt-6 bg-tinta text-white`}>Listo</button>
           </div>
         ) : (
-          <form action={enviar} className="p-6 t:p-7">
+          <form onSubmit={enviar} className="p-6 t:p-7">
             <input type="hidden" name="producto_id" value={productoId} />
             <div className="flex items-start justify-between gap-4">
               <div>
