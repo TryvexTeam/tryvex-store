@@ -39,7 +39,8 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     .select('id,producto_id,pedido_id,cliente_nombre,texto,calificacion,foto_path,created_at,productos(nombre)')
     .eq('visible', true)
     .order('created_at', { ascending: false })
-    .limit(productoId ? 30 : 24)
+    // La ficha pagina en el cliente («Ver más reseñas»), así que trae holgura; la portada, solo el carrusel.
+    .limit(productoId ? 120 : 24)
 
   if (productoId) consulta = consulta.eq('producto_id', productoId)
   const { data } = await consulta
@@ -63,17 +64,26 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
  * el carrusel: calcular el resumen sobre ella daría un total y un promedio falsos
  * en cuanto haya más reseñas que tarjetas. Solo trae la columna de la nota.
  */
-export async function leerResumenResenas(productoId?: string): Promise<{ promedio: number; total: number; positivas: number }> {
+export type ResumenResenas = {
+  promedio: number
+  total: number
+  positivas: number
+  /** Cuántas reseñas hay de 5, 4, 3, 2 y 1 estrella, en ese orden. */
+  distribucion: [number, number, number, number, number]
+}
+
+export async function leerResumenResenas(productoId?: string): Promise<ResumenResenas> {
   const db = crearClienteAdministrador()
   let consulta = db.from('resenas_tienda').select('calificacion').eq('visible', true)
   if (productoId) consulta = consulta.eq('producto_id', productoId)
   const { data } = await consulta
 
   const total = data?.length ?? 0
-  if (!data || total === 0) return { promedio: 0, total: 0, positivas: 0 }
+  if (!data || total === 0) return { promedio: 0, total: 0, positivas: 0, distribucion: [0, 0, 0, 0, 0] }
   const promedio = data.reduce((suma, r) => suma + r.calificacion, 0) / total
   const positivas = data.filter((r) => r.calificacion >= 4).length
-  return { promedio: Math.round(promedio * 100) / 100, total, positivas }
+  const distribucion = [5, 4, 3, 2, 1].map((n) => data.filter((r) => r.calificacion === n).length) as ResumenResenas['distribucion']
+  return { promedio: Math.round(promedio * 100) / 100, total, positivas, distribucion }
 }
 
 export function nombreFotoResena(resenaId: string, original: string): string {
