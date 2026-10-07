@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconoEstrella } from '@/components/iconos'
 import type { ResenaPublica, ResumenResenas } from '@/lib/resenas'
+import { GrillaFotosClientes } from './grilla-fotos-clientes'
 
 /**
  * Reseñas en la ficha de producto.
@@ -21,6 +22,8 @@ type Filtro = 'todas' | 'fotos' | 1 | 2 | 3 | 4 | 5
 /** Con menos reseñas que esto, «2 de 2» suena a montaje: no se muestra el porcentaje. */
 const MINIMO_PARA_PROPORCION = 5
 const POR_PAGINA = 6
+/** Desde esta cantidad de fotos, la grilla en movimiento encabeza las reseñas. */
+const FOTOS_PARA_GRILLA = 6
 
 const decimal = (n: number) => n.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
@@ -58,6 +61,22 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
         <h2 id="resenas-titulo" className="mt-2 max-w-[22ch] text-[32px] leading-[1.05] font-semibold tracking-seccion text-balance text-tinta t:text-[44px]">
           Lo que dicen quienes ya lo tienen.
         </h2>
+
+        {conFoto.length >= FOTOS_PARA_GRILLA && (
+          <div className="mt-8">
+            <GrillaFotosClientes
+              fotos={conFoto.map((r) => ({ id: r.id, src: r.foto!, alt: `Foto de ${r.cliente}` }))}
+              alAbrir={(id) => { const r = conFoto.find((x) => x.id === id); if (r) verFoto(r) }}
+            >
+              <div>
+                <p className="cifra text-[56px] leading-none font-semibold tracking-seccion t:text-[72px]">{decimal(resumen.promedio)}</p>
+                <p className="mt-3 flex justify-center"><Estrellas calificacion={Math.round(resumen.promedio)} tam={18} claro /></p>
+                <p className="mt-2 text-[16px] font-semibold">{resumen.total} reseñas · {conFoto.length} con foto</p>
+                <p className="mt-1 text-[14px] text-white/75">Fotos reales de clientes. Toca una para leer su reseña.</p>
+              </div>
+            </GrillaFotosClientes>
+          </div>
+        )}
 
         <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-14">
           {/* ── Resumen ─────────────────────────────────────────── */}
@@ -105,7 +124,7 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
 
           {/* ── Fotos, filtros y lista ──────────────────────────── */}
           <div className="min-w-0">
-            {conFoto.length > 0 && (
+            {conFoto.length > 0 && conFoto.length < FOTOS_PARA_GRILLA && (
               <div>
                 <h3 className="text-[17px] font-semibold text-tinta">Fotos de clientes</h3>
                 <ul className="sin-barra -mx-[var(--canal)] mt-3 flex snap-x gap-2.5 overflow-x-auto px-[var(--canal)] pb-1 lg:mx-0 lg:px-0" aria-label="Fotos compartidas por clientes">
@@ -120,7 +139,7 @@ export function ResenasFicha({ resenas, resumen, producto }: { resenas: ResenaPu
               </div>
             )}
 
-            <div className={`flex flex-wrap gap-2 ${conFoto.length > 0 ? 'mt-7' : ''}`} role="group" aria-label="Mostrar">
+            <div className={`flex flex-wrap gap-2 ${conFoto.length > 0 && conFoto.length < FOTOS_PARA_GRILLA ? 'mt-7' : ''}`} role="group" aria-label="Mostrar">
               <Chip activo={filtro === 'todas'} onClick={() => elegir('todas')}>Todas · {resenas.length}</Chip>
               {conFoto.length > 0 && <Chip activo={filtro === 'fotos'} onClick={() => elegir('fotos')}>Con foto · {conFoto.length}</Chip>}
               {typeof filtro === 'number' && <Chip activo onClick={() => elegir('todas')}>{filtro} estrellas ✕</Chip>}
@@ -198,9 +217,9 @@ function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => v
 }
 
 /** Estrellas de la ficha y de la cabecera del producto. */
-export function Estrellas({ calificacion, tam = 15 }: { calificacion: number; tam?: number }) {
+export function Estrellas({ calificacion, tam = 15, claro = false }: { calificacion: number; tam?: number; claro?: boolean }) {
   return (
-    <span role="img" aria-label={`${calificacion} de 5 estrellas`} className="inline-flex items-center gap-0.5 text-tinta">
+    <span role="img" aria-label={`${calificacion} de 5 estrellas`} className={`inline-flex items-center gap-0.5 ${claro ? 'text-white' : 'text-tinta'}`}>
       {Array.from({ length: 5 }, (_, i) => <IconoEstrella key={i} size={tam} activo={i < calificacion} />)}
     </span>
   )

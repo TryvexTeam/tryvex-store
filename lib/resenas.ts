@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
+import { ordenarPorUtilidad } from '@/lib/resenas-orden'
 
 export const BUCKET_RESENAS = 'resenas'
 export const TIPOS_FOTO_RESENA = [
@@ -45,7 +46,7 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
   if (productoId) consulta = consulta.eq('producto_id', productoId)
   const { data } = await consulta
 
-  return (data ?? []).map((r) => ({
+  const resenas = (data ?? []).map((r) => ({
     id: r.id,
     productoId: r.producto_id,
     producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? 'Producto Tryvex',
@@ -56,6 +57,8 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     foto: urlPublicaResena(r.foto_path),
     creadaEn: r.created_at,
   }))
+  // Lo más útil primero: foto, nota y un texto legible (muchas reseñas comparten fecha de carga).
+  return ordenarPorUtilidad(resenas)
 }
 
 /**
