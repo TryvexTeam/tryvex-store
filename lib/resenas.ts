@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
+import { intercalarPorProducto, ordenarPorUtilidad } from '@/lib/resenas-orden'
 
 export const BUCKET_RESENAS = 'resenas'
 export const TIPOS_FOTO_RESENA = [
@@ -31,7 +32,17 @@ export function urlPublicaResena(ruta: string | null): string | null {
   return `${base}/storage/v1/object/public/${BUCKET_RESENAS}/${ruta.replace(/^\/+/, '')}`
 }
 
-/** Reseñas que se pueden mostrar a cualquier visitante. */
+/** Cuántas tarjetas muestra cada carrusel. */
+const EN_PORTADA = 24
+const EN_FICHA = 30
+
+/**
+ * Reseñas que se pueden mostrar a cualquier visitante, de la más útil a la menos.
+ *
+ * Ficha: todas las notas (también las bajas: esconderlas sería maquillar), con las
+ * de foto y mejor texto primero. Portada: es vitrina de la tienda, así que solo
+ * 4 y 5 estrellas e intercaladas por producto.
+ */
 export async function leerResenas(productoId?: string): Promise<ResenaPublica[]> {
   const db = crearClienteAdministrador()
   let consulta = db
@@ -39,12 +50,14 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     .select('id,producto_id,pedido_id,cliente_nombre,texto,calificacion,foto_path,created_at,productos(nombre)')
     .eq('visible', true)
     .order('created_at', { ascending: false })
-    .limit(productoId ? 30 : 24)
+    // Se trae holgura para elegir las mejores; el recorte va después de ordenar.
+    .limit(500)
 
   if (productoId) consulta = consulta.eq('producto_id', productoId)
+  else consulta = consulta.gte('calificacion', 4)
   const { data } = await consulta
 
-  return (data ?? []).map((r) => ({
+  const resenas = (data ?? []).map((r) => ({
     id: r.id,
     productoId: r.producto_id,
     producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? 'Producto Tryvex',
@@ -55,6 +68,10 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     foto: urlPublicaResena(r.foto_path),
     creadaEn: r.created_at,
   }))
+  if (productoId) return ordenarPorUtilidad(resenas).slice(0, EN_FICHA)
+  // Portada: siempre primero las que traen foto; las de solo texto completan si faltan.
+  const conFoto = intercalarPorProducto(resenas.filter((r) => r.foto), EN_PORTADA)
+  return [...conFoto, ...intercalarPorProducto(resenas.filter((r) => !r.foto), EN_PORTADA - conFoto.length)]
 }
 
 /**
