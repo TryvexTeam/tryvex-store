@@ -94,11 +94,11 @@ export async function ProductoFoco({
    gigante que cruzan en sentidos opuestos a medida que se baja, y abajo las
    cuatro garantías concretas. Es el momento de dar seguridad antes de comprar. */
 const FRANJA_A = ['Compra con confianza.', 'Compra con confianza.', 'Compra con confianza.']
-const FRANJA_B = ['Garantía de 6 meses', 'Envío a todo Chile', '10 días de retracto', 'Pago seguro', 'Garantía de 6 meses', 'Envío a todo Chile']
+const FRANJA_B = ['Garantía de 6 meses', 'Envío a todo Chile', 'Seguimiento de tu pedido', 'Pago seguro', 'Garantía de 6 meses', 'Envío a todo Chile']
 const GARANTIAS = [
-  { titulo: 'Garantía de 6 meses', texto: 'Si falla, lo reparamos, lo cambiamos o te devolvemos el dinero.', trazo: 'M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3ZM9 12l2 2 4-4' },
+  { titulo: 'Garantía de 6 meses', texto: 'Cubre fallas de fábrica desde que lo recibes.', trazo: 'M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3ZM9 12l2 2 4-4' },
   { titulo: 'Envío a todo Chile', texto: 'Conoces el costo y el plazo antes de pagar.', trazo: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z' },
-  { titulo: '10 días de retracto', texto: 'Si cambias de opinión, puedes devolverlo sin dar explicaciones.', trazo: 'M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4' },
+  { titulo: 'Seguimiento de tu pedido', texto: 'Sigue tu pedido en línea desde que sale hasta que llega.', trazo: 'M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
   { titulo: 'Pago seguro', texto: 'Transferencia o Mercado Pago. Tus datos nunca pasan por nosotros.', trazo: 'M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5z' },
 ] as const
 
@@ -107,7 +107,7 @@ const GARANTIAS = [
 export function ConfianzaEnMovimiento() {
   return (
     <section aria-labelledby="confianza-titulo" className="confianza-seccion relative overflow-x-clip bg-papel pt-20 pb-20 t:pt-28 t:pb-28">
-      <h2 id="confianza-titulo" className="sr-only">Compra con confianza: garantía de 6 meses, envío a todo Chile, 10 días de retracto y pago seguro.</h2>
+      <h2 id="confianza-titulo" className="sr-only">Compra con confianza: garantía de 6 meses por fallas de fábrica, envío a todo Chile, seguimiento de tu pedido y pago seguro.</h2>
       <div aria-hidden className="flex flex-col gap-2 t:gap-4">
         <p className="confianza-franja confianza-franja-a flex w-max gap-[0.4em] text-[clamp(56px,11vw,168px)] leading-[1] font-semibold tracking-mega whitespace-nowrap text-tinta">
           {FRANJA_A.map((t, i) => <span key={i} className={i === 1 ? 'confianza-degradado' : ''}>{t}</span>)}

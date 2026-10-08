@@ -31,6 +31,7 @@ export const dynamic = 'force-dynamic'
 const catalogo = unstable_cache(leerVitrina, ['vitrina-coleccion'], { revalidate: 300 })
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/tienda' },
   title: 'Tienda',
   description: 'Todo el catálogo de Tryvex Store, con envío a todo Chile y garantía de 6 meses.',
 }

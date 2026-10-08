@@ -12,6 +12,7 @@ import { EsperaPago } from '@/components/tienda/espera-pago'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { PieTienda } from '@/components/tienda/pie-tienda'
+import { Medir } from '@/components/medir'
 
 export const dynamic = 'force-dynamic'
 
@@ -125,6 +126,26 @@ export default async function ResultadoPago({
       <main className="mx-auto w-full max-w-[980px] flex-1 px-[22px] pt-12 pb-16 t:pt-20">
         <Encabezado vista={vista} saludo={datos?.saludo ?? null} numero={numeroPedido} total={total} correo={datos?.correo ?? null} />
 
+        {/* Purchase solo con el pago confirmado en nuestra base: nunca por lo que diga la URL. */}
+        {vista === 'confirmado' && numeroPedido !== null && total !== null && (
+          <Medir
+            evento="Purchase"
+            eventID={`pedido-${numeroPedido}`}
+            unaVez={`compra-${numeroPedido}`}
+            parametros={{
+              value: Math.round(total),
+              currency: 'CLP',
+              content_type: 'product',
+              order_id: String(numeroPedido),
+              ...(datos?.pedido
+                ? {
+                    content_ids: datos.pedido.items.flatMap((i) => (i.sku ? [i.sku] : [])),
+                    num_items: datos.pedido.items.reduce((a, i) => a + i.cantidad, 0),
+                  }
+                : {}),
+            }}
+          />
+        )}
         {vista === 'confirmado' && datos?.pedido && <Detalle pedido={datos.pedido} />}
 
         {vista === 'confirmado' && !datos?.pedido && (

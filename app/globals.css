@@ -1141,7 +1141,17 @@ body {
       animation-timeline: view();
       animation-range: entry 0% cover 35%;
     }
+    /* Producto anotado (/cyber): la línea se dibuja desde el dato hacia el producto. */
+    .anotado-linea {
+      animation: tienda-linea 1ms var(--ease-salida) both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 45%;
+    }
   }
+}
+@keyframes tienda-linea {
+  from { transform: scaleX(0); }
+  to { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1149,7 +1159,8 @@ body {
   .revela-escala,
   .heroe-imagen,
   .heroe-copy,
-  .cierre-revela {
+  .cierre-revela,
+  .anotado-linea {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
