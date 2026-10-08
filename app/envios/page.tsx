@@ -11,6 +11,7 @@ import { PaginaServicio } from '@/components/tienda/pagina-servicio'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
+  alternates: { canonical: '/envios' },
   title: 'Envíos',
   description: 'Información vigente sobre envíos, plazos, tarifas y retiro en Tryvex.',
 }

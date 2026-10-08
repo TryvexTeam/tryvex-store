@@ -10,6 +10,7 @@ import { PaginaServicio } from '@/components/tienda/pagina-servicio'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
+  alternates: { canonical: '/cambios-y-devoluciones' },
   title: 'Cambios y devoluciones',
   description: 'Información vigente sobre garantía y retracto en Tryvex.',
 }

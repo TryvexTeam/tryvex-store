@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
+import { datosTienda, jsonLd } from '@/lib/datos-estructurados'
 import { leerPiezas, type PiezaLanding } from '@/lib/secciones'
 import type { ConfiguracionTienda } from '@/lib/configuracion'
 import { Cabecera } from '@/components/tienda/cabecera'
@@ -31,6 +33,10 @@ import { FraseProductos, productosPorCategoria } from '@/components/tienda/frase
  * consulta los mismos 300 segundos, así que la base se consulta igual de poco.
  */
 export const dynamic = 'force-dynamic'
+
+// La dirección oficial va página por página: puesta en el layout, todas las
+// páginas que no la redefinan declararían a la portada como su original.
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 /**
  * El caché guarda el valor serializado a JSON, y un `Map` sobrevive a ese viaje
@@ -66,6 +72,8 @@ export default async function Inicio() {
 
   return (
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
+      {/* Quién es la tienda y su buscador, para Google y los asistentes de IA. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(datosTienda(configuracion)) }} />
       <FranjaAnuncio configuracion={configuracion} />
       {/* La cabecera ya no se monta sobre el banner: el banner es una tarjeta
           despegada del borde, y encima de él van la franja de despachos y la

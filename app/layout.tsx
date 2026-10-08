@@ -20,7 +20,8 @@ export const metadata: Metadata = {
     default: "Tryvex Store",
     template: "%s — Tryvex",
   },
-  description: "Tecnología y productos para explorar por categoría en Tryvex Store.",
+  description:
+    "Tienda online chilena de tecnología: audífonos, iPhone, relojes, parlantes, cámaras, proyectores y cargadores, con envío a todo Chile y garantía de 6 meses.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

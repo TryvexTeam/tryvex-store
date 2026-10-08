@@ -10,6 +10,7 @@ import { PaginaServicio } from '@/components/tienda/pagina-servicio'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
+  alternates: { canonical: '/nosotros' },
   title: 'Nosotros',
   description: 'La forma en que Tryvex acompaña el descubrimiento y la compra de tecnología.',
 }

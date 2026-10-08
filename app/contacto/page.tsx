@@ -15,6 +15,7 @@ import { REDES_TIENDA } from '@/lib/redes'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
+  alternates: { canonical: '/contacto' },
   title: 'Contacto',
   description: 'Escríbenos por correo o WhatsApp y síguenos en Instagram y TikTok.',
 }

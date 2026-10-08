@@ -16,6 +16,7 @@ import { leerResenas, leerResumenResenas, resenaPropia } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
 import { urlSitio } from '@/lib/sitio'
+import { jsonLd, migasDePan } from '@/lib/datos-estructurados'
 import { CintaConfianza } from '@/components/tienda/cinta-confianza'
 
 /**
@@ -36,6 +37,8 @@ export async function generateMetadata(props: PageProps<'/producto/[slug]'>): Pr
     title: ficha.nombre,
     description: ficha.descripcion ?? `${ficha.nombre} en Tryvex Store.`,
     openGraph: { title: ficha.nombre, images: ficha.galeria.slice(0, 1) },
+    // Sin el `?v=` del color: todas las variantes son la misma ficha para Google.
+    alternates: { canonical: `/producto/${encodeURIComponent(ficha.slug)}` },
   }
 }
 
@@ -65,6 +68,12 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   // entra lo que la ficha ya muestra: nada inventado, y la valoración únicamente
   // si hay reseñas reales.
   const urlFicha = `${urlSitio()}/producto/${encodeURIComponent(ficha.slug)}`
+  const migas: [string, string][] = [
+    ['Inicio', '/'],
+    ['Tienda', '/tienda'],
+    ...(ficha.categoria ? [[ficha.categoria.nombre, `/tienda?cat=${encodeURIComponent(ficha.categoria.slug)}`] as [string, string]] : []),
+    [ficha.nombre, `/producto/${encodeURIComponent(ficha.slug)}`],
+  ]
   // Solo con la configuración leída: si la base no respondió, no se declara envío gratis.
   const envioGratisConfirmado = c !== null && c.envio_tarifa_clp === 0 && !c.envio_gratis_desde_clp
   const datosProducto = {
@@ -114,6 +123,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
       {/* `<` se escapa para que ningún texto de producto pueda cerrar la etiqueta. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datosProducto).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(migasDePan(migas)) }} />
       <FranjaAnuncio configuracion={c} />
       <Medir evento="ViewContent" parametros={{ content_ids: [ficha.sku], content_name: ficha.nombre, content_type: 'product', content_category: ficha.categoria?.nombre, value: Math.round(ficha.precio), currency: 'CLP' }} />
       <Cabecera destinos={destinosMenu(vitrina.categorias, '/')} ayuda={whatsapp} />
