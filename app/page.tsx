@@ -50,8 +50,7 @@ const datosDePortada = unstable_cache(
   { revalidate: 300, tags: ['resenas', 'portada'] },
 )
 
-const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'
-const LEGAL_RETRACTO = 'Derecho a retracto de 10 días en compras a distancia; reembolso antes de 45 días.'
+const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción, por fallas de fábrica.'
 
 export default async function Inicio() {
   // Las franjas editables de la portada. Si la tabla esta vacia, cada franja
@@ -115,8 +114,7 @@ export function beneficiosDe(c: ConfiguracionTienda | null): Beneficio[] {
       id: 'envio', destacado: gratis ? `Envío gratis desde $${gratis.toLocaleString('es-CL')}.` : 'Envío a todo Chile.', resto: plazo ? `${plazo} en recibirlo.` : 'Sabes el costo antes de pagar.', tono: 'verde', icono: 'envio',
       detalle: { titulo: 'Envío', parrafos: [c?.envio_politica_texto ?? 'El costo y el plazo del envío se muestran antes de pagar.'], filas: [['Tarifa', tarifa > 0 ? `$${tarifa.toLocaleString('es-CL')}` : 'Sin costo'], ...(gratis ? ([['Gratis desde', `$${gratis.toLocaleString('es-CL')}`]] as [string, string][]) : []), ...(plazo ? ([['Plazo', plazo]] as [string, string][]) : [])] },
     },
-    { id: 'garantia', destacado: 'Garantía de 6 meses.', resto: 'Reparar, cambiar o devolver: tú eliges.', tono: 'spark', icono: 'garantia', detalle: { titulo: 'Garantía', parrafos: [c?.garantia_texto ?? LEGAL_GARANTIA] } },
-    { id: 'retracto', destacado: '10 días para arrepentirte.', resto: 'Sin dar explicaciones.', tono: 'ambar', icono: 'retracto', detalle: { titulo: 'Derecho a retracto', parrafos: [c?.retracto_texto ?? LEGAL_RETRACTO] } },
+    { id: 'garantia', destacado: 'Garantía de 6 meses.', resto: 'Cubre fallas de fábrica.', tono: 'spark', icono: 'garantia', detalle: { titulo: 'Garantía', parrafos: [c?.garantia_texto ?? LEGAL_GARANTIA] } },
     { id: 'pago', destacado: 'Paga como prefieras.', resto: 'Transferencia o Mercado Pago.', tono: 'azul', icono: 'pago', detalle: { titulo: 'Formas de pago', parrafos: ['Al confirmar el pedido reservamos tus unidades y te mostramos los datos para pagar.'] } },
   ]
   if (c?.retiro_habilitado && c.retiro_direccion) lista.push({ id: 'retiro', destacado: 'Retira sin costo.', resto: 'Coordina el día por WhatsApp.', tono: 'verde', icono: 'retiro', detalle: { titulo: 'Retiro en persona', parrafos: [c.retiro_direccion] } })

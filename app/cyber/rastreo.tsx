@@ -149,7 +149,7 @@ export function WhatsappFlotante({ href }: { href: string }) {
       evento="CyberFloatingWhatsapp_Click"
       estandar="Contact"
       etiqueta="Consultar stock por WhatsApp"
-      className="fixed right-5 bottom-5 z-40 hidden size-14 items-center justify-center rounded-full bg-[#1f8f4e] text-white shadow-alzado transition-transform duration-200 ease-salida hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta motion-reduce:transition-none t:flex"
+      className="fixed right-5 bottom-5 z-40 hidden size-14 items-center justify-center rounded-full bg-verde text-white shadow-alzado transition-transform duration-200 ease-salida hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta motion-reduce:transition-none t:flex"
     >
       <IconoWhatsapp size={28} />
     </EnlaceMedido>

@@ -368,7 +368,7 @@ export async function correoPedidoEntregado(d: DatosCorreoPedido & { urlTienda?:
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;background:${FONDO};border-radius:16px;">
       <tr><td style="padding:18px 20px;font-family:${FUENTE};font-size:14px;line-height:1.65;color:${TINTA_SUAVE};">
         <strong style="color:${TINTA};">¿Algo no salió como esperabas?</strong><br>
-        Tienes 6 meses de garantía legal y 10 días para arrepentirte de tu compra.
+        Tienes 6 meses de garantía por fallas de fábrica.
         Responde este correo y lo resolvemos.
       </td></tr>
     </table>`
@@ -387,7 +387,7 @@ export async function correoPedidoEntregado(d: DatosCorreoPedido & { urlTienda?:
     texto:
       `Llegó${nombre ? ', ' + nombre : ''}.\n\n` +
       `Tu pedido #${d.numero} fue entregado. Esperamos que lo disfrutes.\n\n` +
-      `Tienes 6 meses de garantía legal y 10 días para arrepentirte. ` +
+      `Tienes 6 meses de garantía por fallas de fábrica. ` +
       `Si algo no salió como esperabas, responde este correo.\n\n` +
       `${tienda}/tienda`,
   })

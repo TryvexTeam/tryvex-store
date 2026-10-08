@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react'
 import type { CategoriaTienda, ProductoTienda } from '@/lib/tienda'
 import { CardProducto } from '@/components/tienda/card-producto'
 import { FilaCategorias } from '@/components/tienda/fila-categorias'
-import { clp } from '@/lib/formato'
+import { FranjaConfianza } from '@/components/tienda/campana'
+import { Precio, avisoDe } from '@/components/tienda/card-producto-partes'
 import { copyCyber, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
 import { EnlaceMedido, IconoWhatsapp, ZonaCategorias, ZonaProductos } from './rastreo'
 
@@ -35,7 +36,7 @@ function Check() {
 function Titulo({ id, titulo, bajada, centrado = false }: { id: string; titulo: string; bajada?: string; centrado?: boolean }) {
   return (
     <div className={`revela ${centrado ? 'mx-auto max-w-[680px] text-center' : 'max-w-[680px]'}`}>
-      <h2 id={id} className="text-[28px] leading-[1.1] font-semibold tracking-seccion text-balance text-tinta t:text-[38px]">{titulo}</h2>
+      <h2 id={id} className="text-[28px] leading-[1.1] font-semibold tracking-seccion text-balance text-tinta t:text-[36px]">{titulo}</h2>
       {bajada && <p className="mt-2 text-[16px] leading-relaxed text-tinta-suave t:text-[17px]">{bajada}</p>}
     </div>
   )
@@ -92,11 +93,6 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
             {vitrina.map((p, i) => (
               <li key={p.id} className="revela-escala" style={escalon(i)}>
                 <a href={p.href} className="tienda-marco group relative flex aspect-square flex-col overflow-hidden rounded-[18px] bg-papel p-3 t:p-4">
-                  {p.precioAntes && (
-                    <span className="absolute top-3 left-3 z-10 rounded-full bg-spark px-2 py-0.5 text-[12px] font-semibold text-white">
-                      -{Math.floor((1 - p.precio / p.precioAntes) * 100)}%
-                    </span>
-                  )}
                   <span className="relative flex-1">
                     <Image
                       src={p.imagen!}
@@ -108,8 +104,9 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
                       className="tienda-card-objeto object-contain"
                     />
                   </span>
-                  <span className="mt-2 line-clamp-1 text-[13px] font-semibold text-tinta t:text-[14px]">{p.nombre}</span>
-                  <span className="cifra text-[13px] text-tinta-suave t:text-[14px]">{clp(p.precio)}</span>
+                  {avisoDe(p) && <span className="mt-2 text-[12px] leading-4 font-semibold text-vino">{avisoDe(p)}</span>}
+                  <span className="mt-1 line-clamp-1 text-[13px] font-semibold text-tinta t:text-[14px]">{p.nombre}</span>
+                  <Precio producto={p} className="text-[13px] text-tinta t:text-[14px]" />
                 </a>
               </li>
             ))}
@@ -120,35 +117,9 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
   )
 }
 
-/* 4 · Confianza: la misma franja de la portada ----------------------------- */
+/* 4 · Confianza: la franja de la portada, tal cual ------------------------ */
 
-const TRAZOS = {
-  envio: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
-  garantia: 'M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3zM9 12l2 2 4-4',
-  retracto: 'M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4M12 8v4l3 2',
-  pago: 'M3 6h18v12H3zM3 10h18M7 15h3',
-}
-
-export function ConfianzaCyber({ envio }: { envio: string }) {
-  const items = [
-    { trazo: TRAZOS.envio, texto: envio },
-    { trazo: TRAZOS.garantia, texto: 'Garantía de 6 meses' },
-    { trazo: TRAZOS.retracto, texto: '10 días para arrepentirte' },
-    { trazo: TRAZOS.pago, texto: 'Pago seguro con Mercado Pago o transferencia' },
-  ]
-  return (
-    <section aria-label="Compra online con respaldo" className="border-y border-borde/60 bg-papel">
-      <ul className="mx-auto grid max-w-[1204px] grid-cols-2 gap-x-4 gap-y-3 px-[var(--canal)] py-5 d:grid-cols-4 d:px-0">
-        {items.map((it) => (
-          <li key={it.texto} className="flex items-center gap-2.5 text-[13px] leading-snug font-medium text-tinta-suave t:text-[14px] d:justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-spark"><path d={it.trazo} /></svg>
-            {it.texto}
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
+export const ConfianzaCyber = FranjaConfianza
 
 /* 5 · Top ofertas ----------------------------------------------------------- */
 
@@ -397,12 +368,13 @@ export function FaqCyber({ preguntas }: { preguntas: PreguntaCyber[] }) {
 export function CierreCyber({ whatsappMayorista }: { whatsappMayorista: string }) {
   return (
     <section aria-labelledby="cierre-cyber-titulo" className="px-[var(--canal)] pt-16 pb-16 t:pt-24 t:pb-24">
-      <div className="cierre-revela mx-auto max-w-[1204px] rounded-[28px] bg-[#f6efe6] px-6 py-12 text-center t:py-16">
-        <h2 id="cierre-cyber-titulo" className="mx-auto max-w-[18ch] text-[32px] leading-[1.05] font-semibold tracking-seccion text-balance text-tinta t:text-[46px]">{copyCyber.tituloFinal}</h2>
-        <p className="mx-auto mt-3 max-w-[44ch] text-[16px] text-tinta-suave t:text-[18px]">{copyCyber.bajadaFinal}</p>
+      <div className="cierre-revela relative isolate mx-auto max-w-[1204px] overflow-hidden rounded-[28px] bg-black px-7 py-16 text-center text-white t:py-20">
+        <span aria-hidden className="heroe-luz heroe-luz-cierre pointer-events-none absolute -z-10" />
+        <h2 id="cierre-cyber-titulo" className="mx-auto max-w-[16ch] text-[36px] leading-[1.04] font-semibold tracking-seccion text-balance t:text-[48px] d:text-[56px]">{copyCyber.tituloFinal}</h2>
+        <p className="mx-auto mt-4 max-w-[40ch] text-[17px] text-white/70 t:text-[19px]">{copyCyber.bajadaFinal}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 t:flex-row">
           <EnlaceMedido href="#ofertas" evento="CyberFinalCTA_Click" className={`${BOTON_PRIMARIO} !min-h-[52px] t:px-8`}>Ver ofertas</EnlaceMedido>
-          <EnlaceMedido href={whatsappMayorista} evento="CyberWholesaleCTA_Click" estandar="Lead" parametros={{ ubicacion: 'cierre' }} className={`${BOTON_SECUNDARIO} !min-h-[52px] gap-2 t:px-8`}>
+          <EnlaceMedido href={whatsappMayorista} evento="CyberWholesaleCTA_Click" estandar="Lead" parametros={{ ubicacion: 'cierre' }} className="tienda-boton !min-h-[52px] gap-2 bg-white text-[16px] font-semibold text-black hover:bg-white/85 t:px-8">
             <IconoWhatsapp /> Pedir lista mayorista
           </EnlaceMedido>
         </div>

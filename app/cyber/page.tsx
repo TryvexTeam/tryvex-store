@@ -98,8 +98,8 @@ export default async function PaginaCyber() {
   const preguntas: PreguntaCyber[] = [
     { pregunta: '¿Hacen envíos a todo Chile?', respuesta: 'Sí, Tryvex realiza envíos a todo Chile, según disponibilidad y las condiciones indicadas en la tienda. El costo y el plazo se muestran antes de pagar.' },
     { pregunta: '¿Los precios tienen IVA incluido?', respuesta: 'Sí, los precios están en pesos chilenos con IVA incluido.' },
-    { pregunta: '¿Tienen garantía?', respuesta: c?.garantia_texto ?? 'Sí, los productos cuentan con garantía legal de 6 meses desde la recepción (Ley 21.398).' },
-    { pregunta: '¿Puedo arrepentirme de mi compra?', respuesta: c?.retracto_texto ?? 'Sí, tienes 10 días para arrepentirte desde que recibes tu compra, según las condiciones publicadas en la tienda.' },
+    { pregunta: '¿Tienen garantía?', respuesta: c?.garantia_texto ?? 'Sí, garantía legal de 6 meses desde la recepción, por fallas de fábrica.' },
+    { pregunta: '¿Puedo devolver un producto?', respuesta: 'Los cambios y devoluciones se rigen por la Ley del Consumidor. Revisa las condiciones en la página de Cambios y devoluciones.' },
     { pregunta: '¿Venden al por mayor?', respuesta: 'Sí, puedes pedir la lista mayorista por WhatsApp y consultar precios por cantidad.' },
     { pregunta: '¿Cómo consulto stock?', respuesta: 'Puedes revisar el producto en la tienda o escribirnos por WhatsApp para confirmar disponibilidad.' },
     { pregunta: '¿Puedo comprar para revender?', respuesta: 'Sí, hay productos de alta rotación ideales para emprendedores. Pide la lista mayorista para ver precios por cantidad.' },
@@ -119,7 +119,7 @@ export default async function PaginaCyber() {
 
       <main className="min-w-0 flex-1">
         <HeroCyber productos={lista} whatsappMayorista={whatsappMayorista} envio={envio} />
-        <ConfianzaCyber envio={envio} />
+        <ConfianzaCyber />
         <OfertasCyber productos={lista} />
         <ObjetivoCyber whatsappMayorista={whatsappMayorista} regalo={regalo} fotos={fotosReventa} />
         <PacksCyber packs={packs} />

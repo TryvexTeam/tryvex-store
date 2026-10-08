@@ -122,8 +122,8 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
         <Ficha
           ficha={ficha}
           envio={envio}
-          garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'}
-          retracto={c?.retracto_texto ?? 'Tienes 10 días desde que lo recibes para arrepentirte.'}
+          garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción, por fallas de fábrica.'}
+          retracto={c?.retracto_texto ?? 'Cambios y devoluciones según la Ley del Consumidor. Revisa las condiciones en Cambios y devoluciones.'}
           whatsapp={whatsapp}
           hitosEnvio={hitosDeEnvio(new Date())}
           varianteInicial={varianteInicial}
