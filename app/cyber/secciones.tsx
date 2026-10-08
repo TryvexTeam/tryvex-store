@@ -4,7 +4,6 @@ import type { CategoriaTienda, ProductoTienda } from '@/lib/tienda'
 import { CardProducto } from '@/components/tienda/card-producto'
 import { FilaCategorias } from '@/components/tienda/fila-categorias'
 import { FranjaConfianza } from '@/components/tienda/campana'
-import { Precio, avisoDe } from '@/components/tienda/card-producto-partes'
 import { copyCyber, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
 import { EnlaceMedido, IconoWhatsapp, ZonaCategorias, ZonaProductos } from './rastreo'
 
@@ -62,23 +61,25 @@ export function BarraCyber({ envio }: { envio: string }) {
 
 /* 3 · Hero ------------------------------------------------------------------ */
 
-export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: ProductoTienda[]; whatsappMayorista: string; envio: string }) {
-  const vitrina = productos.slice(0, 4)
+export function HeroCyber({ whatsappMayorista, envio }: { whatsappMayorista: string; envio: string }) {
   return (
-    <section aria-labelledby="cyber-titulo" className="px-[var(--canal)] pt-8 pb-10 t:pt-12 t:pb-14">
-      <div className="mx-auto grid max-w-[1204px] items-center gap-8 n:grid-cols-[1.05fr_1fr] n:gap-12">
-        <div>
-          <h1 id="cyber-titulo" className="text-[44px] leading-[1] font-semibold tracking-mega text-balance text-tinta t:text-[60px] d:text-[72px]">
+    <section aria-labelledby="cyber-titulo" className="px-[var(--canal)] pt-10 pb-10 t:pt-14 t:pb-14">
+      <div className="mx-auto grid max-w-[1204px] gap-6 n:grid-cols-[1.2fr_1fr] n:items-end n:gap-12">
+        <div className="revela">
+          {/* h2: el h1 de la página es el del héroe de la portada (el título de la escena). */}
+          <h2 id="cyber-titulo" className="text-[40px] leading-[1.02] font-semibold tracking-mega text-balance text-tinta t:text-[56px]">
             {copyCyber.titulo}
-          </h1>
+          </h2>
           <p className="mt-4 text-[20px] leading-snug font-semibold tracking-cuerpo text-balance text-tinta t:text-[24px]">{copyCyber.subtitulo}</p>
           <p className="mt-3 max-w-[46ch] text-[16px] leading-relaxed text-tinta-suave t:text-[17px]">{copyCyber.texto}</p>
-          <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] font-medium text-tinta">
+        </div>
+        <div className="revela">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-2 text-[15px] font-medium text-tinta">
             {['Mayorista + detalle', envio, 'Pago seguro', 'Stock sujeto a disponibilidad'].map((b) => (
               <li key={b} className="flex items-start gap-2"><Check />{b}</li>
             ))}
           </ul>
-          <div id="cyber-ctas" className="mt-7 flex flex-col gap-3 t:flex-row">
+          <div id="cyber-ctas" className="mt-6 flex flex-col gap-3 t:flex-row">
             <EnlaceMedido href="#ofertas" evento="CyberHeroCTA_Click" className={`${BOTON_PRIMARIO} !min-h-[52px] t:px-8`}>
               {copyCyber.ctaOfertas}
             </EnlaceMedido>
@@ -87,31 +88,6 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
             </EnlaceMedido>
           </div>
         </div>
-
-        {vitrina.length > 0 && (
-          <ul className="grid grid-cols-2 gap-3 t:gap-4" aria-label="Algunas ofertas">
-            {vitrina.map((p, i) => (
-              <li key={p.id} className="revela-escala" style={escalon(i)}>
-                <a href={p.href} className="tienda-marco group relative flex aspect-square flex-col overflow-hidden rounded-[18px] bg-papel p-3 t:p-4">
-                  <span className="relative flex-1">
-                    <Image
-                      src={p.imagen!}
-                      alt={p.nombre}
-                      fill
-                      priority={i === 0}
-                      fetchPriority={i === 0 ? 'high' : undefined}
-                      sizes="(min-width: 1069px) 280px, (min-width: 834px) 22vw, 45vw"
-                      className="tienda-card-objeto object-contain"
-                    />
-                  </span>
-                  {avisoDe(p) && <span className="mt-2 text-[12px] leading-4 font-semibold text-vino">{avisoDe(p)}</span>}
-                  <span className="mt-1 line-clamp-1 text-[13px] font-semibold text-tinta t:text-[14px]">{p.nombre}</span>
-                  <Precio producto={p} className="text-[13px] text-tinta t:text-[14px]" />
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </section>
   )

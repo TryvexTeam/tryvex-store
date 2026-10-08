@@ -48,7 +48,12 @@ export function Foto({ src, slug, sizes, prioridad, className, transicion = true
 export function avisoDe(producto: ProductoTienda): string | null {
   const { precio, precioAntes, agotado, etiqueta } = producto
   if (agotado) return 'Agotado'
-  if (precioAntes && precioAntes > precio) return `${Math.floor((1 - precio / precioAntes) * 100)}% de descuento` // hacia abajo: nunca promete de más
-  if (etiqueta && !/últimas unidades/i.test(etiqueta)) return etiqueta
-  return null
+  // La etiqueta del equipo («Cyber», «Nuevo») convive con el descuento; la
+  // automática «Últimas unidades» no se muestra aquí.
+  const propia = etiqueta && !/últimas unidades/i.test(etiqueta) ? etiqueta : null
+  if (precioAntes && precioAntes > precio) {
+    const descuento = `${Math.floor((1 - precio / precioAntes) * 100)}% de descuento` // hacia abajo: nunca promete de más
+    return propia ? `${propia} · ${descuento}` : descuento
+  }
+  return propia
 }

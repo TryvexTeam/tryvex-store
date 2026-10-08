@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
+import { leerPiezas, type PiezaLanding } from '@/lib/secciones'
+import { HeroeCampana } from '@/components/tienda/campana'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { CYBER_CATEGORIAS, MENSAJES_WHATSAPP, PACKS_CYBER, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
 import { leerMinimoMayorista, productosCyber, vendibleEnCampana } from '@/lib/cyber-productos'
@@ -49,15 +51,17 @@ export const metadata: Metadata = {
 
 const datosCyber = unstable_cache(
   async () => {
-    const [vitrina, resenas, resumenResenas, minimoMayorista] = await Promise.all([leerVitrina(), leerResenas(), leerResumenResenas(), leerMinimoMayorista().catch(() => null)])
-    return { vitrina, resenas, resumenResenas, minimoMayorista }
+    const [vitrina, piezas, resenas, resumenResenas, minimoMayorista] = await Promise.all([leerVitrina(), leerPiezas(), leerResenas(), leerResumenResenas(), leerMinimoMayorista().catch(() => null)])
+    // Un Map no sobrevive al caché (se guarda como JSON): viaja como pares, igual que en la portada.
+    return { vitrina, piezas: [...piezas] as [string, PiezaLanding][], resenas, resumenResenas, minimoMayorista }
   },
   ['cyber'],
   { revalidate: 300, tags: ['resenas', 'portada'] },
 )
 
 export default async function PaginaCyber() {
-  const { vitrina, resenas, resumenResenas, minimoMayorista } = await datosCyber()
+  const { vitrina, piezas: paresDePiezas, resenas, resumenResenas, minimoMayorista } = await datosCyber()
+  const piezas = new Map(paresDePiezas)
   const { productos, categorias, configuracion: c } = vitrina
 
   const { lista } = productosCyber(productos)
@@ -118,7 +122,9 @@ export default async function PaginaCyber() {
       <Cabecera destinos={destinos} ayuda={whatsappStock} />
 
       <main className="min-w-0 flex-1">
-        <HeroCyber productos={lista} whatsappMayorista={whatsappMayorista} envio={envio} />
+        {/* El mismo héroe de la portada (escenas y videos de Panel → Portada). */}
+        <HeroeCampana productos={productos} piezas={piezas} />
+        <HeroCyber whatsappMayorista={whatsappMayorista} envio={envio} />
         <ConfianzaCyber />
         <OfertasCyber productos={lista} />
         <ObjetivoCyber whatsappMayorista={whatsappMayorista} regalo={regalo} fotos={fotosReventa} />
