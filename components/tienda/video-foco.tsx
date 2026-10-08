@@ -23,10 +23,30 @@ import type { ModoFoco } from '@/lib/foco'
 export function VideoFoco({ src, modo }: { src: string; modo: ModoFoco }) {
   const video = useRef<HTMLVideoElement>(null)
   const [horizontal, setHorizontal] = useState(false)
+  // La escena está lejos del inicio de la página: bajar el video (2+ MB) al
+  // abrir le quitaba ancho de banda a la foto principal en el teléfono. Se
+  // empieza a bajar cuando la escena queda a una pantalla de distancia.
+  const [cerca, setCerca] = useState(false)
 
   useEffect(() => {
     const el = video.current
-    if (!el) return
+    if (!el || cerca) return
+    const vigia = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setCerca(true)
+          vigia.disconnect()
+        }
+      },
+      { rootMargin: '100% 0px' },
+    )
+    vigia.observe(el)
+    return () => vigia.disconnect()
+  }, [cerca])
+
+  useEffect(() => {
+    const el = video.current
+    if (!el || !cerca) return
     // Si las medidas llegaron antes de hidratar, `loadedmetadata` ya pasó.
     if (el.readyState >= 1) setHorizontal(el.videoWidth > el.videoHeight)
     const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -77,7 +97,7 @@ export function VideoFoco({ src, modo }: { src: string; modo: ModoFoco }) {
       el.removeEventListener('loadedmetadata', ubicar)
       if (url) URL.revokeObjectURL(url)
     }
-  }, [src, modo])
+  }, [src, modo, cerca])
 
   return (
     <video
@@ -88,7 +108,7 @@ export function VideoFoco({ src, modo }: { src: string; modo: ModoFoco }) {
       muted
       playsInline
       loop={modo === 'bucle'}
-      preload={modo === 'scroll' ? 'auto' : 'metadata'}
+      preload={!cerca ? 'none' : modo === 'scroll' ? 'auto' : 'metadata'}
       aria-hidden
       onLoadedMetadata={(e) => setHorizontal(e.currentTarget.videoWidth > e.currentTarget.videoHeight)}
       className={`absolute inset-0 size-full object-cover ${horizontal ? 'max-t:object-contain' : ''}`}
