@@ -14,16 +14,18 @@ export default async function PaginaResenas() {
     supabase.from('productos').select('id,nombre').eq('activo', true).order('nombre'),
     supabase
       .from('resenas_tienda')
-      .select('id,producto_id,cliente_nombre,texto,calificacion,foto_path,visible,created_at,auth_user_id,pedidos(numero),productos(nombre)')
+      .select('id,producto_id,cliente_nombre,texto,calificacion,foto_path,foto_ancho,foto_alto,visible,created_at,auth_user_id,pedidos(numero),productos(nombre)')
       // Ocultas primero (ahí están las por aprobar): con 500+ reseñas, el límite no puede dejarlas fuera.
       .order('visible', { ascending: true })
       .order('created_at', { ascending: false })
       .limit(150),
   ])
 
-  type ResenaCruda = Omit<ResenaPanel, 'foto' | 'pedidoNumero' | 'producto' | 'porAprobar'> & {
+  type ResenaCruda = Omit<ResenaPanel, 'foto' | 'pedidoNumero' | 'producto' | 'fotoAncho' | 'fotoAlto' | 'porAprobar'> & {
     auth_user_id: string | null
     foto_path: string | null
+    foto_ancho: number | null
+    foto_alto: number | null
     pedidos: { numero: number } | null
     productos: { nombre: string } | null
   }
@@ -32,8 +34,10 @@ export default async function PaginaResenas() {
   const lista: ResenaPanel[] = ((resenas ?? []) as unknown as ResenaCruda[]).map((r) => ({
     ...r,
     pedidoNumero: r.pedidos?.numero ?? null,
-    producto: r.productos?.nombre ?? 'Producto',
+    producto: r.productos?.nombre ?? null,
     foto: urlPublicaResena(r.foto_path),
+    fotoAncho: r.foto_ancho,
+    fotoAlto: r.foto_alto,
     porAprobar: r.auth_user_id !== null && !r.visible,
   }))
   // Las que esperan aprobación van primero: es lo que el equipo tiene que mirar.

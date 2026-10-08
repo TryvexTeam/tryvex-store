@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { IconoEstrella } from '@/components/iconos'
+import { marcoFoto } from '@/lib/proporcion-foto'
 import type { ResenaPublica } from '@/lib/resenas'
 
 type Props = {
@@ -82,26 +83,30 @@ export function Comentarios({
         {resenas.map((resena, indice) => (
           <li key={resena.id} className="comentario-tarjeta relative isolate flex min-h-[330px] w-[min(82vw,390px)] shrink-0 snap-start flex-col overflow-hidden rounded-[28px] bg-papel p-6 shadow-sutil t:min-h-[360px] t:w-[390px] t:p-8" style={{ '--comentario-tono': TONOS[indice % TONOS.length], '--comentario-indice': indice } as CSSProperties}>
             <span aria-hidden className="comentario-orbita comentario-orbita-a" /><span aria-hidden className="comentario-orbita comentario-orbita-b" />
-            {resena.foto && (
-              /* Las fotos de clientes llegan en cualquier proporción (vertical, horizontal,
-                 cuadrada). Con `object-cover` en un marco fijo se recortaban: un audífono
-                 vertical quedaba reducido a una franja del medio. Acá la foto se muestra
-                 entera (`object-contain`) y los costados se rellenan con ella misma
-                 desenfocada, así el marco mantiene su altura y las cards del carrusel
-                 siguen alineadas sin barras vacías. */
-              <div className="relative isolate mb-5 aspect-[4/3] overflow-hidden rounded-[18px] bg-papel-alt">
-                <Image src={resena.foto} alt="" aria-hidden fill sizes="(min-width: 640px) 390px, 82vw" className="-z-10 scale-125 object-cover opacity-60 blur-2xl" />
-                <Image src={resena.foto} alt={`Foto compartida por ${resena.cliente}`} fill sizes="(min-width: 640px) 390px, 82vw" className="object-contain" />
-              </div>
-            )}
+            {resena.foto && <FotoResena resena={resena} />}
             <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">{resena.verificada ? 'Compra verificada' : 'Reseña de cliente'}</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
             <div className="relative mt-3"><Estrellas calificacion={resena.calificacion} /></div>
             <blockquote className="relative mt-5 text-[22px] leading-[1.18] font-medium tracking-cuerpo text-tinta t:text-[25px]">“{resena.texto}”</blockquote>
-            <footer className="relative mt-auto pt-7"><p className="font-semibold text-tinta">{resena.cliente}</p><p className="mt-0.5 text-[14px] text-tinta-suave">{resena.producto}</p></footer>
+            <footer className="relative mt-auto pt-7"><p className="font-semibold text-tinta">{resena.cliente}</p>{resena.producto && <p className="mt-0.5 text-[14px] text-tinta-suave">{resena.producto}</p>}</footer>
           </li>
         ))}
       </ul>
     </section>
+  )
+}
+
+/**
+ * El marco sigue la forma real de la foto (acotada): una vertical de celular no
+ * se corta, y una muy alta o muy panorámica se muestra entera en vez de recortarse.
+ */
+function FotoResena({ resena }: { resena: ResenaPublica }) {
+  const { proporcion, contener } = marcoFoto(resena.fotoAncho, resena.fotoAlto)
+  return (
+    <div className="relative isolate mb-5 overflow-hidden rounded-[18px] bg-papel-alt" style={{ aspectRatio: proporcion }}>
+      {/* Si la foto se muestra entera, los costados se rellenan con ella misma desenfocada. */}
+      {contener && <Image src={resena.foto!} alt="" aria-hidden fill sizes="(min-width: 640px) 390px, 82vw" className="-z-10 scale-125 object-cover opacity-60 blur-2xl" />}
+      <Image src={resena.foto!} alt={`Foto compartida por ${resena.cliente}`} fill sizes="(min-width: 640px) 390px, 82vw" className={contener ? 'object-contain' : 'object-cover'} />
+    </div>
   )
 }
 

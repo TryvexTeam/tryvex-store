@@ -13,6 +13,9 @@ import { ResenasFicha } from '@/components/tienda/resenas-ficha'
 import { EscribirResena, type EstadoResena } from '@/components/tienda/escribir-resena'
 import { cuentaActual } from '@/lib/cuenta'
 import { leerResenas, leerResumenResenas, resenaPropia } from '@/lib/resenas'
+import { leerLanding } from '@/lib/landing-lectura'
+import { leerPruebaSocial } from '@/lib/prueba-social'
+import { LandingProducto } from '@/components/tienda/landing-producto'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
 import { urlSitio } from '@/lib/sitio'
@@ -49,7 +52,13 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
   const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrinaGuardada()])
   if (!ficha) notFound()
-  const [resenas, resumenResenas, cuenta] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id), cuentaActual()])
+  const [resenas, resumenResenas, landing, pruebaSocial, cuenta] = await Promise.all([
+    leerResenas(ficha.id),
+    leerResumenResenas(ficha.id),
+    leerLanding(ficha.id),
+    leerPruebaSocial(ficha.id),
+    cuentaActual(),
+  ])
   const propia = cuenta ? await resenaPropia(ficha.id, cuenta.id) : null
   const estadoResena: EstadoResena = !cuenta ? 'sin-sesion' : (propia ?? 'puede')
 
@@ -137,6 +146,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
           whatsapp={whatsapp}
           hitosEnvio={hitosDeEnvio(new Date())}
           varianteInicial={varianteInicial}
+          pruebaSocial={pruebaSocial}
           valoracion={resumenResenas.total > 0 ? resumenResenas : null}
         />
 
@@ -148,6 +158,8 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
             ...(whatsapp ? ['Atención por WhatsApp'] : []),
           ]}
         />
+
+        <LandingProducto bloques={landing} />
 
         <ResenasFicha
           resenas={resenas}
