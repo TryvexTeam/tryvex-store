@@ -1,4 +1,4 @@
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { urlSitio } from '@/lib/sitio'
 
 // Los productos cambian desde el panel: se arma en cada petición, como el sitemap.
@@ -31,7 +31,7 @@ export async function GET() {
   ]
 
   try {
-    const { productos, categorias } = await leerVitrina()
+    const { productos, categorias } = await leerVitrinaGuardada()
     if (categorias.length) {
       lineas.push('', '## Categorías', '')
       for (const c of categorias) {

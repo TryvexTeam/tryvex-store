@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
 import { urlPublica } from '@/lib/imagenes'
 import { leerConfiguracion, type ConfiguracionTienda } from '@/lib/configuracion'
@@ -216,4 +217,34 @@ export async function leerPromosHeroe(): Promise<PromoHeroe> {
     if (ahorro > 0 && (ahorroMaximo === null || ahorro > ahorroMaximo)) ahorroMaximo = ahorro
   }
   return { mayorista, ahorroMaximo }
+}
+
+/**
+ * La vitrina guardada 60 segundos, para las páginas públicas de navegación.
+ *
+ * Casi todas las páginas la piden (aunque sea solo para el menú y el contacto)
+ * y son 6 consultas a la base en Brasil por visita. Cambios de portada y de
+ * etiquetas desde el panel la refrescan al momento (`updateTag('portada')`);
+ * el resto, a más tardar en un minuto. La bolsa, el pago y su resultado siguen
+ * usando `leerVitrina()` en vivo: ahí precio y stock tienen que ser exactos.
+ */
+const vitrinaEnCache = unstable_cache(
+  async () => {
+    const v = await leerVitrina()
+    // `leerVitrina` traga los errores de la base y devuelve la tienda vacía:
+    // guardar eso dejaría el catálogo en blanco un minuto tras un fallo breve.
+    // Lanzar impide que se guarde.
+    if (v.productos.length === 0) throw new Error('vitrina vacía: no se guarda')
+    return v
+  },
+  ['vitrina'],
+  { revalidate: 60, tags: ['portada'] },
+)
+
+export async function leerVitrinaGuardada(): Promise<Vitrina> {
+  try {
+    return await vitrinaEnCache()
+  } catch {
+    return leerVitrina()
+  }
 }

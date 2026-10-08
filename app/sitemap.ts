@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { urlSitio } from '@/lib/sitio'
 
 // Los productos cambian desde el panel: se arma en cada petición.
@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   try {
-    const { productos } = await leerVitrina()
+    const { productos } = await leerVitrinaGuardada()
     return [
       ...fijas,
       ...productos.map((p) => ({ url: `${base}/producto/${encodeURIComponent(p.slug)}`, changeFrequency: 'weekly' as const, priority: 0.8 })),

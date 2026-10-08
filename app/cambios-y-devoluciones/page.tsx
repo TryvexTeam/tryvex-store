@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { leerConfiguracion } from '@/lib/configuracion'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 }
 
 export default async function CambiosYDevoluciones() {
-  const [configuracion, vitrina] = await Promise.all([leerConfiguracion(), leerVitrina()])
+  const [configuracion, vitrina] = await Promise.all([leerConfiguracion(), leerVitrinaGuardada()])
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
   const garantia = configuracion?.garantia_texto?.trim()
   const retracto = configuracion?.retracto_texto?.trim()

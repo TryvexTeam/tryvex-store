@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { leerPiezas, type PiezaLanding } from '@/lib/secciones'
 import { HeroeCampana } from '@/components/tienda/campana'
 import { FraseProductos, productosPorCategoria } from '@/components/tienda/frase-productos'
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
 
 const datosCyber = unstable_cache(
   async () => {
-    const [vitrina, piezas, resenas, resumenResenas, minimoMayorista] = await Promise.all([leerVitrina(), leerPiezas(), leerResenas(), leerResumenResenas(), leerMinimoMayorista().catch(() => null)])
+    const [vitrina, piezas, resenas, resumenResenas, minimoMayorista] = await Promise.all([leerVitrinaGuardada(), leerPiezas(), leerResenas(), leerResumenResenas(), leerMinimoMayorista().catch(() => null)])
     // Un Map no sobrevive al caché (se guarda como JSON): viaja como pares, igual que en la portada.
     return { vitrina, piezas: [...piezas] as [string, PiezaLanding][], resenas, resumenResenas, minimoMayorista }
   },

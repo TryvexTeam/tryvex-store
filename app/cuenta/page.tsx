@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { exigirCuenta, leerMisFavoritos, leerMisPedidos } from '@/lib/cuenta'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { clp } from '@/lib/formato'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default async function MiCuenta() {
   const cuenta = await exigirCuenta()
-  const [pedidos, favoritos, { categorias, configuracion }] = await Promise.all([leerMisPedidos(), leerMisFavoritos(), leerVitrina()])
+  const [pedidos, favoritos, { categorias, configuracion }] = await Promise.all([leerMisPedidos(), leerMisFavoritos(), leerVitrinaGuardada()])
   const saludo = cuenta.nombre?.split(' ')[0] ?? 'Hola'
   const destacado = indiceDestacado(pedidos)
   const pedidoActivo = destacado === -1 ? null : pedidos[destacado]

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { leerFicha, relacionados } from '@/lib/ficha'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
@@ -47,7 +47,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   // Color elegido en la card: solo un id con forma de uuid, lo demás se ignora.
   const v = (await props.searchParams).v
   const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
-  const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
+  const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrinaGuardada()])
   if (!ficha) notFound()
   const [resenas, resumenResenas, cuenta] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id), cuentaActual()])
   const propia = cuenta ? await resenaPropia(ficha.id, cuenta.id) : null
