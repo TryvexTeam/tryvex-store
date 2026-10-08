@@ -82,6 +82,21 @@ export function ZonaProductos({ productos, children }: { productos: ProductoMedi
   )
 }
 
+/** Mide el clic en la fila de familias de la tienda (la misma de la portada), sin tocarla. */
+export function ZonaCategorias({ children }: { children: ReactNode }) {
+  return (
+    <div
+      onClickCapture={(e) => {
+        const enlace = (e.target as HTMLElement).closest('a[href*="cat="]')
+        if (!enlace) return
+        rastrearPropio('CyberCategory_Click', { category_name: enlace.textContent?.trim() ?? '', content_category: 'Cyber' })
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
 /**
  * Barra inferior del teléfono: «Ver ofertas» y WhatsApp siempre a mano.
  * Se esconde cuando aparece el pie de página (ahí ya están esos enlaces y

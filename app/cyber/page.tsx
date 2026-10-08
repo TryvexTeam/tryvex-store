@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
-import { CYBER_CATEGORIAS, MENSAJES_WHATSAPP, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
+import { CYBER_CATEGORIAS, MENSAJES_WHATSAPP, PACKS_CYBER, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
 import { leerMinimoMayorista, productosCyber, vendibleEnCampana } from '@/lib/cyber-productos'
 import { enlaceWhatsapp } from '@/lib/whatsapp'
 import { Cabecera } from '@/components/tienda/cabecera'
@@ -22,6 +22,7 @@ import {
   ObjetivoCyber,
   OfertasCyber,
   PacksCyber,
+  type PackVisible,
 } from './secciones'
 
 /**
@@ -77,6 +78,21 @@ export default async function PaginaCyber() {
   const destacadas = CYBER_CATEGORIAS.flatMap((slug) => porSlug.get(slug) ?? [])
   const enlaceCategoria = (slug: string) => (porSlug.has(slug) ? `/tienda?cat=${encodeURIComponent(slug)}` : null)
   const hrefPack = (p: PackCyber) => ('categoria' in p.destino ? enlaceCategoria(p.destino.categoria) : whatsapp(MENSAJES_WHATSAPP[p.destino.whatsapp]))
+  // Foto real: la del primer producto vendible de la categoría del pack; el pack
+  // de reventa (va a WhatsApp) muestra un producto de las ofertas.
+  const fotoCategoria = (slug: string) => porSlug.get(slug)?.productos.find(vendibleEnCampana)?.imagen ?? null
+  const packs: PackVisible[] = PACKS_CYBER.flatMap((p) => {
+    const href = hrefPack(p)
+    if (!href) return []
+    const foto = 'categoria' in p.destino ? fotoCategoria(p.destino.categoria) : (lista[0]?.imagen ?? null)
+    return [{ ...p, href, foto }]
+  })
+  // Tres productos de familias distintas para el bloque de reventa.
+  const familias = new Set<string | null>()
+  const fotosReventa = lista
+    .filter((p) => (familias.has(p.categoriaId) ? false : (familias.add(p.categoriaId), true)))
+    .slice(0, 3)
+    .map((p) => ({ src: p.imagen!, alt: p.nombre }))
   const regalo = enlaceCategoria('relojes') ?? enlaceCategoria('audifonos') ?? '#ofertas'
 
   const preguntas: PreguntaCyber[] = [
@@ -105,8 +121,8 @@ export default async function PaginaCyber() {
         <HeroCyber productos={lista} whatsappMayorista={whatsappMayorista} envio={envio} />
         <ConfianzaCyber envio={envio} />
         <OfertasCyber productos={lista} />
-        <ObjetivoCyber whatsappMayorista={whatsappMayorista} regalo={regalo} />
-        <PacksCyber hrefDe={hrefPack} />
+        <ObjetivoCyber whatsappMayorista={whatsappMayorista} regalo={regalo} fotos={fotosReventa} />
+        <PacksCyber packs={packs} />
         <MayoristaCyber whatsappMayorista={whatsappMayorista} revender="/tienda?disponibles=1" desde={minimoMayorista} />
         <CategoriasCyber categorias={destacadas} />
         {resenasCampana.length > 0 && (

@@ -1,20 +1,28 @@
 import Image from 'next/image'
-import type { ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import type { CategoriaTienda, ProductoTienda } from '@/lib/tienda'
 import { CardProducto } from '@/components/tienda/card-producto'
+import { FilaCategorias } from '@/components/tienda/fila-categorias'
 import { clp } from '@/lib/formato'
-import { PACKS_CYBER, copyCyber, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
-import { EnlaceMedido, IconoWhatsapp, ZonaProductos } from './rastreo'
+import { copyCyber, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
+import { EnlaceMedido, IconoWhatsapp, ZonaCategorias, ZonaProductos } from './rastreo'
 
 /**
- * Secciones de /cyber, de servidor. Mismo lenguaje visual que la tienda
- * (papel, tinta, tarjetas de 18 px, botones píldora) con el rojo `spark` como
- * acento de urgencia. Cada CTA mide su clic con `EnlaceMedido`.
+ * Secciones de /cyber, de servidor, en el mismo mundo visual de la tienda:
+ * papel y tinta, tarjetas de 18 px, botones píldora, el rojo `spark` solo como
+ * acento de urgencia, y el movimiento de lectura de la portada (`revela`,
+ * `revela-escala`, `cierre-revela`), que funciona sin JavaScript y se apaga con
+ * movimiento reducido.
+ *
+ * Sin etiquetas en mayúsculas sobre los títulos ni filas de tarjetas iguales:
+ * cada sección tiene su propia composición. Cada CTA mide su clic.
  */
 
 const BOTON_PRIMARIO = 'tienda-boton bg-spark text-[16px] font-semibold text-white hover:bg-spark-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
 const BOTON_SECUNDARIO = 'tienda-boton bg-papel text-[16px] font-semibold text-tinta ring-1 ring-borde ring-inset hover:bg-papel-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta'
 const BOTON_OSCURO = 'tienda-boton bg-tinta text-[16px] font-semibold text-white hover:bg-tinta/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark'
+
+const escalon = (i: number) => ({ '--i': `${i * 4}%` }) as CSSProperties
 
 function Check() {
   return (
@@ -24,11 +32,10 @@ function Check() {
   )
 }
 
-function Encabezado({ id, etiqueta, titulo, bajada, centrado = false }: { id: string; etiqueta?: string; titulo: string; bajada?: string; centrado?: boolean }) {
+function Titulo({ id, titulo, bajada, centrado = false }: { id: string; titulo: string; bajada?: string; centrado?: boolean }) {
   return (
-    <div className={centrado ? 'mx-auto max-w-[680px] text-center' : 'max-w-[680px]'}>
-      {etiqueta && <p className="text-[13px] font-semibold tracking-[0.12em] text-spark uppercase">{etiqueta}</p>}
-      <h2 id={id} className="mt-1 text-[28px] leading-[1.1] font-semibold tracking-seccion text-balance text-tinta t:text-[38px]">{titulo}</h2>
+    <div className={`revela ${centrado ? 'mx-auto max-w-[680px] text-center' : 'max-w-[680px]'}`}>
+      <h2 id={id} className="text-[28px] leading-[1.1] font-semibold tracking-seccion text-balance text-tinta t:text-[38px]">{titulo}</h2>
       {bajada && <p className="mt-2 text-[16px] leading-relaxed text-tinta-suave t:text-[17px]">{bajada}</p>}
     </div>
   )
@@ -41,7 +48,6 @@ export function BarraCyber({ envio }: { envio: string }) {
     <aside aria-label="Cyber Tryvex" className="bg-tinta px-4 text-white">
       <div className="mx-auto flex min-h-11 max-w-[1204px] flex-wrap items-center justify-center gap-x-3 gap-y-1 py-2 text-center text-[13px] leading-snug">
         <p className="font-medium">
-          <span className="mr-1.5 inline-block size-2 rounded-full bg-spark align-middle" aria-hidden />
           {copyCyber.barra}
           <span className="hidden d:inline"> · {envio} · Pago seguro</span>
         </p>
@@ -58,13 +64,10 @@ export function BarraCyber({ envio }: { envio: string }) {
 export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: ProductoTienda[]; whatsappMayorista: string; envio: string }) {
   const vitrina = productos.slice(0, 4)
   return (
-    <section aria-labelledby="cyber-titulo" className="px-[var(--canal)] pt-6 pb-10 t:pt-10 t:pb-14">
+    <section aria-labelledby="cyber-titulo" className="px-[var(--canal)] pt-8 pb-10 t:pt-12 t:pb-14">
       <div className="mx-auto grid max-w-[1204px] items-center gap-8 n:grid-cols-[1.05fr_1fr] n:gap-12">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-spark-suave px-3 py-1 text-[13px] font-semibold text-spark">
-            <span className="size-2 rounded-full bg-spark" aria-hidden /> {copyCyber.insignia}
-          </p>
-          <h1 id="cyber-titulo" className="mt-4 text-[44px] leading-[1] font-semibold tracking-mega text-balance text-tinta t:text-[60px] d:text-[72px]">
+          <h1 id="cyber-titulo" className="text-[44px] leading-[1] font-semibold tracking-mega text-balance text-tinta t:text-[60px] d:text-[72px]">
             {copyCyber.titulo}
           </h1>
           <p className="mt-4 text-[20px] leading-snug font-semibold tracking-cuerpo text-balance text-tinta t:text-[24px]">{copyCyber.subtitulo}</p>
@@ -87,8 +90,8 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
         {vitrina.length > 0 && (
           <ul className="grid grid-cols-2 gap-3 t:gap-4" aria-label="Algunas ofertas">
             {vitrina.map((p, i) => (
-              <li key={p.id}>
-                <a href={p.href} className="group relative flex aspect-square flex-col overflow-hidden rounded-[18px] bg-papel p-3 ring-1 ring-borde/60 transition-shadow hover:shadow-alzado t:p-4">
+              <li key={p.id} className="revela-escala" style={escalon(i)}>
+                <a href={p.href} className="tienda-marco group relative flex aspect-square flex-col overflow-hidden rounded-[18px] bg-papel p-3 t:p-4">
                   {p.precioAntes && (
                     <span className="absolute top-3 left-3 z-10 rounded-full bg-spark px-2 py-0.5 text-[12px] font-semibold text-white">
                       -{Math.floor((1 - p.precio / p.precioAntes) * 100)}%
@@ -102,7 +105,7 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
                       priority={i === 0}
                       fetchPriority={i === 0 ? 'high' : undefined}
                       sizes="(min-width: 1069px) 280px, (min-width: 834px) 22vw, 45vw"
-                      className="object-contain transition-transform duration-200 group-hover:scale-[1.03] motion-reduce:transition-none"
+                      className="tienda-card-objeto object-contain"
                     />
                   </span>
                   <span className="mt-2 line-clamp-1 text-[13px] font-semibold text-tinta t:text-[14px]">{p.nombre}</span>
@@ -117,7 +120,7 @@ export function HeroCyber({ productos, whatsappMayorista, envio }: { productos: 
   )
 }
 
-/* 4 · Confianza ------------------------------------------------------------- */
+/* 4 · Confianza: la misma franja de la portada ----------------------------- */
 
 const TRAZOS = {
   envio: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
@@ -127,23 +130,19 @@ const TRAZOS = {
 }
 
 export function ConfianzaCyber({ envio }: { envio: string }) {
-  const items: { trazo: string; titulo: string; texto: string }[] = [
-    { trazo: TRAZOS.envio, titulo: envio, texto: 'Despachos disponibles.' },
-    { trazo: TRAZOS.garantia, titulo: 'Garantía de 6 meses', texto: 'Garantía legal desde que lo recibes.' },
-    { trazo: TRAZOS.retracto, titulo: '10 días para arrepentirte', texto: 'Según las condiciones de la tienda.' },
-    { trazo: TRAZOS.pago, titulo: 'Pago seguro', texto: 'Mercado Pago o transferencia.' },
+  const items = [
+    { trazo: TRAZOS.envio, texto: envio },
+    { trazo: TRAZOS.garantia, texto: 'Garantía de 6 meses' },
+    { trazo: TRAZOS.retracto, texto: '10 días para arrepentirte' },
+    { trazo: TRAZOS.pago, texto: 'Pago seguro con Mercado Pago o transferencia' },
   ]
   return (
-    <section aria-labelledby="confianza-titulo" className="px-[var(--canal)]">
-      <h2 id="confianza-titulo" className="sr-only">Compra online con respaldo</h2>
-      <ul className="mx-auto grid max-w-[1204px] grid-cols-2 gap-3 d:grid-cols-4">
+    <section aria-label="Compra online con respaldo" className="border-y border-borde/60 bg-papel">
+      <ul className="mx-auto grid max-w-[1204px] grid-cols-2 gap-x-4 gap-y-3 px-[var(--canal)] py-5 d:grid-cols-4 d:px-0">
         {items.map((it) => (
-          <li key={it.titulo} className="flex flex-col gap-2 rounded-[18px] bg-papel p-4 ring-1 ring-borde/60 t:flex-row t:items-start t:gap-3 t:p-5">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-spark"><path d={it.trazo} /></svg>
-            <span>
-              <span className="block text-[15px] leading-tight font-semibold text-tinta">{it.titulo}</span>
-              <span className="mt-1 block text-[13px] leading-snug text-tinta-suave">{it.texto}</span>
-            </span>
+          <li key={it.texto} className="flex items-center gap-2.5 text-[13px] leading-snug font-medium text-tinta-suave t:text-[14px] d:justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-spark"><path d={it.trazo} /></svg>
+            {it.texto}
           </li>
         ))}
       </ul>
@@ -158,16 +157,16 @@ export function OfertasCyber({ productos }: { productos: ProductoTienda[] }) {
   return (
     <section id="ofertas" aria-labelledby="ofertas-titulo" className="scroll-mt-20 px-[var(--canal)] pt-14 t:pt-20">
       <div className="mx-auto max-w-[1204px]">
-        <div className="flex flex-col gap-4 t:flex-row t:items-end t:justify-between">
-          <Encabezado id="ofertas-titulo" etiqueta="Cyber Tryvex" titulo="Top ofertas Cyber" bajada="Productos seleccionados con stock sujeto a disponibilidad." />
-          <EnlaceMedido href="/tienda?ofertas=1&disponibles=1" evento="CyberAllOffers_Click" className="text-[15px] font-semibold text-spark underline-offset-2 hover:underline">
-            Ver todas las ofertas →
+        <div className="flex flex-col gap-3 t:flex-row t:items-end t:justify-between">
+          <Titulo id="ofertas-titulo" titulo="Top ofertas Cyber" bajada="Productos seleccionados con stock sujeto a disponibilidad." />
+          <EnlaceMedido href="/tienda?ofertas=1&disponibles=1" evento="CyberAllOffers_Click" className="inline-flex min-h-11 items-center text-[15px] font-semibold text-tinta underline decoration-borde underline-offset-4 hover:decoration-tinta">
+            Ver todas las ofertas
           </EnlaceMedido>
         </div>
         <ZonaProductos productos={productos.map((p) => ({ href: p.href, sku: p.sku, nombre: p.nombre, precio: p.precio }))}>
           <ul className="mt-6 grid grid-cols-2 gap-3 t:gap-4 d:grid-cols-4">
-            {productos.map((p) => (
-              <li key={p.id} className="min-w-0">
+            {productos.map((p, i) => (
+              <li key={p.id} className="revela-escala min-w-0" style={escalon(i % 4)}>
                 <CardProducto producto={p} fluida transicion={false} />
               </li>
             ))}
@@ -178,63 +177,100 @@ export function OfertasCyber({ productos }: { productos: ProductoTienda[] }) {
   )
 }
 
-/* 6 · Compra por objetivo -------------------------------------------------- */
+/* 6 · Compra por objetivo: dos caminos claros y el mayorista en grande ------ */
 
-export function ObjetivoCyber({ whatsappMayorista, regalo }: { whatsappMayorista: string; regalo: string }) {
-  const tarjetas: { titulo: string; texto: string; cta: string; href: string; evento: string; estandar?: 'Lead' }[] = [
+export function ObjetivoCyber({ whatsappMayorista, regalo, fotos }: { whatsappMayorista: string; regalo: string; fotos: { src: string; alt: string }[] }) {
+  const caminos = [
     { titulo: 'Comprar para mí', texto: 'Productos tech para uso diario, regalo o renovación de accesorios.', cta: 'Ver productos al detalle', href: '#ofertas', evento: 'CyberIntent_Detail_Click' },
     { titulo: 'Comprar para regalar', texto: 'Audífonos, relojes y accesorios fáciles de regalar.', cta: 'Ver ideas de regalo', href: regalo, evento: 'CyberIntent_Gift_Click' },
-    { titulo: 'Comprar para revender', texto: 'Productos de alta rotación para emprendedores.', cta: 'Pedir lista mayorista', href: whatsappMayorista, evento: 'CyberIntent_Wholesale_Click', estandar: 'Lead' },
   ]
   return (
     <section aria-labelledby="objetivo-titulo" className="px-[var(--canal)] pt-16 t:pt-24">
       <div className="mx-auto max-w-[1204px]">
-        <Encabezado id="objetivo-titulo" titulo="¿Qué estás buscando hoy?" bajada="Compra tecnología para todos los días: productos prácticos, modernos y fáciles de usar." />
-        <ul className="mt-6 grid gap-3 t:grid-cols-3 t:gap-4">
-          {tarjetas.map((t, i) => (
-            <li key={t.titulo} className={`flex flex-col rounded-[18px] p-6 ring-1 t:p-7 ${i === 2 ? 'bg-tinta text-white ring-tinta' : 'bg-papel text-tinta ring-borde/60'}`}>
-              <h3 className="text-[21px] leading-tight font-semibold tracking-tarjeta">{t.titulo}</h3>
-              <p className={`mt-2 flex-1 text-[15px] leading-relaxed ${i === 2 ? 'text-white/75' : 'text-tinta-suave'}`}>{t.texto}</p>
-              <EnlaceMedido href={t.href} evento={t.evento} estandar={t.estandar} className={`mt-5 self-start ${i === 2 ? BOTON_PRIMARIO : BOTON_OSCURO}`}>
-                {t.cta}
-              </EnlaceMedido>
-            </li>
-          ))}
-        </ul>
+        <Titulo id="objetivo-titulo" titulo="¿Qué estás buscando hoy?" />
+        <div className="mt-6 grid gap-3 t:gap-4 d:grid-cols-[1fr_1.15fr]">
+          <ul className="grid gap-3 t:grid-cols-2 t:gap-4 d:grid-cols-1">
+            {caminos.map((c, i) => (
+              <li key={c.titulo} className="revela-escala flex flex-col justify-between gap-5 rounded-[18px] bg-papel p-6 t:p-7" style={escalon(i)}>
+                <div>
+                  <h3 className="text-[21px] leading-tight font-semibold tracking-tarjeta text-tinta">{c.titulo}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-tinta-suave">{c.texto}</p>
+                </div>
+                <EnlaceMedido href={c.href} evento={c.evento} className="inline-flex min-h-11 items-center self-start text-[15px] font-semibold text-tinta underline decoration-borde underline-offset-4 hover:decoration-tinta">
+                  {c.cta} <span aria-hidden className="ml-1">→</span>
+                </EnlaceMedido>
+              </li>
+            ))}
+          </ul>
+          <div className="revela-escala relative flex min-h-[340px] flex-col justify-between overflow-hidden rounded-[18px] bg-tinta p-6 text-white t:p-8" style={escalon(2)}>
+            <div className="relative z-10 max-w-[30ch]">
+              <h3 className="text-[26px] leading-tight font-semibold tracking-tarjeta t:text-[32px]">Comprar para revender</h3>
+              <p className="mt-2 text-[16px] leading-relaxed text-white/75">Productos de alta rotación para emprendedores. Precios por cantidad y stock sujeto a disponibilidad.</p>
+            </div>
+            {fotos.length > 0 && (
+              <ul aria-hidden className="pointer-events-none my-6 flex items-end justify-center gap-2 t:absolute t:right-6 t:bottom-6 t:my-0 t:w-[48%] d:w-[52%]">
+                {fotos.map((f, i) => (
+                  <li key={f.src} className={`relative aspect-square flex-1 rounded-[14px] bg-white/[0.07] ${i === 1 ? 't:-translate-y-6' : ''}`}>
+                    <Image src={f.src} alt="" fill sizes="(min-width: 1069px) 160px, 30vw" loading="lazy" className="object-contain p-2" />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <EnlaceMedido href={whatsappMayorista} evento="CyberIntent_Wholesale_Click" estandar="Lead" className={`${BOTON_PRIMARIO} relative z-10 gap-2 self-start`}>
+              <IconoWhatsapp /> Pedir lista mayorista
+            </EnlaceMedido>
+          </div>
+        </div>
       </div>
     </section>
   )
 }
 
-/* 7 · Packs ---------------------------------------------------------------- */
+/* 7 · Packs: cada uno con una foto real de su categoría --------------------- */
 
-export function PacksCyber({ hrefDe }: { hrefDe: (p: PackCyber) => string | null }) {
-  const packs = PACKS_CYBER.flatMap((p) => {
-    const href = hrefDe(p)
-    return href ? [{ ...p, href }] : []
-  })
+export type PackVisible = PackCyber & { href: string; foto: string | null }
+
+export function PacksCyber({ packs }: { packs: PackVisible[] }) {
   if (packs.length === 0) return null
   return (
     <section aria-labelledby="packs-titulo" className="px-[var(--canal)] pt-16 t:pt-24">
       <div className="mx-auto max-w-[1204px]">
-        <Encabezado id="packs-titulo" etiqueta="Packs Cyber Tryvex" titulo="Packs para comprar, regalar o revender" bajada="Elige según tu objetivo y consulta disponibilidad." />
-        <ul className="mt-6 grid grid-cols-1 gap-3 t:grid-cols-2 t:gap-4 d:grid-cols-4">
-          {packs.map((p) => (
-            <li key={p.id} className="flex flex-col rounded-[18px] bg-papel p-6 ring-1 ring-borde/60">
-              <p className="text-[12px] font-semibold tracking-[0.1em] text-spark uppercase">{p.contenido}</p>
-              <h3 className="mt-2 text-[20px] leading-tight font-semibold tracking-tarjeta text-tinta">{p.titulo}</h3>
-              <p className="mt-2 flex-1 text-[15px] leading-relaxed text-tinta-suave">{p.frase}</p>
-              <EnlaceMedido
-                href={p.href}
-                evento="CyberPack_Click"
-                estandar={'whatsapp' in p.destino ? 'Lead' : undefined}
-                parametros={{ content_name: p.titulo }}
-                className={`mt-5 self-start ${'whatsapp' in p.destino ? BOTON_PRIMARIO : BOTON_SECUNDARIO} !text-[15px]`}
+        <Titulo id="packs-titulo" titulo="Packs para comprar, regalar o revender" bajada="Elige según tu objetivo y consulta disponibilidad." />
+        <ul className="mt-6 grid gap-3 t:grid-cols-2 t:gap-4">
+          {packs.map((p, i) => {
+            const porWhatsapp = 'whatsapp' in p.destino
+            return (
+              <li
+                key={p.id}
+                // El botón va a todo el ancho de la tarjeta en el teléfono: en la columna
+                // de texto, «Pedir precios por cantidad» se partía en dos líneas.
+                className={`revela-escala grid min-h-[200px] overflow-hidden rounded-[18px] bg-papel ${p.foto ? 'grid-cols-[minmax(0,1fr)_34%] t:grid-cols-[minmax(0,1fr)_38%]' : 'grid-cols-1'}`}
+                style={escalon(i % 2)}
               >
-                {p.cta}
-              </EnlaceMedido>
-            </li>
-          ))}
+                <div className="min-w-0 px-6 pt-6">
+                  <h3 className="text-[20px] leading-tight font-semibold tracking-tarjeta text-tinta">{p.titulo}</h3>
+                  <p className="mt-1 text-[14px] font-medium text-gris">{p.contenido}</p>
+                  <p className="mt-3 text-[15px] leading-relaxed text-tinta-suave">{p.frase}</p>
+                </div>
+                {p.foto && (
+                  <div className="relative min-h-[120px] d:row-span-2">
+                    <Image src={p.foto} alt="" fill sizes="(min-width: 735px) 220px, 34vw" loading="lazy" className="tienda-card-objeto object-contain p-4" />
+                  </div>
+                )}
+                <div className="col-span-full self-end px-6 pt-5 pb-6 d:col-span-1">
+                  <EnlaceMedido
+                    href={p.href}
+                    evento="CyberPack_Click"
+                    estandar={porWhatsapp ? 'Lead' : undefined}
+                    parametros={{ content_name: p.titulo }}
+                    className={`${porWhatsapp ? BOTON_PRIMARIO : BOTON_OSCURO} !text-[15px] whitespace-nowrap`}
+                  >
+                    {p.cta}
+                  </EnlaceMedido>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </section>
@@ -254,9 +290,8 @@ export function MayoristaCyber({ whatsappMayorista, revender, desde }: { whatsap
   return (
     <section id="mayorista" aria-labelledby="mayorista-titulo" className="scroll-mt-20 px-[var(--canal)] pt-16 t:pt-24">
       <div className="mx-auto grid max-w-[1204px] gap-8 overflow-hidden rounded-[28px] bg-tinta px-6 py-10 text-white t:px-12 t:py-14 n:grid-cols-[1.2fr_1fr] n:items-center">
-        <div>
-          <p className="text-[13px] font-semibold tracking-[0.12em] text-[#ff8a80] uppercase">Mayorista</p>
-          <h2 id="mayorista-titulo" className="mt-2 text-[30px] leading-[1.08] font-semibold tracking-seccion text-balance t:text-[42px]">¿Quieres emprender vendiendo tecnología?</h2>
+        <div className="revela">
+          <h2 id="mayorista-titulo" className="text-[30px] leading-[1.08] font-semibold tracking-seccion text-balance t:text-[42px]">¿Quieres emprender vendiendo tecnología?</h2>
           <p className="mt-3 max-w-[48ch] text-[16px] leading-relaxed text-white/75 t:text-[17px]">
             Pide lista mayorista y arma tu primer catálogo con productos fáciles de mostrar y vender por redes.
           </p>
@@ -269,9 +304,9 @@ export function MayoristaCyber({ whatsappMayorista, revender, desde }: { whatsap
             </EnlaceMedido>
           </div>
         </div>
-        <ul className="grid gap-3">
+        <ul className="divide-y divide-white/10 border-y border-white/10">
           {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-3 rounded-[14px] bg-white/[0.06] px-4 py-3 text-[15px] leading-snug text-white/90">
+            <li key={b} className="flex items-start gap-3 py-3.5 text-[15px] leading-snug text-white/90">
               <Check />{b}
             </li>
           ))}
@@ -281,40 +316,27 @@ export function MayoristaCyber({ whatsappMayorista, revender, desde }: { whatsap
   )
 }
 
-/* 9 · Categorías ------------------------------------------------------------ */
+/* 9 · Categorías: la fila de familias de la tienda -------------------------- */
 
 export function CategoriasCyber({ categorias }: { categorias: CategoriaTienda[] }) {
   if (categorias.length === 0) return null
   return (
-    <section aria-labelledby="categorias-cyber-titulo" className="px-[var(--canal)] pt-16 t:pt-24">
-      <div className="mx-auto max-w-[1204px]">
-        <Encabezado id="categorias-cyber-titulo" titulo="Top categorías" bajada="Entra directo a lo que buscas." />
-        <ul className="mt-6 grid grid-cols-2 gap-3 t:grid-cols-4 d:grid-cols-7">
-          {categorias.map((c) => {
-            const foto = c.imagen ?? c.productos.find((p) => p.imagen)?.imagen ?? null
-            return (
-              <li key={c.id}>
-                <EnlaceMedido
-                  href={`/tienda?cat=${encodeURIComponent(c.slug)}`}
-                  evento="CyberCategory_Click"
-                  parametros={{ category_name: c.nombre }}
-                  className="group flex h-full flex-col items-center gap-2 rounded-[18px] bg-papel p-4 text-center ring-1 ring-borde/60 transition-shadow hover:shadow-alzado"
-                >
-                  <span className="relative block size-20">
-                    {foto && <Image src={foto} alt="" fill sizes="128px" loading="lazy" className="object-contain transition-transform duration-200 group-hover:scale-105 motion-reduce:transition-none" />}
-                  </span>
-                  <span className="text-[14px] leading-tight font-semibold text-tinta">{c.nombre}</span>
-                </EnlaceMedido>
-              </li>
-            )
-          })}
-        </ul>
+    <section aria-labelledby="categorias-cyber-titulo" className="pt-16 t:pt-24">
+      <div className="px-[var(--canal)]">
+        <div className="mx-auto max-w-[1204px]">
+          <Titulo id="categorias-cyber-titulo" titulo="Top categorías" />
+        </div>
+      </div>
+      <div className="mt-3">
+        <ZonaCategorias>
+          <FilaCategorias categorias={categorias} activa={null} />
+        </ZonaCategorias>
       </div>
     </section>
   )
 }
 
-/* 11 · Cómo comprar --------------------------------------------------------- */
+/* 11 · Cómo comprar: una secuencia, no tarjetas ----------------------------- */
 
 export function ComoComprarCyber({ whatsappStock }: { whatsappStock: string }) {
   const pasos = [
@@ -326,17 +348,17 @@ export function ComoComprarCyber({ whatsappStock }: { whatsappStock: string }) {
   return (
     <section id="como-comprar" aria-labelledby="como-titulo" className="scroll-mt-20 px-[var(--canal)] pt-16 t:pt-24">
       <div className="mx-auto max-w-[1204px]">
-        <Encabezado id="como-titulo" titulo="Comprar en Tryvex es simple" />
-        <ol className="mt-6 grid gap-3 t:grid-cols-2 d:grid-cols-4">
+        <Titulo id="como-titulo" titulo="Comprar en Tryvex es simple" />
+        <ol className="mt-8 grid gap-x-8 t:grid-cols-2 d:grid-cols-4">
           {pasos.map(([titulo, texto], i) => (
-            <li key={titulo} className="rounded-[18px] bg-papel p-5 ring-1 ring-borde/60">
-              <span className="cifra grid size-9 place-items-center rounded-full bg-spark-suave text-[15px] font-semibold text-spark" aria-hidden>{i + 1}</span>
-              <h3 className="mt-3 text-[17px] font-semibold text-tinta"><span className="sr-only">Paso {i + 1}: </span>{titulo}</h3>
+            <li key={titulo} className="revela border-t border-borde py-5" style={escalon(i)}>
+              <span className="cifra text-[15px] font-semibold text-spark" aria-hidden>{i + 1}</span>
+              <h3 className="mt-2 text-[18px] font-semibold text-tinta"><span className="sr-only">Paso {i + 1}: </span>{titulo}</h3>
               <p className="mt-1 text-[15px] leading-relaxed text-tinta-suave">{texto}</p>
             </li>
           ))}
         </ol>
-        <div className="mt-6 flex flex-col gap-3 t:flex-row">
+        <div className="mt-4 flex flex-col gap-3 t:flex-row">
           <EnlaceMedido href="#ofertas" evento="CyberHowToBuyCTA_Click" parametros={{ boton: 'ofertas' }} className={BOTON_OSCURO}>Ver ofertas</EnlaceMedido>
           <EnlaceMedido href={whatsappStock} evento="CyberHowToBuyCTA_Click" estandar="Contact" parametros={{ boton: 'whatsapp' }} className={`${BOTON_SECUNDARIO} gap-2`}>
             <IconoWhatsapp /> Consultar por WhatsApp
@@ -353,13 +375,13 @@ export function FaqCyber({ preguntas }: { preguntas: PreguntaCyber[] }) {
   return (
     <section aria-labelledby="faq-titulo" className="px-[var(--canal)] pt-16 t:pt-24">
       <div className="mx-auto max-w-[820px]">
-        <Encabezado id="faq-titulo" titulo="Preguntas frecuentes" centrado />
+        <Titulo id="faq-titulo" titulo="Preguntas frecuentes" centrado />
         <div className="mt-6 divide-y divide-borde/70 rounded-[18px] bg-papel ring-1 ring-borde/60">
           {preguntas.map((p) => (
             <details key={p.pregunta} className="group px-5 t:px-6">
               <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[16px] font-semibold text-tinta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark [&::-webkit-details-marker]:hidden">
                 {p.pregunta}
-                <span aria-hidden className="text-[22px] leading-none text-gris transition-transform duration-200 group-open:rotate-45 motion-reduce:transition-none">+</span>
+                <span aria-hidden className="text-[22px] leading-none text-gris transition-transform duration-200 ease-salida group-open:rotate-45 motion-reduce:transition-none">+</span>
               </summary>
               <p className="pb-5 text-[15px] leading-relaxed text-tinta-suave">{p.respuesta}</p>
             </details>
@@ -370,12 +392,12 @@ export function FaqCyber({ preguntas }: { preguntas: PreguntaCyber[] }) {
   )
 }
 
-/* 13 · CTA final ------------------------------------------------------------ */
+/* 13 · CTA final: el mismo gesto de cierre de la portada --------------------- */
 
-export function CierreCyber({ whatsappMayorista, children }: { whatsappMayorista: string; children?: ReactNode }) {
+export function CierreCyber({ whatsappMayorista }: { whatsappMayorista: string }) {
   return (
     <section aria-labelledby="cierre-cyber-titulo" className="px-[var(--canal)] pt-16 pb-16 t:pt-24 t:pb-24">
-      <div className="mx-auto max-w-[1204px] rounded-[28px] bg-[#f6efe6] px-6 py-12 text-center t:py-16">
+      <div className="cierre-revela mx-auto max-w-[1204px] rounded-[28px] bg-[#f6efe6] px-6 py-12 text-center t:py-16">
         <h2 id="cierre-cyber-titulo" className="mx-auto max-w-[18ch] text-[32px] leading-[1.05] font-semibold tracking-seccion text-balance text-tinta t:text-[46px]">{copyCyber.tituloFinal}</h2>
         <p className="mx-auto mt-3 max-w-[44ch] text-[16px] text-tinta-suave t:text-[18px]">{copyCyber.bajadaFinal}</p>
         <div className="mt-8 flex flex-col justify-center gap-3 t:flex-row">
@@ -384,7 +406,6 @@ export function CierreCyber({ whatsappMayorista, children }: { whatsappMayorista
             <IconoWhatsapp /> Pedir lista mayorista
           </EnlaceMedido>
         </div>
-        {children}
       </div>
     </section>
   )
