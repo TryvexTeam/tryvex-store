@@ -3,6 +3,8 @@ import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
 import { leerPiezas, type PiezaLanding } from '@/lib/secciones'
 import { HeroeCampana } from '@/components/tienda/campana'
+import { FraseProductos, productosPorCategoria } from '@/components/tienda/frase-productos'
+import { ProductoAnotado } from './producto-anotado'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { CYBER_CATEGORIAS, MENSAJES_WHATSAPP, PACKS_CYBER, type PackCyber, type PreguntaCyber } from '@/lib/cyber'
 import { leerMinimoMayorista, productosCyber, vendibleEnCampana } from '@/lib/cyber-productos'
@@ -65,6 +67,9 @@ export default async function PaginaCyber() {
   const { productos, categorias, configuracion: c } = vitrina
 
   const { lista } = productosCyber(productos)
+  // La oferta con mayor descuento de la selección, para el producto anotado.
+  const mayorOferta = [...lista].filter((p) => p.precioAntes).sort((a, b) => b.precioAntes! / b.precio - a.precioAntes! / a.precio)[0] ?? lista[0]
+  const [audio, reloj, carga] = productosPorCategoria(productos, categorias, ['audifonos', 'relojes', 'cargadores-y-cables'])
   // Reseñas reales, pero sin las que hablan de «original»/«Apple»: en una página de
   // anuncios eso se lee como afirmación de la tienda y Meta puede rechazar la campaña.
   const resenasCampana = resenas.filter((r) => !/\b(apple|original(es)?)\b/i.test(r.texto))
@@ -126,7 +131,15 @@ export default async function PaginaCyber() {
         <HeroeCampana productos={productos} piezas={piezas} />
         <HeroCyber whatsappMayorista={whatsappMayorista} envio={envio} />
         <ConfianzaCyber />
+        {audio && reloj && carga && (
+          <FraseProductos
+            id="frase-cyber"
+            className="pt-16 t:pt-24"
+            partes={['Ofertas Cyber en audífonos ', { producto: audio }, ', relojes ', { producto: reloj }, ' y carga rápida ', { producto: carga }, { tono: 'gris', texto: ' hasta agotar stock.' }]}
+          />
+        )}
         <OfertasCyber productos={lista} />
+        {mayorOferta && <ProductoAnotado producto={mayorOferta} />}
         <ObjetivoCyber whatsappMayorista={whatsappMayorista} regalo={regalo} fotos={fotosReventa} />
         <PacksCyber packs={packs} />
         <MayoristaCyber whatsappMayorista={whatsappMayorista} revender="/tienda?disponibles=1" desde={minimoMayorista} />

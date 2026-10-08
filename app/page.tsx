@@ -15,6 +15,7 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { ResenasPortada } from '@/components/tienda/resenas-portada'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
+import { FraseProductos, productosPorCategoria } from '@/components/tienda/frase-productos'
 
 /** Portada de catálogo: categorías y productos se alimentan exclusivamente de la vitrina. */
 
@@ -60,6 +61,8 @@ export default async function Inicio() {
   const piezas = new Map(paresDePiezas)
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
   const nombre = configuracion?.nombre_tienda ?? 'Tryvex'
+  // Frase con productos dentro del texto: uno real por familia, si las tres existen.
+  const [audio, reloj, carga] = productosPorCategoria(productos, categorias, ['audifonos', 'relojes', 'cargadores-y-cables'])
 
   return (
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
@@ -82,6 +85,13 @@ export default async function Inicio() {
             ~5.000 px de narrativa antes del primer producto. Primero qué se
             vende, después por qué. */}
         <ListaProductos productos={loNuevo} total={productos.length} />
+        {audio && reloj && carga && (
+          <FraseProductos
+            id="frase-portada"
+            className="pt-20 t:pt-28"
+            partes={['Tecnología ', { producto: audio }, { tono: 'gris', texto: ' para el día a día, ' }, { producto: reloj }, { tono: 'gris', texto: ' para regalar y ' }, { producto: carga }, { tono: 'gris', texto: ' para revender.' }]}
+          />
+        )}
         <BannerDoble piezas={piezas} />
         <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
         <ResenasPortada resenas={resenas} resumen={resumenResenas} />
