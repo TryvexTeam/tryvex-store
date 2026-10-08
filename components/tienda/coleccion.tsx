@@ -74,18 +74,26 @@ export function ExploraColeccion({ piezas }: { piezas: Map<string, PiezaLanding>
             <div key={c.clave} className="revela-escala" style={{ '--i': `${i * 4}%` } as CSSProperties}>
               <Link
                 href={c.href}
-                className={`tienda-card tienda-card-grande relative block h-[450px] overflow-hidden rounded-[18px] d:h-[500px] ${c.claro ? 'bg-papel text-tinta' : 'bg-black text-white'}`}
+                className={`tienda-card tienda-card-grande relative flex h-[450px] flex-col overflow-hidden rounded-[18px] d:h-[500px] ${c.claro ? 'bg-papel text-tinta' : 'bg-black text-white'}`}
               >
-                <Image src={c.foto} alt="" fill sizes="(min-width: 1069px) 400px, 309px" className="tienda-card-objeto object-cover" />
                 {/* Orden de «Lo último» (Apple): aviso 12/600 a 28 px, título
-                    28/600 a 52, frase 14/600 y una línea 14/400 al cierre. */}
-                <div className="relative z-10 px-7 pt-7">
+                    28/600 a 52, frase 14/600 y una línea 14/400 al cierre.
+                    El texto tiene su propio espacio y la foto ocupa el resto,
+                    anclada abajo. Antes la foto iba a sangre detrás del texto y
+                    chocaban: con fotos que traen su propio titular («WATCH
+                    ULTRA 3…») o el objeto arriba (correas), el texto quedaba
+                    encima del dibujo. Anclada abajo, lo de arriba de la foto
+                    (donde suelen ir esos titulares) queda fuera del recorte. */}
+                <div className="relative z-10 shrink-0 px-7 pt-7 pb-2">
                   <p className={`text-[12px] leading-4 font-semibold uppercase tracking-[0.02em] ${c.claro ? 'text-vino' : 'text-[#ff7a6e]'}`}>{c.etiqueta}</p>
                   <h3 className="mt-2 text-[24px] leading-[1.15] font-semibold tracking-tarjeta text-balance d:text-[28px] d:leading-8">{c.titulo}</h3>
                   {c.bajada && <p className="mt-2.5 max-w-[34ch] text-[14px] leading-[18px] font-semibold">{c.bajada}</p>}
                   <p className="mt-1.5 text-[14px] leading-[18px]">
                     Explorar <span aria-hidden>→</span>
                   </p>
+                </div>
+                <div className="relative mt-auto max-h-[58%] min-h-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_22%)]">
+                  <Image src={c.foto} alt="" fill sizes="(min-width: 1069px) 400px, 309px" className="tienda-card-objeto object-cover object-bottom" />
                 </div>
               </Link>
             </div>

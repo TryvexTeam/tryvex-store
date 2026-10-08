@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ModoFoco } from '@/lib/foco'
 
 /**
@@ -14,13 +14,21 @@ import type { ModoFoco } from '@/lib/foco'
  *    de un archivo a medio bajar obliga al navegador a pedir rangos a la red.
  *
  * Con movimiento reducido, el video queda quieto en su primer cuadro.
+ *
+ * Un video horizontal en el marco vertical del teléfono, con `object-cover`,
+ * mostraba solo una franja del centro (el producto quedaba cortado en el
+ * borde). Si el video es horizontal, en el teléfono se muestra entero: el
+ * marco es negro, así que las franjas de arriba y abajo no se notan.
  */
 export function VideoFoco({ src, modo }: { src: string; modo: ModoFoco }) {
   const video = useRef<HTMLVideoElement>(null)
+  const [horizontal, setHorizontal] = useState(false)
 
   useEffect(() => {
     const el = video.current
     if (!el) return
+    // Si las medidas llegaron antes de hidratar, `loadedmetadata` ya pasó.
+    if (el.readyState >= 1) setHorizontal(el.videoWidth > el.videoHeight)
     const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
     if (modo === 'bucle') {
       if (!quieto) void el.play().catch(() => {})
@@ -82,7 +90,8 @@ export function VideoFoco({ src, modo }: { src: string; modo: ModoFoco }) {
       loop={modo === 'bucle'}
       preload={modo === 'scroll' ? 'auto' : 'metadata'}
       aria-hidden
-      className="absolute inset-0 size-full object-cover"
+      onLoadedMetadata={(e) => setHorizontal(e.currentTarget.videoWidth > e.currentTarget.videoHeight)}
+      className={`absolute inset-0 size-full object-cover ${horizontal ? 'max-t:object-contain' : ''}`}
     />
   )
 }
