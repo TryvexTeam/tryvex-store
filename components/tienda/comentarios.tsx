@@ -84,7 +84,7 @@ export function Comentarios({
           <li key={resena.id} className="comentario-tarjeta relative isolate flex min-h-[330px] w-[min(82vw,390px)] shrink-0 snap-start flex-col overflow-hidden rounded-[28px] bg-papel p-6 shadow-sutil t:min-h-[360px] t:w-[390px] t:p-8" style={{ '--comentario-tono': TONOS[indice % TONOS.length], '--comentario-indice': indice } as CSSProperties}>
             <span aria-hidden className="comentario-orbita comentario-orbita-a" /><span aria-hidden className="comentario-orbita comentario-orbita-b" />
             {resena.foto && <FotoResena resena={resena} />}
-            <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">Compra verificada</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
+            <div className="relative flex items-center justify-between"><span className="text-[13px] font-semibold text-tinta">{resena.verificada ? 'Compra verificada' : 'Reseña de cliente'}</span><span className="rounded-full bg-tinta px-3 py-1 text-[11px] font-semibold tracking-[0.1em] text-white uppercase">Tryvex</span></div>
             <div className="relative mt-3"><Estrellas calificacion={resena.calificacion} /></div>
             <blockquote className="relative mt-5 text-[22px] leading-[1.18] font-medium tracking-cuerpo text-tinta t:text-[25px]">“{resena.texto}”</blockquote>
             <footer className="relative mt-auto pt-7"><p className="font-semibold text-tinta">{resena.cliente}</p>{resena.producto && <p className="mt-0.5 text-[14px] text-tinta-suave">{resena.producto}</p>}</footer>

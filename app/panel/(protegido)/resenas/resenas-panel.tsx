@@ -19,6 +19,8 @@ export type ResenaPanel = {
   id: string; producto_id: string | null; cliente_nombre: string; texto: string; calificacion: number
   visible: boolean; created_at: string; pedidoNumero: number | null; producto: string | null; foto: string | null
   fotoAncho: number | null; fotoAlto: number | null
+  /** La escribió un cliente desde la tienda y aún no se publica: espera aprobación. */
+  porAprobar: boolean
 }
 
 const SIN_PRODUCTO = 'Portada de la tienda (sin producto)'
@@ -77,6 +79,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
   const [medidasNueva, setMedidasNueva] = useState<MedidasFoto | null>(null)
   const [editando, setEditando] = useState<string | null>(null)
   const entradas = useRef<Record<string, HTMLInputElement | null>>({})
+  const porAprobar = resenas.filter((r) => r.porAprobar).length
 
   function crear(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -168,7 +171,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
         
       </section>
       <section aria-labelledby="resenas-lista">
-        <div className="mb-3 flex items-baseline justify-between"><h2 id="resenas-lista" className="text-[18px] font-semibold">Reseñas creadas</h2><span className="text-[13px] text-gris">{resenas.length}</span></div>
+        <div className="mb-3 flex items-baseline justify-between"><h2 id="resenas-lista" className="text-[18px] font-semibold">Reseñas</h2><span className="text-[13px] text-gris">{porAprobar > 0 && <span className="mr-2 font-semibold text-spark">{porAprobar} por aprobar</span>}{resenas.length}</span></div>
         {resenas.length === 0 ? <p className="rounded-[var(--radius-anidado)] bg-papel px-5 py-10 text-center text-[14px] text-gris ring-1 ring-borde/70">Aún no has agregado reseñas.</p> : (
           <ul className="grid gap-3">
             {resenas.map((r) => (
@@ -195,7 +198,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{r.cliente_nombre}</p>
                         <Estrellas calificacion={r.calificacion} />
-                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${r.visible ? 'bg-verde/10 text-verde' : 'bg-papel-alt text-gris'}`}>{r.visible ? 'Visible' : 'Oculta'}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${r.porAprobar ? 'bg-spark/10 text-spark' : r.visible ? 'bg-verde/10 text-verde' : 'bg-papel-alt text-gris'}`}>{r.porAprobar ? 'Por aprobar · escrita por el cliente' : r.visible ? 'Visible' : 'Oculta'}</span>
                       </div>
                       <p className="mt-1 text-[12px] text-gris">{r.pedidoNumero ? `Pedido #${r.pedidoNumero} · ` : ''}{r.producto ?? SIN_PRODUCTO}</p>
                       <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-tinta">{r.texto}</p>
@@ -204,7 +207,7 @@ export function ResenasPanel({ opciones, resenas }: { opciones: OpcionResena[]; 
                         <button type="button" disabled={pendiente} onClick={() => entradas.current[r.id]?.click()} className="presionable inline-flex min-h-10 items-center gap-1.5 rounded-full bg-papel-alt px-3.5 text-[12px] font-medium text-tinta disabled:opacity-60"><IconoCamara size={16} />{r.foto ? 'Cambiar foto' : 'Agregar foto'}</button>
                         {r.foto && <button type="button" disabled={pendiente} onClick={() => quitarFoto(r)} className="presionable min-h-10 rounded-full bg-papel-alt px-3.5 text-[12px] font-medium text-tinta disabled:opacity-60">Quitar foto</button>}
                         <button type="button" disabled={pendiente} onClick={() => setEditando(r.id)} className="presionable min-h-10 rounded-full bg-papel-alt px-3.5 text-[12px] font-medium text-tinta disabled:opacity-60">Editar</button>
-                        <button type="button" disabled={pendiente} onClick={() => visibilidad(r)} className="presionable min-h-10 rounded-full bg-papel-alt px-3.5 text-[12px] font-medium text-tinta disabled:opacity-60">{r.visible ? 'Ocultar' : 'Publicar'}</button>
+                        <button type="button" disabled={pendiente} onClick={() => visibilidad(r)} className="presionable min-h-10 rounded-full bg-papel-alt px-3.5 text-[12px] font-medium text-tinta disabled:opacity-60">{r.visible ? 'Ocultar' : r.porAprobar ? 'Aprobar y publicar' : 'Publicar'}</button>
                         <button type="button" disabled={pendiente} onClick={() => borrar(r)} aria-label={`Borrar reseña de ${r.cliente_nombre}`} className="presionable grid min-h-10 min-w-10 place-items-center rounded-full bg-papel-alt text-gris hover:text-rojo disabled:opacity-60"><IconoBasura size={16} /></button>
                       </div>
                     </>

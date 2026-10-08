@@ -6,6 +6,7 @@ import { registrarStock, precioParaCantidad } from './acciones'
 import { clp } from '@/lib/formato'
 import type { ProductoConVariantes } from '@/lib/variantes-cliente'
 import { Boton } from '@/components/panel/ui'
+import { notificar } from '@/lib/notificar'
 
 const MOTIVOS = [
   { v: 'ingreso', t: 'Ingreso', ayuda: 'Llegó mercadería que compramos', signo: '+' },
@@ -26,12 +27,25 @@ const campo =
 
 export default function FormularioStock({
   productos,
+  productoInicial,
+  tipoInicial,
+  alTerminar,
+  plano = false,
 }: {
   productos: ProductoConVariantes[]
+  /** Producto ya elegido (desde su tarjeta). Sin esto, hay que elegirlo: no se adivina uno. */
+  productoInicial?: string
+  tipoInicial?: string
+  /** Se llama cuando el movimiento quedó registrado (por ejemplo, para cerrar la hoja). */
+  alTerminar?: () => void
+  /** Sin caja ni título propios: va dentro de una hoja. */
+  plano?: boolean
 }) {
   const form = useRef<HTMLFormElement>(null)
-  const [tipo, setTipo] = useState('ingreso')
-  const [producto, setProducto] = useState(productos[0]?.id ?? '')
+  const [tipo, setTipo] = useState(tipoInicial ?? 'ingreso')
+  // Sin producto elegido de antemano, el campo parte vacío y es obligatorio: antes arrancaba en el
+  // primero de la lista y un movimiento podía caer en un producto que nadie eligió.
+  const [producto, setProducto] = useState(productoInicial ?? '')
   const [variante, setVariante] = useState('')
   const [cantidad, setCantidad] = useState('')
   const [precio, setPrecio] = useState('')
@@ -74,8 +88,11 @@ export default function FormularioStock({
       if (r.ok) {
         form.current?.reset()
         setCantidad(''); setVariante(''); setPrecio(''); setTramo(null); setTocoPrecio(false)
-        setMsg({ tipo: r.aviso ? 'aviso' : 'ok', texto: r.aviso ?? 'Movimiento registrado.' })
-        setTimeout(() => setMsg(null), r.aviso ? 7000 : 2600)
+        const nombre = productos.find((p) => p.id === producto)?.nombre
+        if (r.aviso) notificar.aviso('Movimiento registrado', r.aviso)
+        else notificar.ok('Movimiento registrado', nombre)
+        setMsg(null)
+        alTerminar?.()
       } else {
         setMsg({ tipo: 'error', texto: r.error })
       }
@@ -86,9 +103,9 @@ export default function FormularioStock({
     <form
       ref={form}
       onSubmit={enviar}
-      className="rounded-[var(--radius-tarjeta)] bg-papel p-5 ring-1 ring-borde/70"
+      className={plano ? '' : 'rounded-[var(--radius-tarjeta)] bg-papel p-5 ring-1 ring-borde/70'}
     >
-      <h2 className="mb-4 text-[15px] font-semibold">Registrar movimiento</h2>
+      {!plano && <h2 className="mb-4 text-[15px] font-semibold">Registrar movimiento</h2>}
 
       <div role="radiogroup" aria-label="Motivo" className="mb-1 flex flex-wrap gap-1.5">
         {MOTIVOS.map((m) => (

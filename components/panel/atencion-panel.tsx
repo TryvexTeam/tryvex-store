@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ItemAtencion } from '@/lib/atencion'
+import { clp } from '@/lib/formato'
 
 const PUNTO = { rojo: 'bg-rojo', ambar: 'bg-ambar', neutro: 'bg-gris' } as const
 
@@ -18,6 +19,7 @@ export function AtencionPanel({ items }: { items: ItemAtencion[] }) {
                 <span className="block text-[15px] font-medium">{i.titulo}</span>
                 <span className="mt-0.5 block text-[12.5px] text-gris">{i.detalle}</span>
               </span>
+              {i.monto !== undefined && <span className="cifra shrink-0 text-[14px] font-medium">{clp(i.monto)}</span>}
               <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-gris"><path d="m9 6 6 6-6 6" /></svg>
             </Link>
           </li>

@@ -39,6 +39,8 @@ export interface BorradorEscena {
   foto_escritorio: string
   alt: string
   video: string
+  /** Video para teléfono (vertical). Vacío: el teléfono usa `video`. */
+  video_movil: string
   sin_texto: boolean
   /** La cifra calculada de las escenas de promoción («Hasta 38%», «$6.500 c/u»). */
   mostrar_cifra: boolean
@@ -95,6 +97,7 @@ export function borradorDesde(c: Record<string, unknown>, codigo: EscenaHeroe | 
     foto_escritorio: v2 ? url(c.foto_escritorio) : url(c.foto_escritorio) || (codigo?.fotos?.escritorio.src ?? ''),
     alt: texto('alt', codigo?.fotos?.movil.alt, LARGOS.alt),
     video: url(c.video),
+    video_movil: url(c.video_movil),
     sin_texto: c.sin_texto === true,
     mostrar_cifra: c.mostrar_cifra !== false,
     tema_texto: TEMAS_TEXTO.find((t) => t.valor === c.tema_texto)?.valor ?? 'auto',

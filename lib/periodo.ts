@@ -45,6 +45,36 @@ function conAnterior(desde: string, hasta: string): { desde: string; hasta: stri
   return { desde: sumarDias(desde, -largo), hasta: sumarDias(desde, -1) }
 }
 
+/** Mismo día de un mes/año anterior; si no existe (31 → mes de 30, 29-feb), el último día de ese mes. */
+function mismoDiaAntes(iso: string, meses: number): string {
+  const total = +iso.slice(0, 4) * 12 + (+iso.slice(5, 7) - 1) - meses
+  const y = Math.floor(total / 12)
+  const m = total % 12
+  const ultimo = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(Math.min(+iso.slice(8, 10), ultimo)).padStart(2, '0')}`
+}
+
+/**
+ * Instante (ISO en UTC) en que empieza el día `iso` en Santiago. Usa el desfase real de esa fecha
+ * (-03:00 en verano, -04:00 en invierno), no uno fijo: con uno fijo, las ventas cercanas a la
+ * medianoche caían en el día vecino.
+ */
+export function inicioDiaChile(iso: string): string {
+  const [y, m, d] = [+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)]
+  const formato = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+  for (const horasUtc of [3, 4]) {
+    const t = Date.UTC(y, m, d, horasUtc)
+    const partes = Object.fromEntries(formato.formatToParts(new Date(t)).map((p) => [p.type, p.value]))
+    if (`${partes.year}-${partes.month}-${partes.day}` === iso && partes.hour === '00') return new Date(t).toISOString()
+  }
+  return new Date(Date.UTC(y, m, d, 4)).toISOString()
+}
+
+/** Límites para consultar columnas `timestamptz` del periodo: `created_at >= desde` y `created_at < hastaExclusivo`. */
+export function limitesTimestamp(p: { desde: string | null; hasta: string | null }): { desde: string | null; hastaExclusivo: string | null } {
+  return { desde: p.desde ? inicioDiaChile(p.desde) : null, hastaExclusivo: p.hasta ? inicioDiaChile(sumarDias(p.hasta, 1)) : null }
+}
+
 export function resolverPeriodo(params: { periodo?: string; desde?: string; hasta?: string }, hoy = hoyChile()): Periodo {
   if (params.desde && params.hasta && FECHA.test(params.desde) && FECHA.test(params.hasta) && params.desde <= params.hasta) {
     return { clave: 'rango', etiqueta: `${params.desde} a ${params.hasta}`, desde: params.desde, hasta: params.hasta, anterior: conAnterior(params.desde, params.hasta) }
@@ -56,11 +86,12 @@ export function resolverPeriodo(params: { periodo?: string; desde?: string; hast
     }
     case 'mes': {
       const desde = `${hoy.slice(0, 7)}-01`
-      return { clave: 'mes', etiqueta: 'Este mes', desde, hasta: hoy, anterior: conAnterior(desde, hoy) }
+      // Contra los mismos días del mes anterior (1 al N), no contra «los N días de antes».
+      return { clave: 'mes', etiqueta: 'Este mes', desde, hasta: hoy, anterior: { desde: mismoDiaAntes(desde, 1), hasta: mismoDiaAntes(hoy, 1) } }
     }
     case 'ano': {
       const desde = `${hoy.slice(0, 4)}-01-01`
-      return { clave: 'ano', etiqueta: 'Este año', desde, hasta: hoy, anterior: conAnterior(desde, hoy) }
+      return { clave: 'ano', etiqueta: 'Este año', desde, hasta: hoy, anterior: { desde: mismoDiaAntes(desde, 12), hasta: mismoDiaAntes(hoy, 12) } }
     }
     case 'todo':
       return { clave: 'todo', etiqueta: 'Todo el historial', desde: null, hasta: null, anterior: null }

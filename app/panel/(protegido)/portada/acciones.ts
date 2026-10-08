@@ -252,7 +252,7 @@ export async function confirmarVideoEscena(clave: string, ruta: string): Promise
 }
 
 async function borrarHuerfanos(supabase: Supabase, clave: string, antes: Record<string, unknown>, despues: Record<string, unknown>) {
-  const rutas = (['foto_movil', 'foto_escritorio', 'video'] as const)
+  const rutas = (['foto_movil', 'foto_escritorio', 'video', 'video_movil'] as const)
     .filter((k) => antes[k] !== despues[k])
     .flatMap((k) => rutaDeArchivo(antes[k], clave) ?? [])
   if (rutas.length) await supabase.storage.from(BUCKET).remove(rutas)

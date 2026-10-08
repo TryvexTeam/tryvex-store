@@ -51,7 +51,7 @@ export function BotonTema() {
       aria-pressed={oscuro}
       aria-label="Tema oscuro"
       title={oscuro ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-      className="presionable grid size-11 place-items-center rounded-full text-tinta-suave hover:bg-papel-alt hover:text-tinta"
+      className="presionable grid size-10 place-items-center rounded-full text-tinta-suave hover:bg-papel-alt hover:text-tinta"
     >
       {oscuro ? (
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden>

@@ -68,6 +68,11 @@ function CapsulaCompra({ producto }: { producto: ProductoHeroe }) {
   )
 }
 
+/** Si la escena dibuja algún texto encima (con «sin texto» o todo vacío, no). */
+function tieneTexto(escena: EscenaHeroe): boolean {
+  return !escena.sinTexto && Boolean(escena.antetitulo || escena.titulo[0] || escena.titulo[1] || escena.bajada || escena.promo || escena.boton)
+}
+
 /**
  * Video de la escena: corre solo y en silencio, cubriendo la escena igual que
  * la foto (que queda de imagen de espera mientras carga). Mientras la
@@ -86,7 +91,17 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
   alFallar: () => void
 }) {
   const video = useRef<HTMLVideoElement>(null)
-  const poster = escena.fotos ? getImageProps({ src: escena.fotos.escritorio.src, alt: '', width: escena.fotos.escritorio.ancho, height: escena.fotos.escritorio.alto, sizes: '100vw' }).props.src : undefined
+  // Invisible hasta que reproduce: con solo los metadatos, Chrome pinta un rectángulo negro encima de la foto.
+  const [enCurso, setEnCurso] = useState(false)
+  // Con autoplay, el video puede arrancar antes de que React escuche `playing`: se revisa al montar.
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    const marcar = () => setEnCurso(true)
+    if (!v.paused && v.readyState >= 2) marcar()
+    v.addEventListener('timeupdate', marcar, { once: true })
+    return () => v.removeEventListener('timeupdate', marcar)
+  }, [escena.video, escena.videoMovil])
   const fallar = useRef(alFallar)
   useEffect(() => { fallar.current = alFallar })
 
@@ -97,14 +112,18 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
     if (!v || !activa || reducido) return
     let arranco = false
     const alArrancar = () => { arranco = true }
+    // Si el video llega tarde (red lenta), arranca apenas pueda en vez de quedar en pausa sobre la foto.
+    const alPoder = () => { if (v.paused && v.readyState >= 2) v.play()?.catch(() => {}) }
     v.addEventListener('playing', alArrancar, { once: true })
+    for (const evento of ['loadeddata', 'canplay', 'canplaythrough', 'progress'] as const) v.addEventListener(evento, alPoder)
     v.play()?.catch(() => fallar.current())
     const plazo = window.setTimeout(() => { if (!arranco) fallar.current() }, ESPERA_ARRANQUE_VIDEO)
     return () => {
       window.clearTimeout(plazo)
       v.removeEventListener('playing', alArrancar)
+      for (const evento of ['loadeddata', 'canplay', 'canplaythrough', 'progress'] as const) v.removeEventListener(evento, alPoder)
     }
-  }, [activa, reducido, escena.video])
+  }, [activa, reducido, escena.video, escena.videoMovil])
 
   // La barra sigue al video cuadro a cuadro: con un tiempo fijo se llenaba
   // antes o después de que el video terminara.
@@ -123,9 +142,7 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
   return (
     <video
       ref={video}
-      key={escena.video}
-      src={escena.video}
-      poster={poster}
+      key={`${escena.video}|${escena.videoMovil ?? ''}`}
       muted
       loop={enBucle}
       playsInline
@@ -133,8 +150,16 @@ function VideoEscena({ escena, activa, reducido, enBucle, barra, alTerminar, alF
       aria-hidden
       onEnded={alTerminar}
       onError={alFallar}
-      className="absolute inset-0 size-full object-cover"
-    />
+      onPlaying={() => setEnCurso(true)}
+      // El navegador lo inicia apenas tenga datos, aunque el plazo de 5 s ya haya pasado.
+      autoPlay={activa && !reducido}
+      className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${enCurso ? 'opacity-100' : 'opacity-0'}`}
+    >
+      {/* El navegador elige una sola fuente por ancho de pantalla y descarga solo esa. */}
+      {escena.videoMovil && <source media="(max-width: 734.98px)" src={escena.videoMovil} />}
+      {/* Con <source>, un fallo de carga avisa en la última fuente, no en el <video>. */}
+      <source src={escena.video} onError={alFallar} />
+    </video>
   )
 }
 
@@ -397,20 +422,23 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                 className={`absolute inset-x-0 top-[var(--movil-desde)] bottom-0 t:[mask-image:none] ${escena.movilDesde ? '[mask-image:linear-gradient(to_bottom,transparent,#000_16%)]' : ''} ${escena.texto === 'arriba' ? 't:top-[40%]' : 't:top-0'}`}
                 style={{ '--movil-desde': `${escena.movilDesde ?? 0}%` } as CSSProperties}
               >
-                {escena.video && videoFallido !== escena.id ? (
+                {/* La foto va siempre debajo: se ve al instante mientras el video carga y queda
+                    si el video no llega. Antes, un video que tardaba más de 5 s se quitaba y una
+                    escena sin foto quedaba negra. Ahora tardar solo cambia cuánto dura la escena. */}
+                {escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />}
+                {escena.video && (
                   <VideoEscena
                     escena={escena}
                     activa={esActiva}
                     reducido={reducido}
-                    enBucle={!puedeAvanzar}
+                    enBucle={!puedeAvanzar || videoFallido === escena.id}
                     barra={barraVideo}
                     alTerminar={alTerminarVideo}
                     alFallar={() => setVideoFallido(escena.id)}
                   />
-                ) : (
-                  escena.estilo !== 'tarjeta' && <FotoEscena escena={escena} activa={esActiva} />
                 )}
-                <span aria-hidden className="heroe-velo absolute inset-0" />
+                {/* El velo oscuro existe para leer el texto de la escena; sin texto, solo apagaría la imagen. */}
+                {tieneTexto(escena) && <span aria-hidden className="heroe-velo absolute inset-0" />}
                 {escena.estilo !== 'tarjeta' && escena.zonas && escena.zonas.length > 0 && <ZonasEscena zonas={escena.zonas} alClic={alClicZona} />}
               </div>
             </div>
@@ -506,11 +534,11 @@ export function HeroeEscenario({ escenas, productos, promo }: HeroeEscenarioProp
                   aria-controls={`escena-${escena.id}`}
                   aria-label={`${escena.etiqueta}, escena ${indice + 1} de ${escenas.length}`}
                   tabIndex={esActiva ? 0 : -1}
-                  className="heroe-punto grid h-11 place-items-center px-2.5"
+                  className="heroe-punto grid h-11 place-items-center px-2 t:px-2.5"
                   onClick={() => cambiar(indice)}
                   onKeyDown={(e) => alTeclado(e, indice)}
                 >
-                  <span aria-hidden className={`heroe-punto-pista block h-2 overflow-hidden rounded-full ${esActiva ? 'heroe-punto-activo w-12' : 'w-2'}`}>
+                  <span aria-hidden className={`heroe-punto-pista block h-2 overflow-hidden rounded-full ${esActiva ? 'heroe-punto-activo w-8 t:w-12' : 'w-2'}`}>
                     <span
                       ref={esActiva && esperaVideo && reproduciendo ? barraVideo : undefined}
                       className={`heroe-escenario-progreso block h-full origin-left rounded-full ${esActiva && reproduciendo && !reducido ? (esperaVideo ? 'heroe-escenario-progreso-video' : 'heroe-escenario-progreso-activo') : esActiva ? 'heroe-escenario-progreso-pausado' : ''}`}

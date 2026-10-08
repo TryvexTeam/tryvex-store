@@ -11,6 +11,8 @@ import { GaleriaFicha } from './galeria-ficha'
 import { MediosPago } from './medios-pago'
 import { EnvioEstimado } from './envio-estimado'
 import type { Hito } from '@/lib/plazo-envio'
+import { Estrellas } from './resenas-ficha'
+import { DescripcionFicha } from './descripcion-ficha'
 
 interface Envio {
   plazo: string | null
@@ -37,6 +39,7 @@ export function Ficha({
   hitosEnvio = null,
   varianteInicial = null,
   pruebaSocial = null,
+  valoracion = null,
 }: {
   ficha: FichaProducto
   envio: Envio
@@ -49,6 +52,8 @@ export function Ficha({
   varianteInicial?: string | null
   /** Compradores reales del producto (conteo de pedidos pagados); null si aún son pocos. */
   pruebaSocial?: PruebaSocial | null
+  /** Nota de las reseñas visibles; sin reseñas no se muestra nada. */
+  valoracion?: { promedio: number; total: number } | null
 }) {
   const bolsa = useBolsa()
   const conVariantes = ficha.variantes.length > 0
@@ -156,6 +161,14 @@ export function Ficha({
           {ficha.etiqueta && <p className="text-[14px] font-semibold text-spark">{ficha.etiqueta}</p>}
           <h1 className="mt-1 text-[32px] leading-[1.06] font-semibold tracking-seccion text-balance t:text-[40px] d:text-[48px]">{ficha.nombre}</h1>
           {ficha.marca && <p className="mt-2 text-[14px] text-gris">{ficha.marca}{ficha.condicion !== 'nuevo' ? ` · ${ficha.condicion}` : ''}</p>}
+          {/* Prueba social donde el comprador mira primero: junto al nombre, y lleva a las reseñas. */}
+          {valoracion && valoracion.total > 0 && (
+            <a href="#resenas" className="group mt-3 inline-flex items-center gap-2 text-[14px] text-tinta">
+              <Estrellas calificacion={Math.round(valoracion.promedio)} tam={15} />
+              <span className="cifra font-semibold">{valoracion.promedio.toLocaleString('es-CL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
+              <span className="text-tinta-suave underline-offset-4 group-hover:underline">{valoracion.total} {valoracion.total === 1 ? 'reseña' : 'reseñas'}</span>
+            </a>
+          )}
 
           <p className="mt-5 flex items-baseline gap-3">
             <span className="cifra text-[28px] font-semibold tracking-seccion">{clp(precio)}</span>
@@ -286,7 +299,7 @@ export function Ficha({
           {ficha.descripcion && (
             <section className="mt-10" aria-labelledby="desc-titulo">
               <h2 id="desc-titulo" className="text-[21px] font-semibold tracking-tarjeta">Sobre este producto</h2>
-              <p className="mt-3 max-w-[580px] text-[17px] leading-relaxed whitespace-pre-line text-tinta-suave">{ficha.descripcion}</p>
+              <DescripcionFicha texto={ficha.descripcion} />
             </section>
           )}
 

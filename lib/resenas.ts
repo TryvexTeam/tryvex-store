@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { crearClienteAdministrador } from '@/lib/supabase/administrador'
+import { intercalarPorProducto, ordenarPorUtilidad } from '@/lib/resenas-orden'
 
 export const BUCKET_RESENAS = 'resenas'
 export const TIPOS_FOTO_RESENA = [
@@ -36,7 +37,18 @@ export function urlPublicaResena(ruta: string | null): string | null {
   return `${base}/storage/v1/object/public/${BUCKET_RESENAS}/${ruta.replace(/^\/+/, '')}`
 }
 
-/** Reseñas que se pueden mostrar a cualquier visitante. */
+/** Cuántas tarjetas muestra cada carrusel. */
+const EN_PORTADA = 24
+// La ficha pagina en el cliente («Ver más reseñas»): trae todas las de un producto (hasta 200).
+const EN_FICHA = 200
+
+/**
+ * Reseñas que se pueden mostrar a cualquier visitante, de la más útil a la menos.
+ *
+ * Ficha: todas las notas (también las bajas: esconderlas sería maquillar), con las
+ * de foto y mejor texto primero. Portada: es vitrina de la tienda, así que solo
+ * 4 y 5 estrellas e intercaladas por producto.
+ */
 export async function leerResenas(productoId?: string): Promise<ResenaPublica[]> {
   const db = crearClienteAdministrador()
   let consulta = db
@@ -44,12 +56,14 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     .select('id,producto_id,pedido_id,cliente_nombre,texto,calificacion,foto_path,foto_ancho,foto_alto,created_at,productos(nombre)')
     .eq('visible', true)
     .order('created_at', { ascending: false })
-    .limit(productoId ? 30 : 24)
+    // Se trae holgura para elegir las mejores; el recorte va después de ordenar.
+    .limit(500)
 
   if (productoId) consulta = consulta.eq('producto_id', productoId)
+  else consulta = consulta.gte('calificacion', 4)
   const { data } = await consulta
 
-  return (data ?? []).map((r) => ({
+  const resenas = (data ?? []).map((r) => ({
     id: r.id,
     productoId: r.producto_id ?? '',
     producto: (r.productos as unknown as { nombre: string } | null)?.nombre ?? '',
@@ -62,6 +76,10 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
     fotoAlto: r.foto_alto,
     creadaEn: r.created_at,
   }))
+  if (productoId) return ordenarPorUtilidad(resenas).slice(0, EN_FICHA)
+  // Portada: siempre primero las que traen foto; las de solo texto completan si faltan.
+  const conFoto = intercalarPorProducto(resenas.filter((r) => r.foto), EN_PORTADA)
+  return [...conFoto, ...intercalarPorProducto(resenas.filter((r) => !r.foto), EN_PORTADA - conFoto.length)]
 }
 
 /**
@@ -70,21 +88,42 @@ export async function leerResenas(productoId?: string): Promise<ResenaPublica[]>
  * el carrusel: calcular el resumen sobre ella daría un total y un promedio falsos
  * en cuanto haya más reseñas que tarjetas. Solo trae la columna de la nota.
  */
-export async function leerResumenResenas(productoId?: string): Promise<{ promedio: number; total: number; positivas: number }> {
+export type ResumenResenas = {
+  promedio: number
+  total: number
+  positivas: number
+  /** Cuántas reseñas hay de 5, 4, 3, 2 y 1 estrella, en ese orden. */
+  distribucion: [number, number, number, number, number]
+}
+
+export async function leerResumenResenas(productoId?: string): Promise<ResumenResenas> {
   const db = crearClienteAdministrador()
   let consulta = db.from('resenas_tienda').select('calificacion').eq('visible', true)
   if (productoId) consulta = consulta.eq('producto_id', productoId)
   const { data } = await consulta
 
   const total = data?.length ?? 0
-  if (!data || total === 0) return { promedio: 0, total: 0, positivas: 0 }
+  if (!data || total === 0) return { promedio: 0, total: 0, positivas: 0, distribucion: [0, 0, 0, 0, 0] }
   const promedio = data.reduce((suma, r) => suma + r.calificacion, 0) / total
   const positivas = data.filter((r) => r.calificacion >= 4).length
-  return { promedio: Math.round(promedio * 100) / 100, total, positivas }
+  const distribucion = [5, 4, 3, 2, 1].map((n) => data.filter((r) => r.calificacion === n).length) as ResumenResenas['distribucion']
+  return { promedio: Math.round(promedio * 100) / 100, total, positivas, distribucion }
 }
 
 export function nombreFotoResena(resenaId: string, original: string): string {
   const extension = original.includes('.') ? original.split('.').pop()! : 'jpg'
   const ext = extension.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
   return `${resenaId}/foto.${ext}`
+}
+
+/** La reseña que este cliente ya dejó del producto: para no ofrecerle escribir otra. */
+export async function resenaPropia(productoId: string, authUserId: string): Promise<'en-revision' | 'publicada' | null> {
+  const { data } = await crearClienteAdministrador()
+    .from('resenas_tienda')
+    .select('visible')
+    .eq('producto_id', productoId)
+    .eq('auth_user_id', authUserId)
+    .maybeSingle()
+  if (!data) return null
+  return data.visible ? 'publicada' : 'en-revision'
 }
