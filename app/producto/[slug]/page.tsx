@@ -8,6 +8,7 @@ import { Carrusel } from '@/components/tienda/carrusel'
 import { CardProducto } from '@/components/tienda/card-producto'
 import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
+import { Medir } from '@/components/medir'
 import { ResenasFicha } from '@/components/tienda/resenas-ficha'
 import { EscribirResena, type EstadoResena } from '@/components/tienda/escribir-resena'
 import { cuentaActual } from '@/lib/cuenta'
@@ -114,6 +115,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
       {/* `<` se escapa para que ningún texto de producto pueda cerrar la etiqueta. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datosProducto).replace(/</g, '\\u003c') }} />
       <FranjaAnuncio configuracion={c} />
+      <Medir evento="ViewContent" parametros={{ content_ids: [ficha.sku], content_name: ficha.nombre, content_type: 'product', content_category: ficha.categoria?.nombre, value: Math.round(ficha.precio), currency: 'CLP' }} />
       <Cabecera destinos={destinosMenu(vitrina.categorias, '/')} ayuda={whatsapp} />
 
       <main className="min-w-0 flex-1">

@@ -4,6 +4,7 @@ import "./globals.css";
 import { ProveedorBolsa } from "@/components/tienda/bolsa";
 import { urlSitio } from "@/lib/sitio";
 import { ContenedorNotificaciones } from "@/components/notificaciones";
+import { MetaPixel, MetaPixelSinScript } from "@/components/meta-pixel";
 
 // Geist es la tipografía de la marca Tryvex (misma que la landing corporativa).
 const geistSans = Geist({
@@ -33,6 +34,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ProveedorBolsa>{children}</ProveedorBolsa>
         {/* Avisos (Sileo): el código pesado solo se descarga cuando hay algo que avisar. */}
         <ContenedorNotificaciones />
+        {/* Meta Pixel: PageView en cada ruta; los demás eventos los dispara cada acción (lib/meta-pixel.ts). */}
+        <MetaPixel />
+        <MetaPixelSinScript />
       </body>
     </html>
   );
