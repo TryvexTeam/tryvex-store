@@ -278,7 +278,7 @@ export function Ficha({
           <div ref={centinela} aria-hidden className="h-px" />
 
           <ul className="mt-6 grid gap-3 rounded-[18px] bg-papel-alt p-5 text-[14px] text-tinta-suave">
-            {['Envío a todo Chile', 'Garantía de 6 meses', '10 días de retracto', 'Pago seguro'].map((texto, i) => <li key={texto} className="flex items-center gap-3"><svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="shrink-0"><path d={['M3 7h11v9H3zM14 10h4l3 3v3h-7M5 16v3h3v-3m8 0v3h3v-3', 'M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4', 'M4 4v5h5M4 9a8 8 0 1 1 0 7', 'M6 11V8a6 6 0 0 1 12 0v3M5 11h14v10H5z'][i]} /></svg>{texto}</li>)}
+            {['Envío a todo Chile', 'Garantía de 6 meses', 'Seguimiento de tu pedido', 'Pago seguro'].map((texto, i) => <li key={texto} className="flex items-center gap-3"><svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="shrink-0"><path d={['M3 7h11v9H3zM14 10h4l3 3v3h-7M5 16v3h3v-3m8 0v3h3v-3', 'M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4', 'M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z', 'M6 11V8a6 6 0 0 1 12 0v3M5 11h14v10H5z'][i]} /></svg>{texto}</li>)}
             {whatsapp && (
               <li className="flex gap-3"><Punto /><span>¿Dudas? <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="text-spark hover:underline">Escríbenos por WhatsApp</a>.</span></li>
             )}

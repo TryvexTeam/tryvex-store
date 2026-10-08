@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { cuentaActual } from '@/lib/cuenta'
 import { rutaInterna } from '@/lib/rutas'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
@@ -27,7 +27,7 @@ export default async function Ingresar(props: PageProps<'/cuenta/ingresar'>) {
   if (await cuentaActual()) redirect(volver)
 
   const motivo = typeof q.motivo === 'string' ? MOTIVOS[q.motivo] : undefined
-  const [{ categorias, configuracion }, conGoogle] = await Promise.all([leerVitrina(), googleHabilitado()])
+  const [{ categorias, configuracion }, conGoogle] = await Promise.all([leerVitrinaGuardada(), googleHabilitado()])
 
   return (
     <div className="tienda flex min-h-dvh min-w-0 flex-col bg-papel-alt">

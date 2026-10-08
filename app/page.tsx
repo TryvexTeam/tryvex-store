@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
 import { leerVitrina } from '@/lib/tienda'
+import { datosTienda, jsonLd } from '@/lib/datos-estructurados'
 import { leerPiezas, type PiezaLanding } from '@/lib/secciones'
 import type { ConfiguracionTienda } from '@/lib/configuracion'
 import { Cabecera } from '@/components/tienda/cabecera'
@@ -15,6 +17,7 @@ import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
 import { ResenasPortada } from '@/components/tienda/resenas-portada'
 import { leerResenas, leerResumenResenas } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
+import { FraseProductos, productosPorCategoria } from '@/components/tienda/frase-productos'
 
 /** Portada de catálogo: categorías y productos se alimentan exclusivamente de la vitrina. */
 
@@ -30,6 +33,10 @@ import { PieTienda } from '@/components/tienda/pie-tienda'
  * consulta los mismos 300 segundos, así que la base se consulta igual de poco.
  */
 export const dynamic = 'force-dynamic'
+
+// La dirección oficial va página por página: puesta en el layout, todas las
+// páginas que no la redefinan declararían a la portada como su original.
+export const metadata: Metadata = { alternates: { canonical: '/' } }
 
 /**
  * El caché guarda el valor serializado a JSON, y un `Map` sobrevive a ese viaje
@@ -50,8 +57,7 @@ const datosDePortada = unstable_cache(
   { revalidate: 300, tags: ['resenas', 'portada'] },
 )
 
-const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'
-const LEGAL_RETRACTO = 'Derecho a retracto de 10 días en compras a distancia; reembolso antes de 45 días.'
+const LEGAL_GARANTIA = 'Garantía legal de 6 meses desde la recepción, por fallas de fábrica.'
 
 export default async function Inicio() {
   // Las franjas editables de la portada. Si la tabla esta vacia, cada franja
@@ -61,9 +67,13 @@ export default async function Inicio() {
   const piezas = new Map(paresDePiezas)
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
   const nombre = configuracion?.nombre_tienda ?? 'Tryvex'
+  // Frase con productos dentro del texto: uno real por familia, si las tres existen.
+  const [audio, reloj, carga] = productosPorCategoria(productos, categorias, ['audifonos', 'relojes', 'cargadores-y-cables'])
 
   return (
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
+      {/* Quién es la tienda y su buscador, para Google y los asistentes de IA. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(datosTienda(configuracion)) }} />
       <FranjaAnuncio configuracion={configuracion} />
       {/* La cabecera ya no se monta sobre el banner: el banner es una tarjeta
           despegada del borde, y encima de él van la franja de despachos y la
@@ -83,6 +93,13 @@ export default async function Inicio() {
             ~5.000 px de narrativa antes del primer producto. Primero qué se
             vende, después por qué. */}
         <ListaProductos productos={loNuevo} total={productos.length} />
+        {audio && reloj && carga && (
+          <FraseProductos
+            id="frase-portada"
+            className="pt-20 t:pt-28"
+            partes={['Tecnología ', { producto: audio }, { tono: 'gris', texto: ' para el día a día, ' }, { producto: reloj }, { tono: 'gris', texto: ' para regalar y ' }, { producto: carga }, { tono: 'gris', texto: ' para revender.' }]}
+          />
+        )}
         <BannerDoble piezas={piezas} />
         <ProductoFoco productos={productos} destacado={destacado} pieza={piezas.get('foco')} />
         <ResenasPortada resenas={resenas} resumen={resumenResenas} />
@@ -115,8 +132,7 @@ export function beneficiosDe(c: ConfiguracionTienda | null): Beneficio[] {
       id: 'envio', destacado: gratis ? `Envío gratis desde $${gratis.toLocaleString('es-CL')}.` : 'Envío a todo Chile.', resto: plazo ? `${plazo} en recibirlo.` : 'Sabes el costo antes de pagar.', tono: 'verde', icono: 'envio',
       detalle: { titulo: 'Envío', parrafos: [c?.envio_politica_texto ?? 'El costo y el plazo del envío se muestran antes de pagar.'], filas: [['Tarifa', tarifa > 0 ? `$${tarifa.toLocaleString('es-CL')}` : 'Sin costo'], ...(gratis ? ([['Gratis desde', `$${gratis.toLocaleString('es-CL')}`]] as [string, string][]) : []), ...(plazo ? ([['Plazo', plazo]] as [string, string][]) : [])] },
     },
-    { id: 'garantia', destacado: 'Garantía de 6 meses.', resto: 'Reparar, cambiar o devolver: tú eliges.', tono: 'spark', icono: 'garantia', detalle: { titulo: 'Garantía', parrafos: [c?.garantia_texto ?? LEGAL_GARANTIA] } },
-    { id: 'retracto', destacado: '10 días para arrepentirte.', resto: 'Sin dar explicaciones.', tono: 'ambar', icono: 'retracto', detalle: { titulo: 'Derecho a retracto', parrafos: [c?.retracto_texto ?? LEGAL_RETRACTO] } },
+    { id: 'garantia', destacado: 'Garantía de 6 meses.', resto: 'Cubre fallas de fábrica.', tono: 'spark', icono: 'garantia', detalle: { titulo: 'Garantía', parrafos: [c?.garantia_texto ?? LEGAL_GARANTIA] } },
     { id: 'pago', destacado: 'Paga como prefieras.', resto: 'Transferencia o Mercado Pago.', tono: 'azul', icono: 'pago', detalle: { titulo: 'Formas de pago', parrafos: ['Al confirmar el pedido reservamos tus unidades y te mostramos los datos para pagar.'] } },
   ]
   if (c?.retiro_habilitado && c.retiro_direccion) lista.push({ id: 'retiro', destacado: 'Retira sin costo.', resto: 'Coordina el día por WhatsApp.', tono: 'verde', icono: 'retiro', detalle: { titulo: 'Retiro en persona', parrafos: [c.retiro_direccion] } })

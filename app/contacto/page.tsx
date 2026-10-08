@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { leerConfiguracion } from '@/lib/configuracion'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
@@ -15,6 +15,7 @@ import { REDES_TIENDA } from '@/lib/redes'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
+  alternates: { canonical: '/contacto' },
   title: 'Contacto',
   description: 'Escríbenos por correo o WhatsApp y síguenos en Instagram y TikTok.',
 }
@@ -47,7 +48,7 @@ const ATAJOS = [
 ] as const
 
 export default async function Contacto() {
-  const [configuracion, vitrina] = await Promise.all([leerConfiguracion(), leerVitrina()])
+  const [configuracion, vitrina] = await Promise.all([leerConfiguracion(), leerVitrinaGuardada()])
   const whatsapp = (configuracion?.whatsapp ?? '').replace(/\D/g, '')
   const email = configuracion?.email_contacto?.trim()
   // Se muestra el correo de marca; el clic escribe al buzón que el equipo lee.

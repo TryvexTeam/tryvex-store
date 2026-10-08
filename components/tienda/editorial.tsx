@@ -46,7 +46,7 @@ function Pieza({ clave, asset, titulo, bajada, claro = false, formato = 'doble',
 
   return (
     <article className={`revela ${styles.pieza} ${styles[formato]} ${claro ? styles.claro : ''}`}>
-      <picture>
+      <picture className={styles.marco}>
         {/* Tiles casi cuadradas o altas usan la composición vertical: la horizontal recortaba los productos. */}
         {(formato === 'ancho' || formato === 'bajo') && <source media="(min-width: 1069px)" srcSet={escritorio.srcSet} sizes={sizes} />}
         <img {...movil} alt={alt} className={styles.imagen} />

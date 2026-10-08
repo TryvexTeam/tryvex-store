@@ -18,6 +18,7 @@ import { LlegadaEstimada, SellosConfianza } from '@/components/tienda/confianza-
 import type { Hito } from '@/lib/plazo-envio'
 import { SelectorPuntoStarken } from '@/components/tienda/punto-starken'
 import type { PuntoStarken } from '@/lib/sucursales-starken'
+import { rastrear } from '@/lib/meta-pixel'
 
 /** Lo que quien tiene sesión dejó en su compra anterior: llega llenado. */
 export interface PerfilCompra {
@@ -257,6 +258,21 @@ export default function Checkout({
   const faltaParaGratis = 0
   const hayProblemas = lineas.some((l) => l.error)
   const vacio = cotizadas !== null && lineas.length === 0
+
+  // InitiateCheckout una vez por visita al checkout, con el pedido ya cotizado
+  // (precio real con tramos), no con lo que decía la bolsa.
+  const checkoutMedido = useRef(false)
+  useEffect(() => {
+    if (checkoutMedido.current || !cotizadas || cotizadas.length === 0) return
+    checkoutMedido.current = true
+    rastrear('InitiateCheckout', {
+      content_ids: cotizadas.map((l) => l.sku),
+      content_type: 'product',
+      value: cotizadas.reduce((a, l) => a + l.subtotal, 0),
+      currency: 'CLP',
+      num_items: cotizadas.reduce((a, l) => a + l.cantidad, 0),
+    })
+  }, [cotizadas])
 
   function cambiar(l: LineaCotizada, cantidad: number) {
     const n = Math.max(1, Math.min(MAX_UNIDADES_LINEA, cantidad))

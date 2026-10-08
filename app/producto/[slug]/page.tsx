@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { leerFicha, relacionados } from '@/lib/ficha'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
@@ -8,6 +8,7 @@ import { Carrusel } from '@/components/tienda/carrusel'
 import { CardProducto } from '@/components/tienda/card-producto'
 import { Ficha } from '@/components/tienda/ficha'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
+import { Medir } from '@/components/medir'
 import { ResenasFicha } from '@/components/tienda/resenas-ficha'
 import { EscribirResena, type EstadoResena } from '@/components/tienda/escribir-resena'
 import { cuentaActual } from '@/lib/cuenta'
@@ -15,6 +16,7 @@ import { leerResenas, leerResumenResenas, resenaPropia } from '@/lib/resenas'
 import { PieTienda } from '@/components/tienda/pie-tienda'
 import { hitosDeEnvio, PLAZO_TRYVEX } from '@/lib/plazo-envio'
 import { urlSitio } from '@/lib/sitio'
+import { jsonLd, migasDePan } from '@/lib/datos-estructurados'
 import { CintaConfianza } from '@/components/tienda/cinta-confianza'
 
 /**
@@ -35,6 +37,8 @@ export async function generateMetadata(props: PageProps<'/producto/[slug]'>): Pr
     title: ficha.nombre,
     description: ficha.descripcion ?? `${ficha.nombre} en Tryvex Store.`,
     openGraph: { title: ficha.nombre, images: ficha.galeria.slice(0, 1) },
+    // Sin el `?v=` del color: todas las variantes son la misma ficha para Google.
+    alternates: { canonical: `/producto/${encodeURIComponent(ficha.slug)}` },
   }
 }
 
@@ -43,7 +47,7 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   // Color elegido en la card: solo un id con forma de uuid, lo demás se ignora.
   const v = (await props.searchParams).v
   const varianteInicial = typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null
-  const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrina()])
+  const [ficha, vitrina] = await Promise.all([leerFicha(slug), leerVitrinaGuardada()])
   if (!ficha) notFound()
   const [resenas, resumenResenas, cuenta] = await Promise.all([leerResenas(ficha.id), leerResumenResenas(ficha.id), cuentaActual()])
   const propia = cuenta ? await resenaPropia(ficha.id, cuenta.id) : null
@@ -64,6 +68,12 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
   // entra lo que la ficha ya muestra: nada inventado, y la valoración únicamente
   // si hay reseñas reales.
   const urlFicha = `${urlSitio()}/producto/${encodeURIComponent(ficha.slug)}`
+  const migas: [string, string][] = [
+    ['Inicio', '/'],
+    ['Tienda', '/tienda'],
+    ...(ficha.categoria ? [[ficha.categoria.nombre, `/tienda?cat=${encodeURIComponent(ficha.categoria.slug)}`] as [string, string]] : []),
+    [ficha.nombre, `/producto/${encodeURIComponent(ficha.slug)}`],
+  ]
   // Solo con la configuración leída: si la base no respondió, no se declara envío gratis.
   const envioGratisConfirmado = c !== null && c.envio_tarifa_clp === 0 && !c.envio_gratis_desde_clp
   const datosProducto = {
@@ -113,15 +123,17 @@ export default async function PaginaProducto(props: PageProps<'/producto/[slug]'
     <div className="tienda flex min-h-dvh w-full min-w-0 flex-col bg-papel-alt">
       {/* `<` se escapa para que ningún texto de producto pueda cerrar la etiqueta. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(datosProducto).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(migasDePan(migas)) }} />
       <FranjaAnuncio configuracion={c} />
+      <Medir evento="ViewContent" parametros={{ content_ids: [ficha.sku], content_name: ficha.nombre, content_type: 'product', content_category: ficha.categoria?.nombre, value: Math.round(ficha.precio), currency: 'CLP' }} />
       <Cabecera destinos={destinosMenu(vitrina.categorias, '/')} ayuda={whatsapp} />
 
       <main className="min-w-0 flex-1">
         <Ficha
           ficha={ficha}
           envio={envio}
-          garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción (Ley 21.398).'}
-          retracto={c?.retracto_texto ?? 'Tienes 10 días desde que lo recibes para arrepentirte.'}
+          garantia={c?.garantia_texto ?? 'Garantía legal de 6 meses desde la recepción, por fallas de fábrica.'}
+          retracto={c?.retracto_texto ?? 'Cambios y devoluciones según la Ley del Consumidor. Revisa las condiciones en Cambios y devoluciones.'}
           whatsapp={whatsapp}
           hitosEnvio={hitosDeEnvio(new Date())}
           varianteInicial={varianteInicial}

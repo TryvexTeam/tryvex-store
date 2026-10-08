@@ -34,6 +34,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     { href: '/panel/pedidos', etiqueta: 'Pedidos', icono: 'pedidos' },
     { href: '/panel/ventas', etiqueta: 'Vender', icono: 'pedidos' },
     { href: '/panel/productos', etiqueta: 'Productos', icono: 'productos' },
+    { href: '/panel/etiquetas', etiqueta: 'Etiquetas', icono: 'productos' },
     { href: '/panel/resenas', etiqueta: 'Reseñas', icono: 'resenas' },
     { href: '/panel/portada', etiqueta: 'Portada', icono: 'portada' },
     { href: '/panel/stock', etiqueta: 'Stock', icono: 'stock' },

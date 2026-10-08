@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { Cabecera } from '@/components/tienda/cabecera'
 import { destinosMenu } from '@/components/tienda/destinos'
 import { FranjaAnuncio } from '@/components/tienda/franja-anuncio'
@@ -9,6 +9,7 @@ import { PaginaServicio } from '@/components/tienda/pagina-servicio'
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
+  alternates: { canonical: '/ayuda' },
   title: 'Ayuda',
   description: 'Encuentre respuestas, envíos, cambios, devoluciones y canales de contacto de Tryvex.',
 }
@@ -22,7 +23,7 @@ const ENLACES = [
 ]
 
 export default async function Ayuda() {
-  const { categorias, configuracion } = await leerVitrina()
+  const { categorias, configuracion } = await leerVitrinaGuardada()
   const whatsapp = configuracion?.whatsapp ? `https://wa.me/${configuracion.whatsapp.replace(/\D/g, '')}` : null
 
   return (

@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next'
-import { leerVitrina } from '@/lib/tienda'
+import { leerVitrinaGuardada } from '@/lib/tienda'
 import { urlSitio } from '@/lib/sitio'
 
 // Los productos cambian desde el panel: se arma en cada petición.
 export const dynamic = 'force-dynamic'
 
-const PAGINAS = ['/', '/tienda', '/nosotros', '/contacto', '/envios', '/cambios-y-devoluciones', '/ayuda', '/ayuda/preguntas-frecuentes']
+const PAGINAS = ['/', '/tienda', '/cyber', '/nosotros', '/contacto', '/envios', '/cambios-y-devoluciones', '/ayuda', '/ayuda/preguntas-frecuentes']
 
 /**
  * Páginas fijas más una entrada por producto publicado. Si la base no responde
@@ -21,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   try {
-    const { productos } = await leerVitrina()
+    const { productos } = await leerVitrinaGuardada()
     return [
       ...fijas,
       ...productos.map((p) => ({ url: `${base}/producto/${encodeURIComponent(p.slug)}`, changeFrequency: 'weekly' as const, priority: 0.8 })),

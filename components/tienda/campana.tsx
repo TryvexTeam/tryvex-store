@@ -16,8 +16,8 @@ export async function HeroeCampana({ productos, piezas }: { productos: ReadonlyA
 
 const CONFIANZA = [
   { texto: 'Envío a todo Chile', trazo: 'M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM17 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z' },
-  { texto: 'Garantía de 6 meses', trazo: 'M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3ZM9 12l2 2 4-4' },
-  { texto: '10 días para arrepentirte', trazo: 'M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4' },
+  { texto: 'Garantía de 6 meses por fallas de fábrica', trazo: 'M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3ZM9 12l2 2 4-4' },
+  { texto: 'Seguimiento de tu pedido', trazo: 'M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z' },
   { texto: 'Pago seguro', trazo: 'M6 11V8a6 6 0 1 1 12 0v3M5 11h14v10H5z' },
 ]
 

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { clp } from '@/lib/formato'
 import { notificar } from '@/lib/notificar'
+import { rastrear } from '@/lib/meta-pixel'
 import { Estrella } from '@/app/marca'
 import { LlegadaEstimada, SellosConfianza } from '@/components/tienda/confianza-compra'
 import type { Hito } from '@/lib/plazo-envio'
@@ -81,6 +82,8 @@ export function ProveedorBolsa({ children }: { children: React.ReactNode }) {
       subtotal: lineas.reduce((a, l) => a + l.cantidad * l.precio, 0),
       agregar: (linea) => {
         actualizar((a) => sumarLinea(a, linea))
+        // Un solo punto para toda la tienda: ficha, «+» de las cards y /cyber.
+        rastrear('AddToCart', { content_ids: [linea.sku], content_name: linea.nombre, content_type: 'product', value: linea.precio * linea.cantidad, currency: 'CLP', num_items: linea.cantidad })
         if (location.pathname !== '/bolsa') {
           void notificar.accion({
             titulo: 'Agregado a tu bolsa',

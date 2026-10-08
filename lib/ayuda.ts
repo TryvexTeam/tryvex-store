@@ -18,11 +18,11 @@ export const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
   },
   {
     pregunta: '¿Cómo funciona la garantía de 6 meses?',
-    respuesta: 'Las condiciones vigentes de garantía se explican en la página de cambios y devoluciones.',
+    respuesta: 'La garantía de 6 meses cubre fallas de fábrica. Las condiciones vigentes se explican en la página de cambios y devoluciones.',
     enlace: { href: '/cambios-y-devoluciones', texto: 'Revisar garantía' },
   },
   {
-    pregunta: '¿Puedo ejercer retracto dentro de 10 días?',
+    pregunta: '¿Puedo devolver un producto?',
     respuesta: 'La información aplicable sobre retracto está disponible junto con las políticas de cambios y devoluciones.',
     enlace: { href: '/cambios-y-devoluciones', texto: 'Ver cambios y devoluciones' },
   },
