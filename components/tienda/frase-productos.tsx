@@ -12,6 +12,8 @@ import type { ProductoTienda } from '@/lib/tienda'
  * borde fino. Las partes pueden ir en tinta (lo importante) o en gris (los
  * conectores), igual que «Explora la colección. Ideas para combinar.».
  */
+const PUNTUACION = /^[,.;:]/
+
 export type ParteFrase = string | { tono: 'gris'; texto: string } | { producto: ProductoTienda }
 
 export function FraseProductos({ id, partes, className = '' }: { id: string; partes: ParteFrase[]; className?: string }) {
@@ -23,22 +25,33 @@ export function FraseProductos({ id, partes, className = '' }: { id: string; par
         className="revela mx-auto max-w-[1100px] text-[30px] leading-[1.3] font-semibold tracking-seccion text-balance text-tinta t:text-[44px] t:leading-[1.25] d:text-[56px]"
       >
         {partes.map((parte, i) => {
-          if (typeof parte === 'string') return <span key={i}>{parte}</span>
+          if (typeof parte === 'string') {
+            // La puntuación que sigue a una foto ya se dibujó pegada a ella.
+            const previa = partes[i - 1]
+            const texto = previa && typeof previa === 'object' && 'producto' in previa ? parte.replace(PUNTUACION, '') : parte
+            return <span key={i}>{texto}</span>
+          }
           if ('texto' in parte) return <span key={i} className="text-gris">{parte.texto}</span>
           const p = parte.producto
           const estilo = { '--i': `${indice++ * 5}%` } as CSSProperties
+          // Una coma o punto justo después de la foto va pegado a ella: así nunca
+          // queda sola al comienzo de la línea siguiente en el teléfono.
+          const siguiente = partes[i + 1]
+          const puntuacion = typeof siguiente === 'string' ? (siguiente.match(PUNTUACION)?.[0] ?? '') : ''
           return (
-            <Link
-              key={i}
-              href={p.href}
-              aria-label={p.nombre}
-              style={estilo}
-              className="revela-escala group relative mx-[0.12em] inline-block h-[1.05em] w-[1.9em] top-[0.16em] overflow-hidden rounded-full bg-papel align-baseline shadow-sutil ring-1 ring-borde focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark motion-reduce:transition-none"
-            >
-              {p.imagen && (
-                <Image src={p.imagen} alt="" fill sizes="128px" className="scale-[1.35] object-contain transition-transform duration-300 ease-salida group-hover:scale-[1.5] motion-reduce:transition-none" />
-              )}
-            </Link>
+            <span key={i} className="whitespace-nowrap">
+              <Link
+                href={p.href}
+                aria-label={p.nombre}
+                style={estilo}
+                className="revela-escala group relative mx-[0.1em] inline-block size-[1.25em] top-[0.22em] overflow-hidden rounded-[0.32em] bg-papel align-baseline shadow-sutil ring-1 ring-borde focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-spark"
+              >
+                {p.imagen && (
+                  <Image src={p.imagen} alt="" fill sizes="96px" className="object-contain p-[0.06em] transition-transform duration-300 ease-salida group-hover:scale-105 motion-reduce:transition-none" />
+                )}
+              </Link>
+              {puntuacion}
+            </span>
           )
         })}
       </h2>

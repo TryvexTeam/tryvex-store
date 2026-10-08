@@ -13,6 +13,16 @@ import { EnlaceMedido } from './rastreo'
  */
 type Dato = { valor: string; etiqueta: string; acento?: boolean }
 
+/**
+ * Fotos preparadas para fondo negro, por slug. Algunas fotos del catálogo
+ * traen zonas blancas encerradas (el hueco de una correa) que en la tienda,
+ * sobre blanco, no se notan, pero sobre negro se ven como una mancha. La
+ * copia limpia se hace con `scripts/herramientas/quitar-blanco.py`.
+ */
+const FOTO_SOBRE_NEGRO: Record<string, string> = {
+  'reloj-ultra-3-49mm': '/tienda/cyber/reloj-ultra-3-49mm-sobre-negro.webp',
+}
+
 function Anotacion({ dato, lado }: { dato: Dato; lado: 'izquierda' | 'derecha' }) {
   return (
     <div className={`flex items-center gap-4 ${lado === 'izquierda' ? 'flex-row' : 'flex-row-reverse'}`}>
@@ -54,7 +64,7 @@ export function ProductoAnotado({ producto }: { producto: ProductoTienda }) {
             <Anotacion dato={datos[1]} lado="izquierda" />
           </div>
           <div className="revela-escala relative mx-auto aspect-square w-full max-w-[420px]">
-            {producto.imagen && <Image src={producto.imagen} alt={producto.nombre} fill sizes="(min-width: 1069px) 420px, 80vw" loading="lazy" className="object-contain" />}
+            {producto.imagen && <Image src={FOTO_SOBRE_NEGRO[producto.slug] ?? producto.imagen} alt={producto.nombre} fill sizes="(min-width: 1069px) 420px, 80vw" loading="lazy" className="object-contain" />}
           </div>
           <div className="hidden flex-col gap-16 d:flex">
             <Anotacion dato={datos[2]} lado="derecha" />
