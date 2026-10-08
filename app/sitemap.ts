@@ -5,7 +5,7 @@ import { urlSitio } from '@/lib/sitio'
 // Los productos cambian desde el panel: se arma en cada petición.
 export const dynamic = 'force-dynamic'
 
-const PAGINAS = ['/', '/tienda', '/nosotros', '/contacto', '/envios', '/cambios-y-devoluciones', '/ayuda', '/ayuda/preguntas-frecuentes']
+const PAGINAS = ['/', '/tienda', '/cyber', '/nosotros', '/contacto', '/envios', '/cambios-y-devoluciones', '/ayuda', '/ayuda/preguntas-frecuentes']
 
 /**
  * Páginas fijas más una entrada por producto publicado. Si la base no responde
